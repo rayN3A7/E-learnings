@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}eLEARNING{% endblock %}</title>
+    <link rel="stylesheet" href="{{ asset('css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/fontawesome.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/style.css') }}">
+    {% block css %}{% endblock %}
+</head>
+<body>
+    <!-- Navbar Start -->
+    <nav class="navbar navbar-expand-lg bg-primary navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="{{ path('app_home') }}">eLEARNING</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarCollapse">
+                <div class="navbar-nav ms-auto">
+                    <a class="nav-item nav-link" href="{{ path('app_home') }}">Home</a>
+                    <a class="nav-item nav-link" href="{{ path('app_about') }}">About</a>
+                    <a class="nav-item nav-link" href="{{ path('app_courses') }}">Courses</a>
+                    {% if is_granted('ROLE_TEACHER') %}
+                        <a class="nav-item nav-link" href="{{ path('app_course_create') }}">Create Course</a>
+                    {% endif %}
+                    {% if app.user %}
+                        <a class="nav-item nav-link" href="{{ path('app_logout') }}">Logout</a>
+                    {% else %}
+                        <a class="nav-item nav-link" href="{{ path('app_login') }}">Login</a>
+                        <a class="nav-item nav-link" href="{{ path('app_join') }}">Join</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+    <!-- Navbar End -->
+
+    {% block body %}
+    {% endblock %}
+
+    <!-- Footer Start -->
+    <footer class="bg-dark text-white py-4">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4">
+                    <h5>eLEARNING</h5>
+                    <p>Learn at your own pace with our comprehensive courses.</p>
+                </div>
+                <div class="col-md-4">
+                    <h5>Quick Links</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="{{ path('app_home') }}" class="text-white">Home</a></li>
+                        <li><a href="{{ path('app_about') }}" class="text-white">About</a></li>
+                        <li><a href="{{ path('app_courses') }}" class="text-white">Courses</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-4">
+                    <h5>Contact Us</h5>
+                    <p>Email: support@elearning.com</p>
+                    <p>Phone: +1 234 567 890</p>
+                </div>
+            </div>
+            <hr>
+            <p class="text-center mb-0">&copy; {{ 'now'|date('Y') }} eLEARNING. All Rights Reserved.</p>
+        </div>
+    </footer>
+    <!-- Footer End -->
+
+    <script src="{{ asset('js/bootstrap.bundle.min.js') }}"></script>
+    <script src="{{ asset('js/main.js') }}"></script>
+    {% block js %}{% endblock %}
+</body>
+</html>

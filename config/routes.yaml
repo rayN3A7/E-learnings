@@ -3,3 +3,22 @@ controllers:
         path: ../src/Controller/
         namespace: App\Controller
     type: attribute
+app_course_details:
+    path: /course/{id}
+    controller: App\Controller\CourseController::show
+    methods: [GET]
+
+app_join_course:
+    path: /course/{id}/join
+    controller: App\Controller\CourseController::join
+    methods: [GET]
+
+app_part_details:
+    path: /part/{id}
+    controller: App\Controller\PartController::show
+    methods: [GET]
+
+app_quiz_submit:
+    path: /quiz/{id}/submit
+    controller: App\Controller\QuizController::submit
+    methods: [POST]

@@ -1,0 +1,27 @@
+{% extends 'layout.html.twig' %}
+
+{% block title %}Log In - eLEARNING{% endblock %}
+
+{% block body %}
+    <div class="container-xxl py-5">
+        <div class="container">
+            <h1 class="mb-4">Log In</h1>
+            {% if error %}
+                <div class="alert alert-danger">{{ error.messageKey|trans(error.messageData, 'security') }}</div>
+            {% endif %}
+            <form method="post" action="{{ path('app_login') }}">
+                <div class="mb-3">
+                    <label for="username" class="form-label">Username</label>
+                    <input type="text" value="{{ last_username }}" name="_username" id="username" class="form-control" required autofocus>
+                </div>
+                <div class="mb-3">
+                    <label for="password" class="form-label">Password</label>
+                    <input type="password" name="_password" id="password" class="form-control" required>
+                </div>
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
+                <button class="btn btn-primary" type="submit">Log In</button>
+            </form>
+            <p class="mt-3">Don't have an account? <a href="{{ path('app_join') }}">Join now</a></p>
+        </div>
+    </div>
+{% endblock %}
