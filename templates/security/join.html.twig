@@ -1,0 +1,24 @@
+{% extends 'layout.html.twig' %}
+
+{% block title %}Join - eLEARNING{% endblock %}
+
+{% block body %}
+    <div class="container-xxl py-5">
+        <div class="container">
+            <h1 class="mb-4">Join eLEARNING</h1>
+            {{ form_start(form) }}
+                <div class="mb-3">
+                    {{ form_row(form.username, {'attr': {'class': 'form-control'}}) }}
+                </div>
+                <div class="mb-3">
+                    {{ form_row(form.email, {'attr': {'class': 'form-control'}}) }}
+                </div>
+                <div class="mb-3">
+                    {{ form_row(form.plainPassword, {'attr': {'class': 'form-control'}, 'label': 'Password'}) }}
+                </div>
+                <button type="submit" class="btn btn-primary">Register</button>
+                {{ form_end(form) }}
+                <p class="mt-3">Already have an account? <a href="{{ path('app_login') }}">Log in</a></p>
+        </div>
+    </div>
+{% endblock %}

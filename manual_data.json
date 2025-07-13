@@ -1,0 +1,142 @@
+[
+  {
+    "content": "The bisection method finds roots of a continuous function by repeatedly bisecting an interval and selecting the subinterval where the function changes sign.",
+    "question_type": "MCQ",
+    "question": "What is the primary goal of the bisection method in numerical analysis?",
+    "options": ["To find roots of a function", "To interpolate data points", "To solve differential equations", "To optimize a function"],
+    "correct_answer": "To find roots of a function"
+  },
+  {
+    "content": "The bisection method finds roots of a continuous function by repeatedly bisecting an interval and selecting the subinterval where the function changes sign.",
+    "question_type": "Numeric",
+    "question": "Using the bisection method on f(x) = x^2 - 4 over the interval [1, 3], what is the midpoint of the first iteration?",
+    "options": [],
+    "correct_answer": "2"
+  },
+  {
+    "content": "The Newton-Raphson method uses the formula x_{n+1} = x_n - f(x_n)/f'(x_n) to find roots of a function, converging quadratically for simple roots.",
+    "question_type": "Numeric",
+    "question": "Using the Newton-Raphson method, what is the next approximation for the root of f(x) = x^2 - 4 starting at x_0 = 3? (Round to one decimal place)",
+    "options": [],
+    "correct_answer": "2.5"
+  },
+  {
+    "content": "The Newton-Raphson method uses the formula x_{n+1} = x_n - f(x_n)/f'(x_n) to find roots of a function, converging quadratically for simple roots.",
+    "question_type": "MCQ",
+    "question": "What is a key advantage of the Newton-Raphson method over the bisection method?",
+    "options": ["Guaranteed convergence", "Faster convergence for simple roots", "No need for derivatives", "Works for discontinuous functions"],
+    "correct_answer": "Faster convergence for simple roots"
+  },
+  {
+    "content": "Interpolation estimates values between known data points using polynomials, such as Lagrange polynomials or Newton’s divided differences.",
+    "question_type": "MCQ",
+    "question": "Which method is commonly used for polynomial interpolation in numerical analysis?",
+    "options": ["Bisection method", "Newton-Raphson method", "Lagrange polynomial", "Trapezoidal rule"],
+    "correct_answer": "Lagrange polynomial"
+  },
+  {
+    "content": "Interpolation estimates values between known data points using polynomials, such as Lagrange polynomials or Newton’s divided differences.",
+    "question_type": "Numeric",
+    "question": "Using linear interpolation with points (1, 2) and (3, 8), what is the estimated value at x = 2?",
+    "options": [],
+    "correct_answer": "5"
+  },
+  {
+    "content": "Numerical integration approximates the definite integral of a function, such as using the trapezoidal rule, which sums the areas of trapezoids.",
+    "question_type": "Numeric",
+    "question": "Using the trapezoidal rule with n=2, approximate the integral of f(x) = x^2 from 0 to 2. (Round to three decimal places)",
+    "options": [],
+    "correct_answer": "2.667"
+  },
+  {
+    "content": "Numerical integration approximates the definite integral of a function, such as using the trapezoidal rule, which sums the areas of trapezoids.",
+    "question_type": "MCQ",
+    "question": "What does the trapezoidal rule approximate in numerical analysis?",
+    "options": ["Roots of a function", "Derivatives", "Definite integrals", "Interpolated values"],
+    "correct_answer": "Definite integrals"
+  },
+  {
+    "content": "Gaussian elimination solves systems of linear equations by transforming the augmented matrix into row-echelon form.",
+    "question_type": "MCQ",
+    "question": "What is the primary purpose of Gaussian elimination?",
+    "options": ["To find eigenvalues", "To solve systems of linear equations", "To approximate integrals", "To interpolate data"],
+    "correct_answer": "To solve systems of linear equations"
+  },
+  {
+    "content": "Gaussian elimination solves systems of linear equations by transforming the augmented matrix into row-echelon form.",
+    "question_type": "Numeric",
+    "question": "Using Gaussian elimination on the system x + y = 3, 2x - y = 0, what is the value of x?",
+    "options": [],
+    "correct_answer": "1"
+  },
+  {
+    "content": "The secant method approximates roots of a function using a secant line, with the formula x_{n+1} = x_n - f(x_n)(x_n - x_{n-1})/(f(x_n) - f(x_{n-1})).",
+    "question_type": "Numeric",
+    "question": "Using the secant method with x_0 = 1, x_1 = 2 for f(x) = x^2 - 2, what is x_2? (Round to three decimal places)",
+    "options": [],
+    "correct_answer": "1.333"
+  },
+  {
+    "content": "The secant method approximates roots of a function using a secant line, with the formula x_{n+1} = x_n - f(x_n)(x_n - x_{n-1})/(f(x_n) - f(x_{n-1})).",
+    "question_type": "MCQ",
+    "question": "What distinguishes the secant method from the Newton-Raphson method?",
+    "options": ["Uses derivatives", "Requires two initial guesses", "Guarantees convergence", "Uses interval bisection"],
+    "correct_answer": "Requires two initial guesses"
+  },
+  {
+    "content": "Simpson’s rule approximates integrals by fitting parabolas to pairs of points, offering higher accuracy than the trapezoidal rule.",
+    "question_type": "Numeric",
+    "question": "Using Simpson’s rule with n=2, approximate the integral of f(x) = x^2 from 0 to 2. (Round to three decimal places)",
+    "options": [],
+    "correct_answer": "2.667"
+  },
+  {
+    "content": "Simpson’s rule approximates integrals by fitting parabolas to pairs of points, offering higher accuracy than the trapezoidal rule.",
+    "question_type": "MCQ",
+    "question": "Why is Simpson’s rule generally more accurate than the trapezoidal rule?",
+    "options": ["Uses linear approximation", "Fits parabolas to points", "Requires fewer points", "Avoids numerical errors"],
+    "correct_answer": "Fits parabolas to points"
+  },
+  {
+    "content": "Fixed-point iteration finds roots by rewriting f(x) = 0 as x = g(x) and iterating x_{n+1} = g(x_n).",
+    "question_type": "Numeric",
+    "question": "Using fixed-point iteration with g(x) = (x^2 + 2)/3 and x_0 = 1, what is x_1? (Round to three decimal places)",
+    "options": [],
+    "correct_answer": "1.000"
+  },
+  {
+    "content": "Fixed-point iteration finds roots by rewriting f(x) = 0 as x = g(x) and iterating x_{n+1} = g(x_n).",
+    "question_type": "MCQ",
+    "question": "What is a requirement for fixed-point iteration to converge?",
+    "options": ["Function must be discontinuous", "Derivative of g(x) must have magnitude less than 1", "Requires two initial guesses", "Must use parabolas"],
+    "correct_answer": "Derivative of g(x) must have magnitude less than 1"
+  },
+  {
+    "content": "The false position method combines the bisection method and secant method to approximate roots.",
+    "question_type": "MCQ",
+    "question": "What method does the false position method resemble?",
+    "options": ["Newton-Raphson", "Bisection and secant", "Trapezoidal rule", "Lagrange interpolation"],
+    "correct_answer": "Bisection and secant"
+  },
+  {
+    "content": "The false position method combines the bisection method and secant method to approximate roots.",
+    "question_type": "Numeric",
+    "question": "Using the false position method on f(x) = x^2 - 4 over [1, 3], what is the first approximation? (Round to three decimal places)",
+    "options": [],
+    "correct_answer": "1.333"
+  },
+  {
+    "content": "Numerical differentiation approximates derivatives using finite differences, e.g., f'(x) ≈ (f(x+h) - f(x))/h.",
+    "question_type": "Numeric",
+    "question": "Using the forward difference with h=0.1, approximate the derivative of f(x) = x^2 at x=1. (Round to two decimal places)",
+    "options": [],
+    "correct_answer": "2.10"
+  },
+  {
+    "content": "Numerical differentiation approximates derivatives using finite differences, e.g., f'(x) ≈ (f(x+h) - f(x))/h.",
+    "question_type": "MCQ",
+    "question": "What does numerical differentiation approximate?",
+    "options": ["Integrals", "Roots", "Derivatives", "Interpolated values"],
+    "correct_answer": "Derivatives"
+  }
+]
