@@ -1,0 +1,5 @@
+
+*::selection {
+  background: transparent !important;
+  color: inherit !important;
+}
