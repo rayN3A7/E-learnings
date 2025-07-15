@@ -1,0 +1,109 @@
+{% extends 'layout.html.twig' %}
+
+{% block title %}Courses - eGENIUS{% endblock %}
+
+{% block css %}
+    <link rel="stylesheet" href="{{ asset('css/custom.css') }}">
+{% endblock %}
+
+{% block body %}
+    <!-- Courses Header -->
+    <section class="courses-header animate__animated animate__fadeIn">
+        <div class="container text-center">
+            <h1 class="display-4 fw-bold">Explore Our Courses</h1>
+            <p class="lead">Discover a wide range of numerical analysis courses to enhance your skills.</p>
+        </div>
+    </section>
+
+    <!-- Courses List -->
+    <section class="courses-content py-5">
+        <div class="container">
+            {% for message in app.flashes('success') %}
+                <div class="alert alert-success rounded-3 shadow-sm" role="alert">
+                    {{ message }}
+                </div>
+            {% endfor %}
+            {% for message in app.flashes('error') %}
+                <div class="alert alert-danger rounded-3 shadow-sm" role="alert">
+                    {{ message }}
+                </div>
+            {% endfor %}
+            <div class="row g-4">
+                {% for course in courses %}
+                    <div class="col-lg-4 col-md-6">
+                        <div class="course-card card shadow-sm rounded-3 overflow-hidden">
+                            <img src="{{ course.image ? asset('Uploads/images/' ~ course.image) : 'https://via.placeholder.com/400x200?text=' ~ course.title }}" alt="{{ course.title }}" class="card-img-top">
+                            <div class="card-body p-4">
+                                <h5 class="card-title fw-bold">{{ course.title }}</h5>
+                                <p class="card-text">Parts: {{ course.parts|length }}</p>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <a href="{{ path('app_course_details', {'id': course.id}) }}" class="btn btn-primary cta-button">View Course</a>
+                                    <div class="d-flex align-items-center">
+                                        {% if is_granted('ROLE_ADMIN') or is_granted('ROLE_TEACHER') %}
+                                            <a href="{{ path('app_course_update', {'id': course.id}) }}" class="btn btn-sm btn-success cta-button me-2">Update</a>
+                                        {% endif %}
+                                        {% if app.user %}
+                                            <button class="btn btn-like like-button {{ course.isLikedByUser(app.user) ? 'liked' : '' }}"
+                                                    data-course-id="{{ course.id }}"
+                                                    title="{{ course.isLikedByUser(app.user) ? 'Unlike' : 'Like' }}">
+                                                <i class="fas fa-heart"></i>
+                                                <span class="like-count">{{ course.getLikeCount }}</span>
+                                            </button>
+                                        {% else %}
+                                            <button class="btn btn-like" disabled title="Login to like">
+                                                <i class="fas fa-heart"></i>
+                                                <span class="like-count">{{ course.getLikeCount }}</span>
+                                            </button>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="col-12 text-center">
+                        <p class="text-muted">No courses available.</p>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+{% endblock %}
+
+{% block js %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const likeButtons = document.querySelectorAll('.like-button');
+            
+            likeButtons.forEach(button => {
+                button.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const courseId = this.getAttribute('data-course-id');
+                    const likeCountSpan = this.querySelector('.like-count');
+
+                    fetch(`/course/${courseId}/like`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            likeCountSpan.textContent = data.likeCount;
+                            this.classList.toggle('liked', data.isLiked);
+                            this.title = data.isLiked ? 'Unlike' : 'Like';
+                        } else {
+                            alert(data.error || 'Failed to process like');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('An error occurred while processing the like');
+                    });
+                });
+            });
+        });
+    </script>
+{% endblock %}

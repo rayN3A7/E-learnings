@@ -3,62 +3,44 @@
 {% block title %}Create Course - eLEARNING{% endblock %}
 
 {% block css %}
-    <style>
-        .course-create-header {
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-            color: white;
-            padding: 40px 0;
-        }
-        .form-section {
-            background-color: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-        .part-form {
-            border: 1px solid #e0e0e0;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 15px;
-        }
-        .add-part-btn, .add-media-btn, .remove-part-btn, .remove-media-btn {
-            margin-top: 10px;
-        }
-    </style>
+    <link rel="stylesheet" href="{{ asset('css/custom.css') }}">
 {% endblock %}
 
 {% block body %}
     <!-- Course Creation Header -->
-    <div class="course-create-header">
-        <div class="container">
-            <h1 class="display-4">Create a New Course</h1>
+    <section class="course-create-header animate__animated animate__fadeIn">
+        <div class="container text-center">
+            <h1 class="display-4 fw-bold">Create a New Course</h1>
             <p class="lead">Build your numerical analysis course with multiple parts, videos, and written content.</p>
         </div>
-    </div>
+    </section>
 
     <!-- Course Creation Form -->
-    <div class="container-xxl py-5">
+    <section class="form-section py-5">
         <div class="container">
-            <div class="form-section">
-                {{ form_start(form) }}
-                    <div class="mb-3">
-                        {{ form_row(form.title, {'attr': {'class': 'form-control'}}) }}
+            <div class="card shadow-sm rounded-3 p-4">
+                {{ form_start(form, {'attr': {'enctype': 'multipart/form-data'}}) }}
+                    <div class="mb-4">
+                        {{ form_row(form.title, {'attr': {'class': 'form-control form-control-lg'}}) }}
                     </div>
-                    <div class="mb-3">
+                    <div class="mb-4">
                         {{ form_row(form.description, {'attr': {'class': 'form-control'}}) }}
                     </div>
+                    <div class="mb-4">
+                        {{ form_row(form.image, {'attr': {'class': 'form-control'}}) }}
+                    </div>
 
-                    <h3>Course Parts</h3>
+                    <h3 class="fw-bold text-primary mb-4">Course Parts</h3>
                     <div id="parts-container" data-prototype="{{ form_widget(form.parts.vars.prototype)|e('html_attr') }}">
                         {% for partForm in form.parts %}
-                            <div class="part-form">
-                                <h4>Part {{ loop.index }}</h4>
+                            <div class="part-form card shadow-sm rounded-3 p-4 mb-4">
+                                <h4 class="fw-bold">Part {{ loop.index }}</h4>
                                 <div class="row mb-3">
                                     <div class="col-md-6">
                                         {{ form_row(partForm.title, {'attr': {'class': 'form-control'}}) }}
                                     </div>
                                     <div class="col-md-3">
-                                        {{ form_row(partForm.order, {'attr': {'class': 'form-control'}}) }}
+                                        {{ form_row(partForm.partOrder, {'attr': {'class': 'form-control'}}) }}
                                     </div>
                                     <div class="col-md-3">
                                         {{ form_row(partForm.duration, {'attr': {'class': 'form-control'}}) }}
@@ -67,48 +49,44 @@
                                 <div class="mb-3">
                                     {{ form_row(partForm.description, {'attr': {'class': 'form-control'}}) }}
                                 </div>
-                                <h5>Video Content</h5>
+                                <h5 class="fw-bold">Video Content</h5>
                                 <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        {{ form_row(partForm.video.url, {'attr': {'class': 'form-control'}}) }}
-                                    </div>
-                                    <div class="col-md-6">
-                                        {{ form_row(partForm.video.duration, {'attr': {'class': 'form-control'}}) }}
+                                    <div class="col-md-12">
+                                        {{ form_row(partForm.videoFile, {'attr': {'class': 'form-control'}}) }}
                                     </div>
                                 </div>
                                 <div class="mb-3">
-                                    {{ form_row(partForm.video.description, {'attr': {'class': 'form-control'}}) }}
+                                    {{ form_row(partForm.videoDescription, {'attr': {'class': 'form-control'}}) }}
                                 </div>
-                                <h5>Written Content</h5>
+                                <h5 class="fw-bold">Written Content</h5>
                                 <div class="mb-3">
                                     {{ form_row(partForm.writtenSection.content, {'attr': {'class': 'form-control'}}) }}
                                 </div>
                                 <div class="media-urls-container" data-prototype="{{ form_widget(partForm.writtenSection.mediaUrls.vars.prototype)|e('html_attr') }}">
                                     {% for mediaUrlField in partForm.writtenSection.mediaUrls %}
-                                        <div class="media-url-field mb-2">
-                                            {{ form_row(mediaUrlField, {'attr': {'class': 'form-control'}}) }}
-                                            <button type="button" class="btn btn-sm btn-danger remove-media-btn">Remove Media URL</button>
+                                        <div class="media-url-field mb-3 d-flex align-items-center">
+                                            {{ form_row(mediaUrlField, {'attr': {'class': 'form-control me-2'}}) }}
+                                            <button type="button" class="btn btn-sm btn-danger remove-media-btn">Remove</button>
                                         </div>
                                     {% endfor %}
                                     <button type="button" class="btn btn-sm btn-primary add-media-btn">Add Media URL</button>
                                 </div>
-                                <button type="button" class="btn btn-sm btn-danger remove-part-btn">Remove Part</button>
+                                <button type="button" class="btn btn-sm btn-danger remove-part-btn mt-3">Remove Part</button>
                             </div>
                         {% endfor %}
                     </div>
-                    <button type="button" class="btn btn-sm btn-primary add-part-btn">Add Part</button>
-                    <div class="mt-3">
-                        <button type="submit" class="btn btn-primary">Create Course</button>
+                    <button type="button" class="btn btn-primary add-part-btn mt-3">Add Part</button>
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-primary btn-lg">Create Course</button>
                     </div>
                 {{ form_end(form) }}
             </div>
         </div>
-    </div>
+    </section>
 {% endblock %}
 
 {% block js %}
     <script>
-        // Dynamic addition/removal of parts
         document.addEventListener('DOMContentLoaded', function () {
             const partsContainer = document.getElementById('parts-container');
             const addPartButton = document.querySelector('.add-part-btn');
@@ -119,8 +97,8 @@
                 const prototype = partsContainer.dataset.prototype;
                 const newForm = prototype.replace(/__name__/g, partIndex);
                 const newPartDiv = document.createElement('div');
-                newPartDiv.classList.add('part-form');
-                newPartDiv.innerHTML = `<h4>Part ${partIndex + 1}</h4>` + newForm;
+                newPartDiv.classList.add('part-form', 'card', 'shadow-sm', 'rounded-3', 'p-4', 'mb-4');
+                newPartDiv.innerHTML = `<h4 class="fw-bold">Part ${partIndex + 1}</h4>` + newForm;
                 partsContainer.appendChild(newPartDiv);
                 initializeMediaUrlHandlers(newPartDiv);
                 partIndex++;
@@ -141,8 +119,8 @@
                     const prototype = mediaUrlsContainer.dataset.prototype;
                     const newMediaForm = prototype.replace(/__name__/g, mediaIndex);
                     const newMediaDiv = document.createElement('div');
-                    newMediaDiv.classList.add('media-url-field', 'mb-2');
-                    newMediaDiv.innerHTML = newMediaForm + '<button type="button" class="btn btn-sm btn-danger remove-media-btn">Remove Media URL</button>';
+                    newMediaDiv.classList.add('media-url-field', 'mb-3', 'd-flex', 'align-items-center');
+                    newMediaDiv.innerHTML = newMediaForm + '<button type="button" class="btn btn-sm btn-danger remove-media-btn">Remove</button>';
                     mediaUrlsContainer.insertBefore(newMediaDiv, addMediaButton);
                     mediaIndex++;
                 });

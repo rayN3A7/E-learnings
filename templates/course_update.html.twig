@@ -1,0 +1,138 @@
+{% extends 'layout.html.twig' %}
+
+{% block title %}Update Course - eLEARNING{% endblock %}
+
+{% block css %}
+    <link rel="stylesheet" href="{{ asset('css/custom.css') }}">
+{% endblock %}
+
+{% block body %}
+    <!-- Course Update Header -->
+    <section class="course-create-header animate__animated animate__fadeIn">
+        <div class="container text-center">
+            <h1 class="display-4 fw-bold">Update Course: {{ course.title }}</h1>
+            <p class="lead">Modify your numerical analysis course details.</p>
+        </div>
+    </section>
+
+    <!-- Course Update Form -->
+    <section class="form-section py-5">
+        <div class="container">
+            <div class="card shadow-sm rounded-3 p-4">
+                {{ form_start(form, {'attr': {'enctype': 'multipart/form-data'}}) }}
+                    <div class="mb-4">
+                        {{ form_row(form.title, {'attr': {'class': 'form-control form-control-lg'}}) }}
+                    </div>
+                    <div class="mb-4">
+                        {{ form_row(form.description, {'attr': {'class': 'form-control'}}) }}
+                    </div>
+                    <div class="mb-4">
+                        {{ form_row(form.image, {'attr': {'class': 'form-control'}}) }}
+                    </div>
+
+                    <h3 class="fw-bold text-primary mb-4">Course Parts</h3>
+                    <div id="parts-container" data-prototype="{{ form_widget(form.parts.vars.prototype)|e('html_attr') }}">
+                        {% for partForm in form.parts %}
+                            <div class="part-form card shadow-sm rounded-3 p-4 mb-4">
+                                <h4 class="fw-bold">Part {{ loop.index }}</h4>
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        {{ form_row(partForm.title, {'attr': {'class': 'form-control'}}) }}
+                                    </div>
+                                    <div class="col-md-3">
+                                        {{ form_row(partForm.partOrder, {'attr': {'class': 'form-control'}}) }}
+                                    </div>
+                                    <div class="col-md-3">
+                                        {{ form_row(partForm.duration, {'attr': {'class': 'form-control'}}) }}
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    {{ form_row(partForm.description, {'attr': {'class': 'form-control'}}) }}
+                                </div>
+                                <h5 class="fw-bold">Video Content</h5>
+                                <div class="row mb-3">
+                                    <div class="col-md-12">
+                                        {{ form_row(partForm.videoFile, {'attr': {'class': 'form-control'}}) }}
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    {{ form_row(partForm.videoDescription, {'attr': {'class': 'form-control'}}) }}
+                                </div>
+                                <h5 class="fw-bold">Written Content</h5>
+                                <div class="mb-3">
+                                    {{ form_row(partForm.writtenSection.content, {'attr': {'class': 'form-control'}}) }}
+                                </div>
+                                <div class="media-urls-container" data-prototype="{{ form_widget(partForm.writtenSection.mediaUrls.vars.prototype)|e('html_attr') }}">
+                                    {% for mediaUrlField in partForm.writtenSection.mediaUrls %}
+                                        <div class="media-url-field mb-3 d-flex align-items-center">
+                                            {{ form_row(mediaUrlField, {'attr': {'class': 'form-control me-2'}}) }}
+                                            <button type="button" class="btn btn-sm btn-danger remove-media-btn">Remove</button>
+                                        </div>
+                                    {% endfor %}
+                                    <button type="button" class="btn btn-sm btn-primary add-media-btn">Add Media URL</button>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-danger remove-part-btn mt-3">Remove Part</button>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    <button type="button" class="btn btn-primary add-part-btn mt-3">Add Part</button>
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-primary btn-lg">Update Course</button>
+                    </div>
+                {{ form_end(form) }}
+            </div>
+        </div>
+    </section>
+{% endblock %}
+
+{% block js %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const partsContainer = document.getElementById('parts-container');
+            const addPartButton = document.querySelector('.add-part-btn');
+
+            let partIndex = partsContainer.children.length;
+
+            addPartButton.addEventListener('click', function () {
+                const prototype = partsContainer.dataset.prototype;
+                const newForm = prototype.replace(/__name__/g, partIndex);
+                const newPartDiv = document.createElement('div');
+                newPartDiv.classList.add('part-form', 'card', 'shadow-sm', 'rounded-3', 'p-4', 'mb-4');
+                newPartDiv.innerHTML = `<h4 class="fw-bold">Part ${partIndex + 1}</h4>` + newForm;
+                partsContainer.appendChild(newPartDiv);
+                initializeMediaUrlHandlers(newPartDiv);
+                partIndex++;
+            });
+
+            partsContainer.addEventListener('click', function (e) {
+                if (e.target.classList.contains('remove-part-btn')) {
+                    e.target.closest('.part-form').remove();
+                }
+            });
+
+            function initializeMediaUrlHandlers(partDiv) {
+                const mediaUrlsContainer = partDiv.querySelector('.media-urls-container');
+                const addMediaButton = partDiv.querySelector('.add-media-btn');
+                let mediaIndex = mediaUrlsContainer.children.length;
+
+                addMediaButton.addEventListener('click', function () {
+                    const prototype = mediaUrlsContainer.dataset.prototype;
+                    const newMediaForm = prototype.replace(/__name__/g, mediaIndex);
+                    const newMediaDiv = document.createElement('div');
+                    newMediaDiv.classList.add('media-url-field', 'mb-3', 'd-flex', 'align-items-center');
+                    newMediaDiv.innerHTML = newMediaForm + '<button type="button" class="btn btn-sm btn-danger remove-media-btn">Remove</button>';
+                    mediaUrlsContainer.insertBefore(newMediaDiv, addMediaButton);
+                    mediaIndex++;
+                });
+
+                mediaUrlsContainer.addEventListener('click', function (e) {
+                    if (e.target.classList.contains('remove-media-btn')) {
+                        e.target.closest('.media-url-field').remove();
+                    }
+                });
+            }
+
+            document.querySelectorAll('.part-form').forEach(initializeMediaUrlHandlers);
+        });
+    </script>
+{% endblock %}

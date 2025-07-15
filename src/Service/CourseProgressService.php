@@ -7,7 +7,10 @@ use App\Entity\Part;
 use App\Entity\Progress;
 use App\Entity\QuizAttempt;
 use App\Entity\User;
+use App\Entity\Enrollment;
 use Doctrine\ORM\EntityManagerInterface;
+use App\Entity\Quiz;
+
 
 class CourseProgressService
 {
@@ -52,22 +55,42 @@ class CourseProgressService
 
     public function isPartUnlocked(Part $part, User $user): bool
     {
-        if ($part->getOrder() === 1) {
+        if (!$part->getCourse()) {
+            return false;
+        }
+
+        // Check if user is enrolled
+        $enrollment = $this->entityManager->getRepository(Enrollment::class)->findOneBy([
+            'user' => $user,
+            'course' => $part->getCourse(),
+        ]);
+
+        if (!$enrollment) {
+            return false;
+        }
+
+        // First part is always unlocked for enrolled users
+        if ($part->getPartOrder() === 1) {
             return true;
         }
 
         $previousPart = $this->entityManager->getRepository(Part::class)->findOneBy([
             'course' => $part->getCourse(),
-            'order' => $part->getOrder() - 1,
+            'partOrder' => $part->getPartOrder() - 1,
         ]);
 
-        if (!$previousPart || !$previousPart->getQuiz()) {
+        if (!$previousPart) {
+            return true;
+        }
+
+        $quiz = $this->entityManager->getRepository(Quiz::class)->findOneBy(['part' => $previousPart]);
+        if (!$quiz) {
             return true;
         }
 
         $attempt = $this->entityManager->getRepository(QuizAttempt::class)->findOneBy([
             'user' => $user,
-            'quiz' => $previousPart->getQuiz(),
+            'quiz' => $quiz,
         ], ['takenAt' => 'DESC']);
 
         return $attempt && $attempt->getScore() >= 70;
@@ -76,7 +99,7 @@ class CourseProgressService
     public function getCurrentPart(User $user, Course $course): ?Part
     {
         $parts = $course->getParts()->toArray();
-        usort($parts, fn($a, $b) => $a->getOrder() <=> $b->getOrder());
+        usort($parts, fn($a, $b) => $a->getPartOrder() <=> $b->getPartOrder());
 
         foreach ($parts as $part) {
             if ($this->isPartUnlocked($part, $user)) {
@@ -95,6 +118,10 @@ class CourseProgressService
 
     public function markPartCompleted(User $user, Part $part): void
     {
+        if (!$part->getCourse()) {
+            return;
+        }
+
         $progress = $this->entityManager->getRepository(Progress::class)->findOneBy([
             'user' => $user,
             'part' => $part,
@@ -108,6 +135,7 @@ class CourseProgressService
         }
 
         $progress->setCompleted(true);
+        $progress->setCompletedAt(new \DateTime());
         $this->entityManager->flush();
     }
 }

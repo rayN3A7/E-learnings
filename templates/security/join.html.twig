@@ -2,23 +2,37 @@
 
 {% block title %}Join - eLEARNING{% endblock %}
 
+{% block css %}
+    <link rel="stylesheet" href="{{ asset('css/custom.css') }}">
+{% endblock %}
+
 {% block body %}
-    <div class="container-xxl py-5">
-        <div class="container">
-            <h1 class="mb-4">Join eLEARNING</h1>
-            {{ form_start(form) }}
-                <div class="mb-3">
-                    {{ form_row(form.username, {'attr': {'class': 'form-control'}}) }}
-                </div>
-                <div class="mb-3">
-                    {{ form_row(form.email, {'attr': {'class': 'form-control'}}) }}
-                </div>
-                <div class="mb-3">
-                    {{ form_row(form.plainPassword, {'attr': {'class': 'form-control'}, 'label': 'Password'}) }}
-                </div>
-                <button type="submit" class="btn btn-primary">Register</button>
-                {{ form_end(form) }}
-                <p class="mt-3">Already have an account? <a href="{{ path('app_login') }}">Log in</a></p>
+    <!-- Join Header -->
+    <section class="auth-header animate__animated animate__fadeIn">
+        <div class="container text-center">
+            <h1 class="display-4 fw-bold">Join eLEARNING</h1>
+            <p class="lead">Create an account to start exploring our numerical analysis courses.</p>
         </div>
-    </div>
+    </section>
+
+    <!-- Join Form -->
+    <section class="auth-section py-5">
+        <div class="container">
+            <div class="card shadow-sm rounded-3 p-4 mx-auto" style="max-width: 500px;">
+                {{ form_start(form) }}
+                    <div class="mb-4">
+                        {{ form_row(form.username, {'attr': {'class': 'form-control form-control-lg'}}) }}
+                    </div>
+                    <div class="mb-4">
+                        {{ form_row(form.email, {'attr': {'class': 'form-control form-control-lg'}}) }}
+                    </div>
+                    <div class="mb-4">
+                        {{ form_row(form.plainPassword, {'attr': {'class': 'form-control form-control-lg'}, 'label': 'Password'}) }}
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-lg cta-button w-100">Register</button>
+                {{ form_end(form) }}
+                <p class="mt-3 text-center">Already have an account? <a href="{{ path('app_login') }}" class="text-primary">Log in</a></p>
+            </div>
+        </div>
+    </section>
 {% endblock %}

@@ -22,22 +22,26 @@ class Part
     #[ORM\Column(type: 'integer', nullable: true)]
     private ?int $duration = null;
 
-    #[ORM\Column(type: 'integer', nullable: true)]
-    private ?int $order = null;
+    #[ORM\Column(type: 'integer', name: 'partOrder', nullable: true)]
+    private ?int $partOrder = null;
 
     #[ORM\ManyToOne(targetEntity: Course::class, inversedBy: 'parts')]
     #[ORM\JoinColumn(name: 'courseId', referencedColumnName: 'id')]
     private ?Course $course = null;
 
-    #[ORM\OneToOne(targetEntity: Quiz::class, inversedBy: 'part')]
-    #[ORM\JoinColumn(name: 'quizId', referencedColumnName: 'id', nullable: true)]
-    private ?Quiz $quiz = null;
-
-    #[ORM\OneToOne(mappedBy: 'part', targetEntity: Video::class, cascade: ['persist', 'remove'])]
+    #[ORM\OneToOne(targetEntity: Video::class, mappedBy: 'part', cascade: ['persist', 'remove'])]
     private ?Video $video = null;
 
-    #[ORM\OneToOne(mappedBy: 'part', targetEntity: WrittenSection::class, cascade: ['persist', 'remove'])]
+    #[ORM\OneToOne(targetEntity: WrittenSection::class, mappedBy: 'part', cascade: ['persist', 'remove'])]
     private ?WrittenSection $writtenSection = null;
+
+    #[ORM\OneToOne(targetEntity: Quiz::class, mappedBy: 'part', cascade: ['persist', 'remove'])]
+    private ?Quiz $quiz = null;
+
+    public function __construct()
+    {
+        // Removed $this->questions = new ArrayCollection();
+    }
 
     public function getId(): ?int
     {
@@ -77,14 +81,14 @@ class Part
         return $this;
     }
 
-    public function getOrder(): ?int
+    public function getPartOrder(): ?int
     {
-        return $this->order;
+        return $this->partOrder;
     }
 
-    public function setOrder(?int $order): self
+    public function setPartOrder(?int $partOrder): self
     {
-        $this->order = $order;
+        $this->partOrder = $partOrder;
         return $this;
     }
 
@@ -96,17 +100,6 @@ class Part
     public function setCourse(?Course $course): self
     {
         $this->course = $course;
-        return $this;
-    }
-
-    public function getQuiz(): ?Quiz
-    {
-        return $this->quiz;
-    }
-
-    public function setQuiz(?Quiz $quiz): self
-    {
-        $this->quiz = $quiz;
         return $this;
     }
 
@@ -129,6 +122,17 @@ class Part
     public function setWrittenSection(?WrittenSection $writtenSection): self
     {
         $this->writtenSection = $writtenSection;
+        return $this;
+    }
+
+    public function getQuiz(): ?Quiz
+    {
+        return $this->quiz;
+    }
+
+    public function setQuiz(?Quiz $quiz): self
+    {
+        $this->quiz = $quiz;
         return $this;
     }
 }

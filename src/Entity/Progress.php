@@ -2,10 +2,9 @@
 
 namespace App\Entity;
 
-use App\Repository\ProgressRepository;
 use Doctrine\ORM\Mapping as ORM;
 
-#[ORM\Entity(repositoryClass: ProgressRepository::class)]
+#[ORM\Entity]
 #[ORM\Table(name: 'progress')]
 class Progress
 {
@@ -13,6 +12,12 @@ class Progress
     #[ORM\GeneratedValue]
     #[ORM\Column(type: 'integer')]
     private ?int $id = null;
+
+    #[ORM\Column(type: 'boolean')]
+    private bool $completed = false;
+
+    #[ORM\Column(type: 'datetime', nullable: true)]
+    private ?\DateTimeInterface $completedAt = null;
 
     #[ORM\ManyToOne(targetEntity: User::class)]
     #[ORM\JoinColumn(name: 'userId', referencedColumnName: 'id')]
@@ -22,15 +27,31 @@ class Progress
     #[ORM\JoinColumn(name: 'partId', referencedColumnName: 'id')]
     private ?Part $part = null;
 
-    #[ORM\Column(type: 'boolean', nullable: true)]
-    private ?bool $completed = null;
-
-    #[ORM\Column(type: 'datetime', nullable: true)]
-    private ?\DateTimeInterface $completedAt = null;
-
     public function getId(): ?int
     {
         return $this->id;
+    }
+
+    public function isCompleted(): bool
+    {
+        return $this->completed;
+    }
+
+    public function setCompleted(bool $completed): self
+    {
+        $this->completed = $completed;
+        return $this;
+    }
+
+    public function getCompletedAt(): ?\DateTimeInterface
+    {
+        return $this->completedAt;
+    }
+
+    public function setCompletedAt(?\DateTimeInterface $completedAt): self
+    {
+        $this->completedAt = $completedAt;
+        return $this;
     }
 
     public function getUser(): ?User
@@ -52,28 +73,6 @@ class Progress
     public function setPart(?Part $part): self
     {
         $this->part = $part;
-        return $this;
-    }
-
-    public function isCompleted(): ?bool
-    {
-        return $this->completed;
-    }
-
-    public function setCompleted(?bool $completed): self
-    {
-        $this->completed = $completed;
-        return $this;
-    }
-
-    public function getCompletedAt(): ?\DateTimeInterface
-    {
-        return $this->completedAt;
-    }
-
-    public function setCompletedAt(?\DateTimeInterface $completedAt): self
-    {
-        $this->completedAt = $completedAt;
         return $this;
     }
 }

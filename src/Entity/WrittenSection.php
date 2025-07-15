@@ -17,11 +17,10 @@ class WrittenSection
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $content = null;
 
-    #[ORM\Column(type: 'json', nullable: true, name: 'mediaUrls')] // Explicitly set column name
+    #[ORM\Column(type: 'json', nullable: true, name: 'mediaUrls')] 
     private ?array $mediaUrls = null;
-
     #[ORM\OneToOne(inversedBy: 'writtenSection', targetEntity: Part::class)]
-    #[ORM\JoinColumn(name: 'partId', nullable: false)]
+    #[ORM\JoinColumn(name: 'partId', nullable: true)]
     private ?Part $part = null;
 
     public function getId(): ?int

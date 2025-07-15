@@ -2,26 +2,42 @@
 
 {% block title %}Log In - eLEARNING{% endblock %}
 
+{% block css %}
+    <link rel="stylesheet" href="{{ asset('css/custom.css') }}">
+{% endblock %}
+
 {% block body %}
-    <div class="container-xxl py-5">
-        <div class="container">
-            <h1 class="mb-4">Log In</h1>
-            {% if error %}
-                <div class="alert alert-danger">{{ error.messageKey|trans(error.messageData, 'security') }}</div>
-            {% endif %}
-            <form method="post" action="{{ path('app_login') }}">
-                <div class="mb-3">
-                    <label for="username" class="form-label">Username</label>
-                    <input type="text" value="{{ last_username }}" name="_username" id="username" class="form-control" required autofocus>
-                </div>
-                <div class="mb-3">
-                    <label for="password" class="form-label">Password</label>
-                    <input type="password" name="_password" id="password" class="form-control" required>
-                </div>
-                <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
-                <button class="btn btn-primary" type="submit">Log In</button>
-            </form>
-            <p class="mt-3">Don't have an account? <a href="{{ path('app_join') }}">Join now</a></p>
+    <!-- Login Header -->
+    <section class="auth-header animate__animated animate__fadeIn">
+        <div class="container text-center">
+            <h1 class="display-4 fw-bold">Log In to eLEARNING</h1>
+            <p class="lead">Access your courses and continue your learning journey.</p>
         </div>
-    </div>
+    </section>
+
+    <!-- Login Form -->
+    <section class="auth-section py-5">
+        <div class="container">
+            <div class="card shadow-sm rounded-3 p-4 mx-auto" style="max-width: 500px;">
+                {% if error %}
+                    <div class="alert alert-danger rounded-3" role="alert">
+                        {{ error.messageKey|trans(error.messageData, 'security') }}
+                    </div>
+                {% endif %}
+                <form method="post" action="{{ path('app_login') }}">
+                    <div class="mb-4">
+                        <label for="username" class="form-label">Username</label>
+                        <input type="text" value="{{ last_username }}" name="_username" id="username" class="form-control form-control-lg" required autofocus>
+                    </div>
+                    <div class="mb-4">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" name="_password" id="password" class="form-control form-control-lg" required>
+                    </div>
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
+                    <button class="btn btn-primary btn-lg cta-button w-100" type="submit">Log In</button>
+                </form>
+                <p class="mt-3 text-center">Don't have an account? <a href="{{ path('app_join') }}" class="text-primary">Join now</a></p>
+            </div>
+        </div>
+    </section>
 {% endblock %}
