@@ -29,16 +29,23 @@ class Course
     #[ORM\JoinColumn(name: 'createdBy', referencedColumnName: 'id')]
     private ?User $createdBy = null;
 
+    #[ORM\Column(type: 'string', length: 255, nullable: true)]
+    private ?string $image = null;
+
     #[ORM\OneToMany(mappedBy: 'course', targetEntity: Part::class, cascade: ['persist', 'remove'])]
     private Collection $parts;
 
     #[ORM\OneToMany(mappedBy: 'course', targetEntity: Enrollment::class)]
     private Collection $enrollments;
 
+    #[ORM\OneToMany(mappedBy: 'course', targetEntity: CourseLike::class, cascade: ['persist', 'remove'])]
+    private Collection $likes;
+
     public function __construct()
     {
         $this->parts = new ArrayCollection();
         $this->enrollments = new ArrayCollection();
+        $this->likes = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -90,6 +97,17 @@ class Course
         return $this;
     }
 
+    public function getImage(): ?string
+    {
+        return $this->image;
+    }
+
+    public function setImage(?string $image): self
+    {
+        $this->image = $image;
+        return $this;
+    }
+
     public function getParts(): Collection
     {
         return $this->parts;
@@ -136,5 +154,44 @@ class Course
             }
         }
         return $this;
+    }
+
+    public function getLikes(): Collection
+    {
+        return $this->likes;
+    }
+
+    public function addLike(CourseLike $like): self
+    {
+        if (!$this->likes->contains($like)) {
+            $this->likes[] = $like;
+            $like->setCourse($this);
+        }
+        return $this;
+    }
+
+    public function removeLike(CourseLike $like): self
+    {
+        if ($this->likes->removeElement($like)) {
+            if ($like->getCourse() === $this) {
+                $like->setCourse(null);
+            }
+        }
+        return $this;
+    }
+
+    public function getLikeCount(): int
+    {
+        return $this->likes->count();
+    }
+
+    public function isLikedByUser(?User $user): bool
+    {
+        if (!$user) {
+            return false;
+        }
+        return $this->likes->exists(function ($key, $like) use ($user) {
+            return $like->getUser() === $user;
+        });
     }
 }

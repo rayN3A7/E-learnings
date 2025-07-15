@@ -6,14 +6,15 @@
     <title>{% block title %}eLEARNING{% endblock %}</title>
     <link rel="stylesheet" href="{{ asset('css/bootstrap.min.css') }}">
     <link rel="stylesheet" href="{{ asset('css/fontawesome.min.css') }}">
-    <link rel="stylesheet" href="{{ asset('css/style.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/animate.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/custom.css') }}">
     {% block css %}{% endblock %}
 </head>
 <body>
     <!-- Navbar Start -->
-    <nav class="navbar navbar-expand-lg bg-primary navbar-dark">
+    <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
         <div class="container">
-            <a class="navbar-brand" href="{{ path('app_home') }}">eLEARNING</a>
+            <a class="navbar-brand fw-bold" href="{{ path('app_home') }}">eGENIUS</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse">
                 <span class="navbar-toggler-icon"></span>
             </button>
@@ -29,7 +30,7 @@
                         <a class="nav-item nav-link" href="{{ path('app_logout') }}">Logout</a>
                     {% else %}
                         <a class="nav-item nav-link" href="{{ path('app_login') }}">Login</a>
-                        <a class="nav-item nav-link" href="{{ path('app_join') }}">Join</a>
+                        <a class="nav-item nav-link btn btn-outline-light ms-2" href="{{ path('app_join') }}">Join Now</a>
                     {% endif %}
                 </div>
             </div>
@@ -41,29 +42,29 @@
     {% endblock %}
 
     <!-- Footer Start -->
-    <footer class="bg-dark text-white py-4">
+    <footer class="footer-section text-white py-5">
         <div class="container">
-            <div class="row">
+            <div class="row g-4">
                 <div class="col-md-4">
-                    <h5>eLEARNING</h5>
+                    <h5 class="fw-bold">eGENIUS</h5>
                     <p>Learn at your own pace with our comprehensive courses.</p>
                 </div>
                 <div class="col-md-4">
-                    <h5>Quick Links</h5>
+                    <h5 class="fw-bold">Quick Links</h5>
                     <ul class="list-unstyled">
-                        <li><a href="{{ path('app_home') }}" class="text-white">Home</a></li>
-                        <li><a href="{{ path('app_about') }}" class="text-white">About</a></li>
-                        <li><a href="{{ path('app_courses') }}" class="text-white">Courses</a></li>
+                        <li><a href="{{ path('app_home') }}" class="text-white text-decoration-none footer-link">Home</a></li>
+                        <li><a href="{{ path('app_about') }}" class="text-white text-decoration-none footer-link">About</a></li>
+                        <li><a href="{{ path('app_courses') }}" class="text-white text-decoration-none footer-link">Courses</a></li>
                     </ul>
                 </div>
                 <div class="col-md-4">
-                    <h5>Contact Us</h5>
-                    <p>Email: support@elearning.com</p>
-                    <p>Phone: +1 234 567 890</p>
+                    <h5 class="fw-bold">Contact Us</h5>
+                    <p>Email: <a href="mailto:support@elearning.com" class="text-white text-decoration-none">support@elearning.com</a></p>
+                    <p>Phone: <a href="tel:+1234567890" class="text-white text-decoration-none">+1 234 567 890</a></p>
                 </div>
             </div>
-            <hr>
-            <p class="text-center mb-0">&copy; {{ 'now'|date('Y') }} eLEARNING. All Rights Reserved.</p>
+            <hr class="bg-light">
+            <p class="text-center mb-0">© {{ 'now'|date('Y') }} eLEARNING. All Rights Reserved.</p>
         </div>
     </footer>
     <!-- Footer End -->

@@ -2,51 +2,57 @@
 
 {% block title %}Home - eLEARNING{% endblock %}
 
+{% block css %}
+    <link rel="stylesheet" href="{{ asset('css/custom.css') }}">
+{% endblock %}
+
 {% block body %}
     <!-- Hero Section -->
-    <div class="container-xxl py-5 bg-primary text-white">
-        <div class="container">
-            <h1 class="display-4">Welcome to eLEARNING</h1>
-            <p class="lead">Explore our courses and start learning today!</p>
-            <a href="{{ path('app_courses') }}" class="btn btn-light">Browse Courses</a>
+    <section class="hero-section d-flex align-items-center text-white">
+        <div class="container text-center">
+            <h1 class="display-3 fw-bold animate__animated animate__fadeInDown">Welcome to eLEARNING</h1>
+            <p class="lead animate__animated animate__fadeInUp animate__delay-1s">Discover a world of knowledge with our interactive courses!</p>
+            <a href="{{ path('app_courses') }}" class="btn btn-light btn-lg mt-3 cta-button">Explore Courses</a>
         </div>
-    </div>
+    </section>
 
-    <!-- Courses Start -->
-    <div class="container-xxl py-5">
+    <!-- Courses Section -->
+    <section class="courses-section py-5">
         <div class="container">
-            <div class="text-center wow fadeInUp" data-wow-delay="0.1s">
-                <h6 class="section-title bg-white text-center text-primary px-3">Courses</h6>
-                <h1 class="mb-5">Popular Courses</h1>
+            <div class="text-center mb-5">
+                <h6 class="section-title text-primary">Our Courses</h6>
+                <h1 class="fw-bold">Popular Courses</h1>
             </div>
-            <div class="row g-4 justify-content-center">
+            <div class="row g-4">
                 {% if courses is defined and courses|length > 0 %}
                     {% for course in courses %}
-                        <div class="col-lg-4 col-md-6 wow fadeInUp" data-wow-delay="{{ 0.1 + loop.index0 * 0.2 }}s">
-                            <div class="course-item bg-light">
-                                <div class="position-relative overflow-hidden">
-                                    <img class="img-fluid" src="{{ asset('img/course-' ~ course.id ~ '.jpg')|default('https://via.placeholder.com/600x400') }}" alt="{{ course.title }}">
-                                    <div class="w-100 d-flex justify-content-center position-absolute bottom-0 start-0 mb-4">
-                                        <a href="{{ path('app_course_details', {'id': course.id}) }}" class="flex-shrink-0 btn btn-sm btn-primary px-3 border-end" style="border-radius: 30px 0 0 30px;">Read More</a>
-                                        <a href="{{ path('app_join_course', {'id': course.id}) }}" class="flex-shrink-0 btn btn-sm btn-primary px-3" style="border-radius: 0 30px 30px 0;">Join Now</a>
+                        <div class="col-lg-4 col-md-6">
+                            <div class="course-card bg-white shadow-sm rounded-3 overflow-hidden">
+                                <div class="position-relative course-image">
+                                    <img class="img-fluid" src="{{ course.image ? asset('Uploads/images/' ~ course.image) : 'https://via.placeholder.com/600x400' }}" alt="{{ course.title }}">
+                                    <div class="course-overlay d-flex justify-content-center align-items-center">
+                                        <a href="{{ path('app_course_details', {'id': course.id}) }}" class="btn btn-outline-light btn-sm mx-1">View Details</a>
+                                        <a href="{{ path('app_join_course', {'id': course.id}) }}" class="btn btn-primary btn-sm mx-1">Join Now</a>
                                     </div>
                                 </div>
-                                <div class="text-center p-4 pb-0">
-                                    <h3 class="mb-0">$149.00</h3>
-                                    <div class="mb-3">
-                                        <small class="fa fa-star text-primary"></small>
-                                        <small class="fa fa-star text-primary"></small>
-                                        <small class="fa fa-star text-primary"></small>
-                                        <small class="fa fa-star text-primary"></small>
-                                        <small class="fa fa-star text-primary"></small>
-                                        <small>(123)</small>
+                                <div class="p-4">
+                                    <h5 class="fw-bold mb-3">{{ course.title }}</h5>
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <span class="text-primary fw-bold">$149.00</span>
+                                        <div>
+                                            <small class="fa fa-star text-primary"></small>
+                                            <small class="fa fa-star text-primary"></small>
+                                            <small class="fa fa-star text-primary"></small>
+                                            <small class="fa fa-star text-primary"></small>
+                                            <small class="fa fa-star text-primary"></small>
+                                            <small>(123)</small>
+                                        </div>
                                     </div>
-                                    <h5 class="mb-4">{{ course.title }}</h5>
-                                </div>
-                                <div class="d-flex border-top">
-                                    <small class="flex-fill text-center border-end py-2"><i class="fa fa-user-tie text-primary me-2"></i>{{ course.createdBy.username }}</small>
-                                    <small class="flex-fill text-center border-end py-2"><i class="fa fa-clock text-primary me-2"></i>{% if course.parts is not empty %}{{ (course.parts|reduce((sum, part) => sum + (part.duration|default(0)), 0) / 60)|round(2) ~ ' Hrs' }}{% else %}N/A{% endif %}</small>
-                                    <small class="flex-fill text-center py-2"><i class="fa fa-user text-primary me-2"></i>{% if course.enrollments is not empty %}{{ course.enrollments|length }} Students{% else %}0 Students{% endif %}</small>
+                                    <div class="d-flex border-top pt-3">
+                                        <small class="flex-fill text-center border-end"><i class="fa fa-user-tie text-primary me-2"></i>{{ course.createdBy.username }}</small>
+                                        <small class="flex-fill text-center border-end"><i class="fa fa-clock text-primary me-2"></i>{% if course.parts is not empty %}{{ (course.parts|reduce((sum, part) => sum + (part.duration|default(0)), 0) / 60)|round(2) ~ ' Hrs' }}{% else %}N/A{% endif %}</small>
+                                        <small class="flex-fill text-center"><i class="fa fa-user text-primary me-2"></i>{% if course.enrollments is not empty %}{{ course.enrollments|length }} Students{% else %}0 Students{% endif %}</small>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -58,6 +64,5 @@
                 {% endif %}
             </div>
         </div>
-    </div>
-    <!-- Courses End -->
+    </section>
 {% endblock %}

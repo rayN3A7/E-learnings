@@ -14,7 +14,7 @@ class Question
     private ?int $id = null;
 
     #[ORM\ManyToOne(targetEntity: Quiz::class, inversedBy: 'questions')]
-    #[ORM\JoinColumn(nullable: false)]
+    #[ORM\JoinColumn(nullable: true)]
     private ?Quiz $quiz = null;
 
     #[ORM\Column(type: 'text')]

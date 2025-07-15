@@ -4,6 +4,8 @@
 # Put parameters here that don't need to change on each machine where the app is deployed
 # https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
 parameters:
+    course_images_directory: '%kernel.project_dir%/public/uploads/images'
+    part_videos_directory: '%kernel.project_dir%/public/uploads/videos'
 
 services:
     # default configuration for services in *this* file
@@ -19,9 +21,22 @@ services:
         arguments:
             $entityManager: '@doctrine.orm.entity_manager'
     App\Service\QuizService:
-        arguments:
+       arguments:
             $entityManager: '@doctrine.orm.entity_manager'
             $httpClient: '@http_client'
+            $logger: '@logger'
             $geminiApiKey: '%env(GEMINI_API_KEY)%'
+    App\Controller\CourseController:
+        arguments:
+            $entityManager: '@doctrine.orm.entity_manager'
+            $progressService: '@App\Service\CourseProgressService'
+            $quizService: '@App\Service\QuizService'
+            $logger: '@logger'
+    App\Twig\AppExtension:
+        arguments:
+            $tokenStorage: '@security.token_storage'
+            $entityManager: '@doctrine.orm.entity_manager'
+            $quizAttemptRepository: '@App\Repository\QuizAttemptRepository'
+        tags: ['twig.extension']
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones

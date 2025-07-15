@@ -3,109 +3,56 @@
 {% block title %}{{ course.title }} - eLEARNING{% endblock %}
 
 {% block css %}
-    <style>
-        .course-header {
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-            color: white;
-            padding: 40px 0;
-        }
-        .course-header img {
-            max-height: 200px;
-            object-fit: cover;
-        }
-        .part-card {
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            transition: all 0.3s;
-        }
-        .part-card:hover {
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-        .part-card.locked {
-            background-color: #f8f9fa;
-            opacity: 0.7;
-        }
-        .part-card.locked .part-title {
-            color: #6c757d;
-        }
-        .part-title {
-            font-weight: 600;
-            color: #1e3c72;
-        }
-        .progress-bar {
-            height: 10px;
-            border-radius: 5px;
-        }
-        .desmos-container {
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-            padding: 15px;
-            margin-top: 20px;
-        }
-        .quiz-section {
-            background-color: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
-        }
-        .quiz-question {
-            margin-bottom: 20px;
-        }
-        .quiz-question label {
-            margin-left: 10px;
-        }
-        .final-quiz-section {
-            background-color: #e6f3ff;
-            padding: 20px;
-            border-radius: 8px;
-            margin-top: 30px;
-        }
-    </style>
+    <link rel="stylesheet" href="{{ asset('css/custom.css') }}">
 {% endblock %}
 
 {% block body %}
     <!-- Course Header -->
-    <div class="course-header">
+    <section class="course-header animate__animated animate__fadeIn">
         <div class="container">
             <div class="row align-items-center">
-                <div class="col-lg-4">
-                    <img src="{{ asset('img/course-' ~ course.id ~ '.jpg')|default('https://via.placeholder.com/600x400') }}" alt="{{ course.title }}" class="img-fluid">
+                <div class="col-lg-4 col-md-12 mb-4 mb-lg-0">
+                    <img src="{{ course.image ? asset('Uploads/images/' ~ course.image) : 'https://via.placeholder.com/600x400' }}" alt="{{ course.title }}" class="img-fluid rounded-3">
                 </div>
-                <div class="col-lg-8">
-                    <h1 class="display-4">{{ course.title }}</h1>
-                    <p class="lead">{{ course.description }}</p>
+                <div class="col-lg-8 col-md-12">
+                    <h1 class="fw-bold">{{ course.title }}</h1>
+                    <p class="lead">{{ course.description|u.truncate(200, '...') }}</p>
                     <p><strong>Created by:</strong> {{ course.createdBy.username }} | <strong>Created on:</strong> {{ course.createdAt|date('F j, Y') }}</p>
-                    <p><strong>Progress:</strong> {{ progress_percentage }}% Complete</p>
-                    <div class="progress">
+                    <p><strong>Progress:</strong> {{ progress_percentage|round(2) }}% Complete</p>
+                    <div class="progress mb-3">
                         <div class="progress-bar bg-primary" role="progressbar" style="width: {{ progress_percentage }}%" aria-valuenow="{{ progress_percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
                     </div>
                     {% if is_enrolled %}
-                        <a href="#course-content" class="btn btn-light mt-3">Continue Learning</a>
+                        <a href="#course-content" class="btn btn-light btn-lg cta-button">Continue Learning</a>
                     {% else %}
-                        <a href="{{ path('app_join_course', {'id': course.id}) }}" class="btn btn-primary mt-3">Enroll Now</a>
+                        <a href="{{ path('app_join_course', {'id': course.id}) }}" class="btn btn-primary btn-lg cta-button">Enroll Now</a>
                     {% endif %}
                 </div>
             </div>
         </div>
-    </div>
+    </section>
 
     <!-- Course Content -->
-    <div class="container-xxl py-5" id="course-content">
+    <section class="course-content py-5" id="course-content">
         <div class="container">
             <div class="row">
                 <!-- Sidebar: Course Parts -->
                 <div class="col-lg-4">
-                    <h3 class="mb-4">Course Content</h3>
-                    {% for part in course.parts|sort((a, b) => a.order <=> b.order) %}
-                        <div class="part-card {% if not is_part_unlocked(part) %}locked{% endif %}">
+                    <h3 class="fw-bold text-primary mb-4">Course Content</h3>
+                    {% for part in course.parts|sort((a, b) => a.partOrder <=> b.partOrder) %}
+                        <div class="part-card card shadow-sm rounded-3 mb-3 {% if not is_part_unlocked(part) %}locked{% endif %}">
                             <div class="p-3">
-                                <h5 class="part-title">{{ part.order }}. {{ part.title }}</h5>
+                                <h5 class="part-title">{{ part.partOrder }}. {{ part.title }}</h5>
                                 <p>{{ part.description|u.truncate(100, '...') }}</p>
                                 <p><i class="fa fa-clock me-2"></i>{{ part.duration ? (part.duration // 60) ~ ' min' : 'N/A' }}</p>
-                                {% if is_part_unlocked(part) %}
-                                    <a href="{{ path('app_part_details', {'id': part.id}) }}" class="btn btn-sm btn-primary">View Part</a>
+                                {% if is_enrolled %}
+                                    <a href="{{ path('app_part_details', {'id': part.id}) }}" 
+                                       class="btn btn-sm btn-view-part {% if not is_part_unlocked(part) %}disabled{% endif %}"
+                                       {% if not is_part_unlocked(part) %}disabled{% endif %}>
+                                        {{ is_part_unlocked(part) ? 'View Part' : 'Locked' }}
+                                    </a>
                                 {% else %}
-                                    <button class="btn btn-sm btn-secondary" disabled>Locked</button>
+                                    <button class="btn btn-sm btn-secondary" disabled>Enroll to Unlock</button>
                                 {% endif %}
                             </div>
                         </div>
@@ -114,127 +61,131 @@
 
                 <!-- Main Content: Part Details -->
                 <div class="col-lg-8">
-                    {% if current_part %}
-                        <h3>{{ current_part.title }}</h3>
-                        <!-- Video Section -->
-                        {% if current_part.video %}
-                            <div class="mb-4">
-                                <h4>Video Content</h4>
-                                <video controls class="w-100" style="max-height: 400px;">
-                                    <source src="{{ current_part.video.url }}" type="video/mp4">
-                                    Your browser does not support the video tag.
-                                </video>
-                            </div>
-                        {% endif %}
-
-                        <!-- Written Section -->
-                        {% if current_part.writtenSection %}
-                            <div class="mb-4">
-                                <h4>Written Content</h4>
-                                <div class="p-3 bg-light rounded">
-                                    {{ current_part.writtenSection.content|raw }}
-                                    {% if current_part.writtenSection.mediaUrls %}
-                                        <div class="mt-3">
-                                            <h6>Media</h6>
-                                            {% for mediaUrl in current_part.writtenSection.mediaUrls %}
-                                                {% if mediaUrl|slice(-4) in ['.jpg', '.png', '.gif'] %}
-                                                    <img src="{{ mediaUrl }}" alt="Media" class="img-fluid mb-2" style="max-width: 200px;">
-                                                {% else %}
-                                                    <a href="{{ mediaUrl }}" target="_blank" class="btn btn-sm btn-primary mb-2">View Media</a>
-                                                {% endif %}
-                                            {% endfor %}
-                                        </div>
+                    <div class="content-section card shadow-sm rounded-3 p-4">
+                        {% if current_part %}
+                            <h3 class="fw-bold text-primary">{{ current_part.title }}</h3>
+                            <!-- Video Section -->
+                            {% if current_part.video %}
+                                <div class="mb-4">
+                                    <h4>Video Content</h4>
+                                    <video controls class="w-100 rounded-3" style="max-height: 400px;">
+                                        <source src="{{ asset('Uploads/videos/' ~ current_part.video.filename) }}" type="video/mp4">
+                                        Your browser does not support the video tag.
+                                    </video>
+                                    {% if current_part.video.description %}
+                                        <p class="mt-3">{{ current_part.video.description }}</p>
                                     {% endif %}
                                 </div>
-                            </div>
-                        {% endif %}
-
-                        <!-- Desmos Graphing Calculator -->
-                        <div class="desmos-container">
-                            <h4>Interactive Graphing</h4>
-                            <div id="calculator" style="width: 100%; height: 400px;"></div>
-                            <div class="mt-3">
-                                <label for="expression">Enter Mathematical Expression:</label>
-                                <input type="text" id="expression" class="form-control" placeholder="e.g., y = x^2" value="y = x^2">
-                                <button onclick="updateGraph()" class="btn btn-primary mt-2">Update Graph</button>
-                            </div>
-                        </div>
-
-                        <!-- Quiz Section -->
-                        {% if current_part.quiz %}
-                            <div class="quiz-section mt-4">
-                                <h4>Quiz: Test Your Knowledge</h4>
-                                {% if current_quiz_attempt %}
-                                    <p>Your last score: {{ current_quiz_attempt.score }}%</p>
-                                    {% if current_quiz_attempt.score >= 70 %}
-                                        <p class="text-success">You passed! The next part is unlocked.</p>
-                                    {% else %}
-                                        <p class="text-danger">You need a score of at least 70% to unlock the next part.</p>
-                                    {% endif %}
-                                {% endif %}
-                                <form action="{{ path('app_quiz_submit', {'id': current_part.quiz.id}) }}" method="post">
-                                    {% for question in current_part.quiz.questions %}
-                                        <div class="quiz-question">
-                                            <h5>{{ loop.index }}. {{ question.text }}</h5>
-                                            {% if question.type == 'MCQ' %}
-                                                {% for option in question.options %}
-                                                    <div class="form-check">
-                                                        <input class="form-check-input" type="radio" name="answers[{{ question.id }}]" value="{{ option }}" required>
-                                                        <label class="form-check-label">{{ option }}</label>
-                                                    </div>
-                                                {% endfor %}
-                                            {% else %}
-                                                <input type="text" name="answers[{{ question.id }}]" class="form-control" placeholder="Enter your answer" required>
-                                            {% endif %}
-                                        </div>
-                                    {% endfor %}
-                                    <button type="submit" class="btn btn-primary">Submit Quiz</button>
-                                </form>
-                            </div>
-                        {% endif %}
-                    {% else %}
-                        <p>Select a part from the sidebar to start learning.</p>
-                    {% endif %}
-
-                    <!-- Final Course Quiz -->
-                    {% if is_course_completed %}
-                        <div class="final-quiz-section">
-                            <h3>Final Course Quiz</h3>
-                            <p>Test your understanding of the entire course with this AI-generated quiz.</p>
-                            {% if final_quiz %}
-                                <form action="{{ path('app_quiz_submit', {'id': final_quiz.id}) }}" method="post">
-                                    {% for question in final_quiz.questions %}
-                                        <div class="quiz-question">
-                                            <h5>{{ loop.index }}. {{ question.text }}</h5>
-                                            {% if question.type == 'MCQ' %}
-                                                {% for option in question.options %}
-                                                    <div class="form-check">
-                                                        <input class="form-check-input" type="radio" name="answers[{{ question.id }}]" value="{{ option }}" required>
-                                                        <label class="form-check-label">{{ option }}</label>
-                                                    </div>
-                                                {% endfor %}
-                                            {% else %}
-                                                <input type="text" name="answers[{{ question.id }}]" class="form-control" placeholder="Enter your answer" required>
-                                            {% endif %}
-                                        </div>
-                                    {% endfor %}
-                                    <button type="submit" class="btn btn-primary">Submit Final Quiz</button>
-                                </form>
-                            {% else %}
-                                <p>Generating final quiz... Please check back soon.</p>
                             {% endif %}
-                        </div>
-                    {% endif %}
+
+                            <!-- Written Section -->
+                            {% if current_part.writtenSection %}
+                                <div class="mb-4">
+                                    <h4>Written Content</h4>
+                                    <div class="written-content p-3 rounded-3">
+                                        {{ current_part.writtenSection.content|raw }}
+                                        {% if current_part.writtenSection.mediaUrls %}
+                                            <div class="mt-3">
+                                                <h6>Media</h6>
+                                                {% for mediaUrl in current_part.writtenSection.mediaUrls %}
+                                                    {% if mediaUrl|slice(-4) in ['.jpg', '.png', '.gif'] %}
+                                                        <img src="{{ mediaUrl }}" alt="Media" class="img-fluid mb-2 rounded-3" style="max-width: 200px;">
+                                                    {% else %}
+                                                        <a href="{{ mediaUrl }}" target="_blank" class="btn btn-sm btn-primary mb-2">View Media</a>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            {% endif %}
+
+                            <!-- Desmos Graphing Calculator -->
+                            <div class="desmos-container card shadow-sm rounded-3 p-4 mt-4">
+                                <h4>Interactive Graphing</h4>
+                                <div id="calculator" style="width: 100%; height: 400px;"></div>
+                                <div class="mt-3">
+                                    <label for="expression" class="form-label">Enter Mathematical Expression:</label>
+                                    <input type="text" id="expression" class="form-control" placeholder="e.g., y = x^2" value="y = x^2">
+                                    <button onclick="updateGraph()" class="btn btn-primary mt-2">Update Graph</button>
+                                </div>
+                            </div>
+
+                            <!-- Quiz Section -->
+                            {% if current_part.quiz %}
+                                <div class="quiz-section card shadow-sm rounded-3 p-4 mt-4">
+                                    <h4>Quiz: Test Your Knowledge</h4>
+                                    {% if current_quiz_attempt %}
+                                        <p>Your last score: {{ current_quiz_attempt.score }}%</p>
+                                        {% if current_quiz_attempt.score >= 70 %}
+                                            <p class="text-success">You passed! The next part is unlocked.</p>
+                                        {% else %}
+                                            <p class="text-danger">You need a score of at least 70% to unlock the next part.</p>
+                                        {% endif %}
+                                    {% endif %}
+                                    <form action="{{ path('app_quiz_submit', {'id': current_part.quiz.id}) }}" method="post">
+                                        {% for question in current_part.quiz.questions %}
+                                            <div class="quiz-question mb-4">
+                                                <h5 class="fw-bold">{{ loop.index }}. {{ question.text }}</h5>
+                                                {% if question.type == 'MCQ' %}
+                                                    {% for option in question.options %}
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="radio" name="answers[{{ question.id }}]" value="{{ option }}" required>
+                                                            <label class="form-check-label">{{ option }}</label>
+                                                        </div>
+                                                    {% endfor %}
+                                                {% else %}
+                                                    <input type="text" name="answers[{{ question.id }}]" class="form-control" placeholder="Enter your answer" required>
+                                                {% endif %}
+                                            </div>
+                                        {% endfor %}
+                                        <button type="submit" class="btn btn-primary">Submit Quiz</button>
+                                    </form>
+                                </div>
+                            {% endif %}
+                        {% else %}
+                            <p class="text-muted">Select a part from the sidebar to start learning.</p>
+                        {% endif %}
+
+                        <!-- Final Course Quiz -->
+                        {% if is_course_completed %}
+                            <div class="final-quiz-section card shadow-sm rounded-3 p-4 mt-4">
+                                <h3 class="fw-bold text-primary">Final Course Quiz</h3>
+                                <p>Test your understanding of the entire course with this AI-generated quiz.</p>
+                                {% if final_quiz %}
+                                    <form action="{{ path('app_quiz_submit', {'id': final_quiz.id}) }}" method="post">
+                                        {% for question in final_quiz.questions %}
+                                            <div class="quiz-question mb-4">
+                                                <h5 class="fw-bold">{{ loop.index }}. {{ question.text }}</h5>
+                                                {% if question.type == 'MCQ' %}
+                                                    {% for option in question.options %}
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="radio" name="answers[{{ question.id }}]" value="{{ option }}" required>
+                                                            <label class="form-check-label">{{ option }}</label>
+                                                        </div>
+                                                    {% endfor %}
+                                                {% else %}
+                                                    <input type="text" name="answers[{{ question.id }}]" class="form-control" placeholder="Enter your answer" required>
+                                                {% endif %}
+                                            </div>
+                                        {% endfor %}
+                                        <button type="submit" class="btn btn-primary">Submit Final Quiz</button>
+                                    </form>
+                                {% else %}
+                                    <p class="text-muted">Generating final quiz... Please check back soon.</p>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
+    </section>
 {% endblock %}
 
 {% block js %}
     <script src="https://www.desmos.com/api/v1.9/calculator.js?apiKey=dcb31709b452b1cf9dc26972add0fda6"></script>
     <script>
-        // Initialize Desmos Calculator
         let calculator = Desmos.Calculator(document.getElementById('calculator'), {
             keypad: true,
             expressions: true,

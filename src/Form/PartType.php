@@ -7,8 +7,10 @@ use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
+use Symfony\Component\Form\Extension\Core\Type\FileType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
+use Symfony\Component\Validator\Constraints\File;
 
 class PartType extends AbstractType
 {
@@ -29,14 +31,29 @@ class PartType extends AbstractType
                 'attr' => ['class' => 'form-control', 'min' => 0],
                 'required' => false,
             ])
-            ->add('order', IntegerType::class, [
+            ->add('partOrder', IntegerType::class, [
                 'label' => 'Order',
                 'attr' => ['class' => 'form-control', 'min' => 1],
                 'required' => false,
             ])
-            ->add('video', VideoType::class, [
-                'label' => false,
+            ->add('videoFile', FileType::class, [
+                'label' => 'Video File (MP4, max 100MB)',
+                'mapped' => false,
                 'required' => false,
+                'constraints' => [
+                    new File([
+                        'maxSize' => '100M',
+                        'mimeTypes' => ['video/mp4'],
+                        'mimeTypesMessage' => 'Please upload a valid MP4 video',
+                    ]),
+                ],
+                'attr' => ['class' => 'form-control'],
+            ])
+            ->add('videoDescription', TextareaType::class, [
+                'label' => 'Video Description',
+                'mapped' => false,
+                'required' => false,
+                'attr' => ['class' => 'form-control', 'rows' => 4],
             ])
             ->add('writtenSection', WrittenSectionType::class, [
                 'label' => false,
