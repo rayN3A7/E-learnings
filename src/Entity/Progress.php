@@ -16,7 +16,7 @@ class Progress
     #[ORM\Column(type: 'boolean')]
     private bool $completed = false;
 
-    #[ORM\Column(type: 'datetime', nullable: true)]
+    #[ORM\Column(type: 'datetime', name: 'completedAt', nullable: true)]
     private ?\DateTimeInterface $completedAt = null;
 
     #[ORM\ManyToOne(targetEntity: User::class)]

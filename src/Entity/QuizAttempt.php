@@ -28,8 +28,8 @@ class QuizAttempt
     #[ORM\Column(type: 'float', nullable: true)]
     private ?float $score = null;
 
-    #[ORM\Column(type: 'datetime', nullable: true)]
-    private ?\DateTimeInterface $takenAt = null;
+   #[ORM\Column(type: 'datetime', name: 'takenAt')]
+    private $takenAt;
 
     public function getId(): ?int
     {

@@ -5,6 +5,9 @@ namespace App\Entity;
 use App\Repository\WrittenSectionRepository;
 use Doctrine\ORM\Mapping as ORM;
 
+/**
+ * @method setMediaUrls(?array $mediaUrls)
+ */
 #[ORM\Entity(repositoryClass: WrittenSectionRepository::class)]
 #[ORM\Table(name: 'writtensection')]
 class WrittenSection
@@ -19,6 +22,7 @@ class WrittenSection
 
     #[ORM\Column(type: 'json', nullable: true, name: 'mediaUrls')] 
     private ?array $mediaUrls = null;
+
     #[ORM\OneToOne(inversedBy: 'writtenSection', targetEntity: Part::class)]
     #[ORM\JoinColumn(name: 'partId', nullable: true)]
     private ?Part $part = null;
@@ -39,15 +43,37 @@ class WrittenSection
         return $this;
     }
 
+    /**
+     * @return array|null
+     */
     public function getMediaUrls(): ?array
     {
+        // Ensure mediaUrls is always an array or null after decoding
+        if ($this->mediaUrls === null) {
+            return null;
+        }
         return $this->mediaUrls;
     }
 
+    /**
+     * @param array|null $mediaUrls
+     */
     public function setMediaUrls(?array $mediaUrls): self
     {
         $this->mediaUrls = $mediaUrls;
         return $this;
+    }
+
+    /**
+     * @return array|null Decoded media URLs if available
+     */
+    public function getDecodedMediaUrls(): ?array
+    {
+        $rawMediaUrls = $this->getMediaUrls();
+        if ($rawMediaUrls === null) {
+            return null;
+        }
+        return is_array($rawMediaUrls) ? $rawMediaUrls : [];
     }
 
     public function getPart(): ?Part

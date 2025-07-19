@@ -14,7 +14,7 @@ class Question
     private ?int $id = null;
 
     #[ORM\ManyToOne(targetEntity: Quiz::class, inversedBy: 'questions')]
-    #[ORM\JoinColumn(nullable: true)]
+    #[ORM\JoinColumn(name: "quizId", nullable: true)]
     private ?Quiz $quiz = null;
 
     #[ORM\Column(type: 'text')]
@@ -26,10 +26,10 @@ class Question
     #[ORM\Column(type: 'json', nullable: true)]
     private ?array $options = null;
 
-    #[ORM\Column(type: 'string', nullable: true)]
+    #[ORM\Column(type: 'string', nullable: true, name: "correctAnswer")]
     private ?string $correctAnswer = null;
 
-    #[ORM\Column(type: 'boolean')]
+    #[ORM\Column(type: 'boolean', name: "generatedByAI")]
     private bool $generatedByAI = false;
 
     public function getId(): ?int
