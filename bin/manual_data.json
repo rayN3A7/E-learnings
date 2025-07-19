@@ -1,0 +1,56 @@
+[
+  {
+    "course_title": "Introduction to Numerical Analysis",
+    "part_title": "Bisection Method",
+    "content": "The bisection method repeatedly bisects an interval and selects the subinterval where the function changes sign.",
+    "question_type": "MCQ",
+    "question": "What is the main purpose of the bisection method?",
+    "options": ["Find roots by bisecting intervals", "Optimize functions", "Solve differential equations", "Approximate derivatives"],
+    "correct_answer": "Find roots by bisecting intervals"
+  },
+  {
+    "course_title": "Introduction to Numerical Analysis",
+    "part_title": "Bisection Method",
+    "content": "The bisection method repeatedly bisects an interval and selects the subinterval where the function changes sign.",
+    "question_type": "Numeric",
+    "question": "If f(1) = -1 and f(3) = 2, what is the midpoint of the interval after one bisection?",
+    "options": [],
+    "correct_answer": "2"
+  },
+  {
+    "course_title": "Introduction to Numerical Analysis",
+    "part_title": "Newton-Raphson Method",
+    "content": "The Newton-Raphson method uses the formula x_{n+1} = x_n - f(x_n)/f'(x_n) to find roots.",
+    "question_type": "MCQ",
+    "question": "What does the Newton-Raphson method use to find roots?",
+    "options": ["Derivatives", "Integrals", "Matrix inversion", "Bisection"],
+    "correct_answer": "Derivatives"
+  },
+  {
+    "course_title": "Introduction to Numerical Analysis",
+    "part_title": "Newton-Raphson Method",
+    "content": "The Newton-Raphson method uses the formula x_{n+1} = x_n - f(x_n)/f'(x_n) to find roots.",
+    "question_type": "Numeric",
+    "question": "Using Newton-Raphson with f(x) = x^2 - 4 and f'(x) = 2x, starting at x_0 = 3, what is x_1?",
+    "options": [],
+    "correct_answer": "2.5"
+  },
+  {
+    "course_title": "Interpolation Linéaire",
+    "part_title": "Introduction à l'interpolation linéaire",
+    "content": "L’interpolation linéaire est une méthode simple permettant d’approximer une fonction en reliant deux points connus par une droite.",
+    "question_type": "MCQ",
+    "question": "What is the main goal of linear interpolation?",
+    "options": ["To approximate functions", "To solve equations", "To optimize functions", "To find eigenvalues"],
+    "correct_answer": "To approximate functions"
+  },
+  {
+    "course_title": "Interpolation Linéaire",
+    "part_title": "Formule de l’interpolation linéaire et démonstration",
+    "content": "La formule de l’interpolation linéaire est : L(x) = f(x0) + (f(x1) - f(x0))/(x1 - x0) * (x - x0).",
+    "question_type": "Numeric",
+    "question": "Using linear interpolation between points (1, 2) and (3, 4), what is the value at x = 2?",
+    "options": [],
+    "correct_answer": "3"
+  }
+]

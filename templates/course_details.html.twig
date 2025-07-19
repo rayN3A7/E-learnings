@@ -7,7 +7,6 @@
 {% endblock %}
 
 {% block body %}
-    <!-- Course Header -->
     <section class="course-header animate__animated animate__fadeIn">
         <div class="container">
             <div class="row align-items-center">
@@ -32,11 +31,9 @@
         </div>
     </section>
 
-    <!-- Course Content -->
     <section class="course-content py-5" id="course-content">
         <div class="container">
             <div class="row">
-                <!-- Sidebar: Course Parts -->
                 <div class="col-lg-4">
                     <h3 class="fw-bold text-primary mb-4">Course Content</h3>
                     {% for part in course.parts|sort((a, b) => a.partOrder <=> b.partOrder) %}
@@ -59,12 +56,10 @@
                     {% endfor %}
                 </div>
 
-                <!-- Main Content: Part Details -->
                 <div class="col-lg-8">
                     <div class="content-section card shadow-sm rounded-3 p-4">
                         {% if current_part %}
                             <h3 class="fw-bold text-primary">{{ current_part.title }}</h3>
-                            <!-- Video Section -->
                             {% if current_part.video %}
                                 <div class="mb-4">
                                     <h4>Video Content</h4>
@@ -78,16 +73,15 @@
                                 </div>
                             {% endif %}
 
-                            <!-- Written Section -->
                             {% if current_part.writtenSection %}
                                 <div class="mb-4">
                                     <h4>Written Content</h4>
                                     <div class="written-content p-3 rounded-3">
                                         {{ current_part.writtenSection.content|raw }}
-                                        {% if current_part.writtenSection.mediaUrls %}
+                                        {% if current_part.writtenSection.getDecodedMediaUrls() is not null %}
                                             <div class="mt-3">
                                                 <h6>Media</h6>
-                                                {% for mediaUrl in current_part.writtenSection.mediaUrls %}
+                                                {% for mediaUrl in current_part.writtenSection.getDecodedMediaUrls() %}
                                                     {% if mediaUrl|slice(-4) in ['.jpg', '.png', '.gif'] %}
                                                         <img src="{{ mediaUrl }}" alt="Media" class="img-fluid mb-2 rounded-3" style="max-width: 200px;">
                                                     {% else %}
@@ -100,7 +94,6 @@
                                 </div>
                             {% endif %}
 
-                            <!-- Desmos Graphing Calculator -->
                             <div class="desmos-container card shadow-sm rounded-3 p-4 mt-4">
                                 <h4>Interactive Graphing</h4>
                                 <div id="calculator" style="width: 100%; height: 400px;"></div>
@@ -111,7 +104,6 @@
                                 </div>
                             </div>
 
-                            <!-- Quiz Section -->
                             {% if current_part.quiz %}
                                 <div class="quiz-section card shadow-sm rounded-3 p-4 mt-4">
                                     <h4>Quiz: Test Your Knowledge</h4>
@@ -134,24 +126,27 @@
                                                             <label class="form-check-label">{{ option }}</label>
                                                         </div>
                                                     {% endfor %}
-                                                {% else %}
-                                                    <input type="text" name="answers[{{ question.id }}]" class="form-control" placeholder="Enter your answer" required>
+                                                {% elseif question.type == 'Numeric' %}
+                                                    <input type="number" name="answers[{{ question.id }}]" class="form-control" step="0.01" placeholder="Enter your answer" required>
                                                 {% endif %}
                                             </div>
                                         {% endfor %}
                                         <button type="submit" class="btn btn-primary">Submit Quiz</button>
                                     </form>
                                 </div>
+                            {% else %}
+                                <p class="text-muted">No quiz available for this part yet.</p>
                             {% endif %}
+                        {% elseif is_enrolled and not current_part %}
+                            <p class="text-muted">You have completed all parts!</p>
                         {% else %}
-                            <p class="text-muted">Select a part from the sidebar to start learning.</p>
+                            <p class="text-muted">Enroll or complete previous parts to access content.</p>
                         {% endif %}
 
-                        <!-- Final Course Quiz -->
                         {% if is_course_completed %}
                             <div class="final-quiz-section card shadow-sm rounded-3 p-4 mt-4">
                                 <h3 class="fw-bold text-primary">Final Course Quiz</h3>
-                                <p>Test your understanding of the entire course with this AI-generated quiz.</p>
+                                <p>Test your understanding of the entire course with this AI-generated quiz tailored to your weak points.</p>
                                 {% if final_quiz %}
                                     <form action="{{ path('app_quiz_submit', {'id': final_quiz.id}) }}" method="post">
                                         {% for question in final_quiz.questions %}
@@ -164,8 +159,8 @@
                                                             <label class="form-check-label">{{ option }}</label>
                                                         </div>
                                                     {% endfor %}
-                                                {% else %}
-                                                    <input type="text" name="answers[{{ question.id }}]" class="form-control" placeholder="Enter your answer" required>
+                                                {% elseif question.type == 'Numeric' %}
+                                                    <input type="number" name="answers[{{ question.id }}]" class="form-control" step="0.01" placeholder="Enter your answer" required>
                                                 {% endif %}
                                             </div>
                                         {% endfor %}

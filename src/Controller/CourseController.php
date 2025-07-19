@@ -5,9 +5,9 @@ namespace App\Controller;
 use App\Entity\Course;
 use App\Entity\Enrollment;
 use App\Entity\Part;
+use App\Entity\Video;
 use App\Entity\User;
 use App\Entity\QuizAttempt;
-use App\Entity\Video;
 use App\Form\CourseType;
 use App\Service\CourseProgressService;
 use App\Service\QuizService;
@@ -147,29 +147,45 @@ class CourseController extends AbstractController
         $final_quiz = null;
         $current_quiz_attempt = null;
 
-        try {
-            $progress_percentage = $user ? $this->progressService->calculateProgress($user, $course) : 0;
-            $is_enrolled = $user && $course->getEnrollments()->exists(function($key, $enrollment) use ($user) {
+        if ($user) {
+            $progress_percentage = $this->progressService->calculateProgress($user, $course);
+            $is_enrolled = $course->getEnrollments()->exists(function($key, $enrollment) use ($user) {
                 return $enrollment->getUser() === $user;
             });
-            $current_part = $user ? $this->progressService->getCurrentPart($user, $course) : $course->getParts()->first();
-            $is_course_completed = $user ? $this->progressService->isCourseCompleted($user, $course) : false;
+            $current_part = $this->progressService->getCurrentPart($user, $course);
+            $is_course_completed = $this->progressService->isCourseCompleted($user, $course);
 
-            if ($current_part && $current_part->getCourse() && $this->entityManager->isOpen()) {
-                $final_quiz = $this->quizService->getOrGenerateFinalQuiz($user, $current_part);
-                if (!$final_quiz) {
-                    $this->logger->warning('No quiz generated for part ID ' . $current_part->getId() . ' in course ID ' . $id);
-                    $this->addFlash('warning', 'Unable to load quiz for this part.');
-                } elseif ($user && $this->entityManager->isOpen()) {
+            if ($current_part) {
+                $part_quiz = $this->quizService->getOrGeneratePartQuiz($user, $current_part);
+                if ($part_quiz) {
                     $current_quiz_attempt = $this->entityManager->getRepository(QuizAttempt::class)->findOneBy(
-                        ['quiz' => $final_quiz, 'user' => $user],
+                        ['quiz' => $part_quiz, 'user' => $user],
                         ['takenAt' => 'DESC']
                     );
+
+                    // Decode quiz question options
+                    if ($part_quiz->getQuestions()) {
+                        foreach ($part_quiz->getQuestions() as $question) {
+                            $options = $question->getOptions();
+                            if (is_string($options)) {
+                                $question->setOptions(json_decode($options, true) ?: []);
+                            }
+                        }
+                    }
                 }
             }
-        } catch (\Exception $e) {
-            $this->logger->error('Error in course details for course ID ' . $id . ': ' . $e->getMessage());
-            $this->addFlash('error', 'Unable to load course details due to a database issue.');
+
+            if ($is_course_completed) {
+                $final_quiz = $this->quizService->getOrGenerateFinalQuiz($user, $course);
+                if ($final_quiz && $final_quiz->getQuestions()) {
+                    foreach ($final_quiz->getQuestions() as $question) {
+                        $options = $question->getOptions();
+                        if (is_string($options)) {
+                            $question->setOptions(json_decode($options, true) ?: []);
+                        }
+                    }
+                }
+            }
         }
 
         return $this->render('course_details.html.twig', [
@@ -180,6 +196,7 @@ class CourseController extends AbstractController
             'is_course_completed' => $is_course_completed,
             'final_quiz' => $final_quiz,
             'current_quiz_attempt' => $current_quiz_attempt,
+            'is_part_unlocked' => fn($part) => $user ? $this->progressService->isPartUnlocked($part, $user) : false,
         ]);
     }
 

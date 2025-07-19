@@ -6,6 +6,9 @@
 parameters:
     course_images_directory: '%kernel.project_dir%/public/uploads/images'
     part_videos_directory: '%kernel.project_dir%/public/uploads/videos'
+    python_binary: '%env(PYTHON_BINARY)%'
+    quiz_generator_script: '%env(QUIZ_GENERATOR_SCRIPT)%'
+    final_quiz_generator_script: '%env(FINAL_QUIZ_GENERATOR_SCRIPT)%'
 
 services:
     # default configuration for services in *this* file
@@ -17,26 +20,36 @@ services:
     # this creates a service per class whose id is the fully-qualified class name
     App\:
         resource: '../src/'
+        exclude:
+            - '../src/DependencyInjection/'
+            - '../src/Entity/'
+            - '../src/Kernel.php'
+
     App\Service\CourseProgressService:
         arguments:
             $entityManager: '@doctrine.orm.entity_manager'
+
     App\Service\QuizService:
-       arguments:
+        arguments:
             $entityManager: '@doctrine.orm.entity_manager'
-            $httpClient: '@http_client'
             $logger: '@logger'
-            $geminiApiKey: '%env(GEMINI_API_KEY)%'
+            $pythonBinary: '%python_binary%'
+            $quizGeneratorScript: '%quiz_generator_script%'
+            $finalQuizGeneratorScript: '%final_quiz_generator_script%'
+
     App\Controller\CourseController:
         arguments:
             $entityManager: '@doctrine.orm.entity_manager'
             $progressService: '@App\Service\CourseProgressService'
             $quizService: '@App\Service\QuizService'
             $logger: '@logger'
+
     App\Twig\AppExtension:
         arguments:
             $tokenStorage: '@security.token_storage'
             $entityManager: '@doctrine.orm.entity_manager'
             $quizAttemptRepository: '@App\Repository\QuizAttemptRepository'
         tags: ['twig.extension']
+
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
