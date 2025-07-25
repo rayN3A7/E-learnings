@@ -56,8 +56,20 @@ class PartType extends AbstractType
                 'attr' => ['class' => 'form-control', 'rows' => 4],
             ])
             ->add('writtenSection', WrittenSectionType::class, [
-                'label' => false,
+                'label' => 'Written Section',
                 'required' => false,
+            ])
+            ->add('geogebraMaterialId', TextType::class, [
+                'label' => 'GeoGebra Material ID',
+                'required' => false,
+                'attr' => ['class' => 'form-control'],
+                'help' => 'Enter the GeoGebra material ID (e.g., g12345678) to embed an interactive applet.'
+            ])
+            ->add('tutorialContent', TextareaType::class, [
+                'label' => 'Tutorial Content (HTML/Markdown)',
+                'required' => false,
+                'attr' => ['class' => 'form-control', 'rows' => 4],
+                'help' => 'Provide instructions for using the GeoGebra applet.'
             ]);
     }
 

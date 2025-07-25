@@ -22,26 +22,27 @@ class Part
     #[ORM\Column(type: 'integer', nullable: true)]
     private ?int $duration = null;
 
-    #[ORM\Column(type: 'integer', name: 'partOrder', nullable: true)]
+    #[ORM\Column(type: 'integer', name: 'partOrder')]
     private ?int $partOrder = null;
+
+    #[ORM\Column(type: 'string', length: 255, nullable: true, name: 'geogebraMaterialId')]
+    private ?string $geogebraMaterialId = null;
+
+    #[ORM\Column(type: 'text', nullable: true, name: 'tutorialContent')]
+    private ?string $tutorialContent = null;
 
     #[ORM\ManyToOne(targetEntity: Course::class, inversedBy: 'parts')]
     #[ORM\JoinColumn(name: 'courseId', referencedColumnName: 'id')]
     private ?Course $course = null;
 
-    #[ORM\OneToOne(targetEntity: Video::class, mappedBy: 'part', cascade: ['persist', 'remove'])]
+    #[ORM\OneToOne(targetEntity: Video::class, mappedBy: 'part')]
     private ?Video $video = null;
 
-    #[ORM\OneToOne(targetEntity: WrittenSection::class, mappedBy: 'part', cascade: ['persist', 'remove'])]
+    #[ORM\OneToOne(targetEntity: WrittenSection::class, mappedBy: 'part')]
     private ?WrittenSection $writtenSection = null;
 
-    #[ORM\OneToOne(targetEntity: Quiz::class, mappedBy: 'part', cascade: ['persist', 'remove'])]
+    #[ORM\OneToOne(targetEntity: Quiz::class, mappedBy: 'part')]
     private ?Quiz $quiz = null;
-
-    public function __construct()
-    {
-        // Removed $this->questions = new ArrayCollection();
-    }
 
     public function getId(): ?int
     {
@@ -86,9 +87,31 @@ class Part
         return $this->partOrder;
     }
 
-    public function setPartOrder(?int $partOrder): self
+    public function setPartOrder(int $partOrder): self
     {
         $this->partOrder = $partOrder;
+        return $this;
+    }
+
+    public function getGeogebraMaterialId(): ?string
+    {
+        return $this->geogebraMaterialId;
+    }
+
+    public function setGeogebraMaterialId(?string $geogebraMaterialId): self
+    {
+        $this->geogebraMaterialId = $geogebraMaterialId;
+        return $this;
+    }
+
+    public function getTutorialContent(): ?string
+    {
+        return $this->tutorialContent;
+    }
+
+    public function setTutorialContent(?string $tutorialContent): self
+    {
+        $this->tutorialContent = $tutorialContent;
         return $this;
     }
 

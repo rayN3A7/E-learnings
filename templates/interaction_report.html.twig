@@ -1,0 +1,64 @@
+{% extends 'layout.html.twig' %}
+
+{% block title %}Interaction Report - {{ course.title }} - eLEARNING{% endblock %}
+
+{% block css %}
+    <link rel="stylesheet" href="{{ asset('css/custom.css') }}">
+    <style>
+        .interaction-card {
+            transition: transform 0.3s ease;
+        }
+        .interaction-card:hover {
+            transform: translateY(-5px);
+        }
+        .table th, .table td {
+            vertical-align: middle;
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+    <section class="interaction-report py-5">
+        <div class="container">
+            <h1 class="fw-bold text-primary mb-4 animate__animated animate__fadeIn">
+                Interaction Report for {{ course.title }}
+            </h1>
+            <div class="card shadow-sm rounded-3 p-4">
+                <h3 class="fw-bold text-primary mb-3">User Interactions</h3>
+                {% if interactions|length > 0 %}
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>User</th>
+                                <th>Part</th>
+                                <th>Tool</th>
+                                <th>Interaction Data</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for interaction in interactions %}
+                                <tr class="interaction-card animate__animated animate__fadeIn" style="animation-delay: {{ loop.index0 * 0.1 }}s;">
+                                    <td>{{ interaction.user.username }}</td>
+                                    <td>{{ interaction.part.title }}</td>
+                                    <td>{{ interaction.tool|capitalize }}</td>
+                                    <td>
+                                        {% if interaction.data.expression %}
+                                            <code>{{ interaction.data.expression|u.truncate(50, '...') }}</code>
+                                        {% else %}
+                                            No data
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ interaction.createdAt|date('F j, Y, H:i') }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <p class="text-muted">No interactions recorded for this course yet.</p>
+                {% endif %}
+                <a href="{{ path('app_courses') }}" class="btn btn-primary mt-3">Back to Courses</a>
+            </div>
+        </div>
+    </section>
+{% endblock %}

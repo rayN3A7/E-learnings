@@ -11,7 +11,6 @@ use App\Entity\Enrollment;
 use Doctrine\ORM\EntityManagerInterface;
 use App\Entity\Quiz;
 
-
 class CourseProgressService
 {
     private EntityManagerInterface $entityManager;
@@ -69,7 +68,7 @@ class CourseProgressService
             return false;
         }
 
-        // First part is always unlocked for enrolled users
+        // Only the first part (partOrder = 1) is unlocked by default
         if ($part->getPartOrder() === 1) {
             return true;
         }

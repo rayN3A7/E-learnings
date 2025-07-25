@@ -6,9 +6,11 @@
 parameters:
     course_images_directory: '%kernel.project_dir%/public/uploads/images'
     part_videos_directory: '%kernel.project_dir%/public/uploads/videos'
+    upload_directory: '%kernel.project_dir%/public/uploads'
     python_binary: '%env(PYTHON_BINARY)%'
     quiz_generator_script: '%env(QUIZ_GENERATOR_SCRIPT)%'
     final_quiz_generator_script: '%env(FINAL_QUIZ_GENERATOR_SCRIPT)%'
+    app.request_context.base_url: 'http://127.0.0.1:8000' # Adjust for your environment
 
 services:
     # default configuration for services in *this* file

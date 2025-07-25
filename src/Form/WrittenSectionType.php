@@ -17,8 +17,13 @@ class WrittenSectionType extends AbstractType
         $builder
             ->add('content', TextareaType::class, [
                 'label' => 'Written Content',
-                'attr' => ['class' => 'form-control', 'rows' => 5],
+                'attr' => [
+                    'class' => 'form-control rich-text-editor',
+                    'rows' => 5,
+                    'data-ckeditor' => 'true', // Custom attribute for JS initialization
+                ],
                 'required' => false,
+                'help' => 'Use headings, images, GIFs, emojis, and LaTeX (e.g., \\( x^2 \\)) for mathematical expressions.',
             ])
             ->add('mediaUrls', CollectionType::class, [
                 'entry_type' => TextType::class,
@@ -31,6 +36,7 @@ class WrittenSectionType extends AbstractType
                 'by_reference' => false,
                 'prototype' => true,
                 'required' => false,
+                'label' => 'Media URLs (Images, GIFs, etc.)',
             ]);
     }
 

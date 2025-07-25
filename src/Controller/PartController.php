@@ -5,7 +5,6 @@ namespace App\Controller;
 use App\Entity\Part;
 use App\Entity\User;
 use App\Entity\Quiz;
-use App\Entity\Enrollment;
 use App\Service\CourseProgressService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -50,6 +49,8 @@ class PartController extends AbstractController
             'part' => $part,
             'course' => $course,
             'quiz' => $partQuiz,
+            'geogebraMaterialId' => $part->getGeogebraMaterialId(),
+            'tutorialContent' => $part->getTutorialContent(),
         ]);
     }
 }

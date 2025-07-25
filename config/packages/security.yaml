@@ -19,10 +19,14 @@ security:
             logout:
                 path: app_logout
                 target: app_home
+    role_hierarchy:
+        ROLE_ADMIN: [ROLE_TEACHER, ROLE_CLIENT]
+        ROLE_TEACHER: [ROLE_CLIENT]
     access_control:
         - { path: ^/course/create, roles: ROLE_TEACHER }
         - { path: ^/course/\d+/join, roles: ROLE_CLIENT }
         - { path: ^/course/\d+, roles: [ROLE_CLIENT, ROLE_TEACHER] }
+        - { path: ^/admin/interactions, roles: ROLE_TEACHER }
         - { path: ^/, roles: PUBLIC_ACCESS }
 when@test:
     security:
