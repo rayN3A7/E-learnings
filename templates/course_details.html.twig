@@ -4,6 +4,140 @@
 
 {% block css %}
     <link rel="stylesheet" href="{{ asset('css/custom.css') }}">
+    <style>
+        body {
+            background-color: #f4f7fc;
+            font-family: 'Inter', sans-serif;
+        }
+        .course-header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: #ffffff;
+            padding: 80px 0;
+            border-radius: 0 0 24px 24px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+            position: relative;
+            overflow: hidden;
+        }
+        .course-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('https://www.transparenttextures.com/patterns/subtle-dots.png');
+            opacity: 0.1;
+        }
+        .course-header img {
+            max-height: 300px;
+            object-fit: cover;
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+        }
+        .course-header h1 {
+            font-size: 2.8rem;
+            font-weight: 800;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        .course-header .lead {
+            font-size: 1.3rem;
+            opacity: 0.9;
+        }
+        .progress {
+            height: 16px;
+            border-radius: 8px;
+            background-color: #e2e8f0;
+        }
+        .progress-bar {
+            background-color: #2a5298;
+            transition: width 0.5s ease-in-out;
+        }
+        .course-content {
+            padding: 80px 0;
+        }
+        .part-card {
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        .part-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        }
+        .part-card.locked {
+            background: #f1f3f5;
+            opacity: 0.7;
+        }
+        .part-card .btn-view-part {
+            background-color: #28a745;
+            color: #ffffff;
+            border-radius: 50px;
+            padding: 0.5rem 1.5rem;
+            transition: all 0.3s ease;
+        }
+        .part-card .btn-view-part:hover {
+            background-color: #218838;
+            transform: translateY(-2px);
+        }
+        .part-card .btn-view-part:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        .content-section {
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+        }
+        .content-section h3 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #2a5298;
+        }
+        .content-section video {
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        }
+        .written-content {
+            background: #f9fafb;
+            padding: 1.5rem;
+            border-radius: 12px;
+            line-height: 1.8;
+        }
+        .geogebra-container {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        }
+        .quiz-section {
+            background: #f9fafb;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        }
+        .final-quiz-section {
+            background: linear-gradient(135deg, #e6f3ff, #d0e7ff);
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        }
+        @media (max-width: 768px) {
+            .course-header {
+                padding: 40px 0;
+            }
+            .course-header h1 {
+                font-size: 2rem;
+            }
+            .course-header img {
+                max-height: 200px;
+            }
+            .course-content {
+                padding: 40px 0;
+            }
+        }
+    </style>
 {% endblock %}
 
 {% block body %}
@@ -11,7 +145,7 @@
         <div class="container">
             <div class="row align-items-center">
                 <div class="col-lg-4 col-md-12 mb-4 mb-lg-0">
-                    <img src="{{ course.image ? asset('Uploads/images/' ~ course.image) : 'https://via.placeholder.com/600x400' }}" alt="{{ course.title }}" class="img-fluid rounded-3">
+                    <img src="{{ course.image ? asset('Uploads/images/' ~ course.image) : 'https://via.placeholder.com/600x400' }}" alt="{{ course.title }}" class="img-fluid">
                 </div>
                 <div class="col-lg-8 col-md-12">
                     <h1 class="fw-bold">{{ course.title }}</h1>
@@ -19,7 +153,7 @@
                     <p><strong>Created by:</strong> {{ course.createdBy.username }} | <strong>Created on:</strong> {{ course.createdAt|date('F j, Y') }}</p>
                     <p><strong>Progress:</strong> {{ progress_percentage|round(2) }}% Complete</p>
                     <div class="progress mb-3">
-                        <div class="progress-bar bg-primary" role="progressbar" style="width: {{ progress_percentage }}%" aria-valuenow="{{ progress_percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+                        <div class="progress-bar" role="progressbar" style="width: {{ progress_percentage }}%" aria-valuenow="{{ progress_percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
                     </div>
                     {% if is_enrolled %}
                         <a href="#course-content" class="btn btn-light btn-lg cta-button">Continue Learning</a>
@@ -35,7 +169,7 @@
         <div class="container">
             <div class="row">
                 <div class="col-lg-4">
-                    <h3 class="fw-bold text-primary mb-4">Course Content</h3>
+                    <h3 class="fw-bold mb-4">Course Content</h3>
                     {% for part in course.parts|sort((a, b) => a.partOrder <=> b.partOrder) %}
                         <div class="part-card card shadow-sm rounded-3 mb-3 {% if not is_part_unlocked(part) %}locked{% endif %}">
                             <div class="p-3">
@@ -57,13 +191,19 @@
                 </div>
 
                 <div class="col-lg-8">
-                    <div class="content-section card shadow-sm rounded-3 p-4">
+                    <div class="content-section card shadow-sm rounded-3">
                         {% if current_part %}
-                            <h3 class="fw-bold text-primary">{{ current_part.title }}</h3>
+                            <h3 class="fw-bold">{{ current_part.title }}</h3>
+                            {% if current_part.tutorialContent %}
+                                <div class="tutorial p-3 mb-3 bg-light rounded-3 animate__animated animate__fadeIn">
+                                    {{ current_part.tutorialContent|raw }}
+                                </div>
+                            {% endif %}
+
                             {% if current_part.video %}
                                 <div class="mb-4">
                                     <h4>Video Content</h4>
-                                    <video controls class="w-100 rounded-3" style="max-height: 400px;">
+                                    <video controls class="w-100">
                                         <source src="{{ asset('Uploads/videos/' ~ current_part.video.filename) }}" type="video/mp4">
                                         Your browser does not support the video tag.
                                     </video>
@@ -76,7 +216,7 @@
                             {% if current_part.writtenSection %}
                                 <div class="mb-4">
                                     <h4>Written Content</h4>
-                                    <div class="written-content p-3 rounded-3">
+                                    <div class="written-content">
                                         {{ current_part.writtenSection.content|raw }}
                                         {% if current_part.writtenSection.getDecodedMediaUrls() is not null %}
                                             <div class="mt-3">
@@ -94,15 +234,12 @@
                                 </div>
                             {% endif %}
 
-                            <div class="desmos-container card shadow-sm rounded-3 p-4 mt-4">
-                                <h4>Interactive Graphing</h4>
-                                <div id="calculator" style="width: 100%; height: 400px;"></div>
-                                <div class="mt-3">
-                                    <label for="expression" class="form-label">Enter Mathematical Expression:</label>
-                                    <input type="text" id="expression" class="form-control" placeholder="e.g., y = x^2" value="y = x^2">
-                                    <button onclick="updateGraph()" class="btn btn-primary mt-2">Update Graph</button>
+                            {% if current_part.geogebraMaterialId %}
+                                <div class="geogebra-container card shadow-sm rounded-3 p-4 mt-4">
+                                    <h4>Interactive Graphing</h4>
+                                    <div id="ggb-element-{{ current_part.id }}" style="width: 100%; height: 400px;"></div>
                                 </div>
-                            </div>
+                            {% endif %}
 
                             {% if current_part.quiz %}
                                 <div class="quiz-section card shadow-sm rounded-3 p-4 mt-4">
@@ -119,15 +256,17 @@
                                         {% for question in current_part.quiz.questions %}
                                             <div class="quiz-question mb-4">
                                                 <h5 class="fw-bold">{{ loop.index }}. {{ question.text }}</h5>
-                                                {% if question.type == 'MCQ' %}
+                                                {% if question.type|lower == 'mcq' %}
                                                     {% for option in question.options %}
                                                         <div class="form-check">
                                                             <input class="form-check-input" type="radio" name="answers[{{ question.id }}]" value="{{ option }}" required>
                                                             <label class="form-check-label">{{ option }}</label>
                                                         </div>
                                                     {% endfor %}
-                                                {% elseif question.type == 'Numeric' %}
-                                                    <input type="number" name="answers[{{ question.id }}]" class="form-control" step="0.01" placeholder="Enter your answer" required>
+                                                {% elseif question.type|lower == 'numeric' %}
+                                                    <input type="number" name="answers[{{ question.id }}]" class="form-control mb-2" step="0.01" placeholder="Enter your answer" required>
+                                                {% else %}
+                                                    <p class="text-danger">Unsupported question type: {{ question.type }}</p>
                                                 {% endif %}
                                             </div>
                                         {% endfor %}
@@ -145,22 +284,24 @@
 
                         {% if is_course_completed %}
                             <div class="final-quiz-section card shadow-sm rounded-3 p-4 mt-4">
-                                <h3 class="fw-bold text-primary">Final Course Quiz</h3>
-                                <p>Test your understanding of the entire course with this AI-generated quiz tailored to your weak points.</p>
+                                <h3 class="fw-bold">Final Course Quiz</h3>
+                                <p>Test your understanding of the entire course with this AI-generated quiz.</p>
                                 {% if final_quiz %}
                                     <form action="{{ path('app_quiz_submit', {'id': final_quiz.id}) }}" method="post">
                                         {% for question in final_quiz.questions %}
                                             <div class="quiz-question mb-4">
                                                 <h5 class="fw-bold">{{ loop.index }}. {{ question.text }}</h5>
-                                                {% if question.type == 'MCQ' %}
+                                                {% if question.type|lower == 'mcq' %}
                                                     {% for option in question.options %}
                                                         <div class="form-check">
                                                             <input class="form-check-input" type="radio" name="answers[{{ question.id }}]" value="{{ option }}" required>
                                                             <label class="form-check-label">{{ option }}</label>
                                                         </div>
                                                     {% endfor %}
-                                                {% elseif question.type == 'Numeric' %}
-                                                    <input type="number" name="answers[{{ question.id }}]" class="form-control" step="0.01" placeholder="Enter your answer" required>
+                                                {% elseif question.type|lower == 'numeric' %}
+                                                    <input type="number" name="answers[{{ question.id }}]" class="form-control mb-2" step="0.01" placeholder="Enter your answer" required>
+                                                {% else %}
+                                                    <p class="text-danger">Unsupported question type: {{ question.type }}</p>
                                                 {% endif %}
                                             </div>
                                         {% endfor %}
@@ -179,18 +320,64 @@
 {% endblock %}
 
 {% block js %}
-    <script src="https://www.desmos.com/api/v1.9/calculator.js?apiKey=dcb31709b452b1cf9dc26972add0fda6"></script>
+    {% if current_part and current_part.geogebraMaterialId %}
+        <script defer src="https://www.geogebra.org/apps/deployggb.js"></script>
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const materialId = '{{ current_part.geogebraMaterialId|e('js') }}';
+                const partId = {{ current_part.id|e('js')|default('null') }};
+                if (materialId && partId) {
+                    let ggbApp = new GGBApplet({
+                        appName: 'graphing',
+                        width: '100%',
+                        height: 400,
+                        showToolBar: true,
+                        showAlgebraInput: true,
+                        showMenuBar: true,
+                        material_id: materialId
+                    }, true);
+                    ggbApp.registerAddListener(function(json) {
+                        try {
+                            let interactionData = { expression: JSON.parse(json).value };
+                            fetch('{{ path('app_interaction_save')|e('js') }}', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    partId: partId,
+                                    interactionData: interactionData
+                                })
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.status !== 'success') {
+                                    console.error('Failed to save interaction:', data.message);
+                                }
+                            })
+                            .catch(error => console.error('Error saving interaction:', error));
+                        } catch (e) {
+                            console.error('Error parsing GeoGebra JSON:', e);
+                        }
+                    });
+                    ggbApp.inject('ggb-element-{{ current_part.id|e('js') }}');
+                }
+            });
+        </script>
+    {% endif %}
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
     <script>
-        let calculator = Desmos.Calculator(document.getElementById('calculator'), {
-            keypad: true,
-            expressions: true,
-            settingsMenu: true
+        document.addEventListener('DOMContentLoaded', function() {
+            try {
+                renderMathInElement(document.body, {
+                    delimiters: [
+                        { left: "$$", right: "$$", display: true },
+                        { left: "\\(", right: "\\)", display: false }
+                    ],
+                    throwOnError: false
+                });
+            } catch (e) {
+                console.error('KaTeX rendering failed:', e);
+            }
         });
-        calculator.setExpression({ id: 'graph1', latex: 'y=x^2' });
-
-        function updateGraph() {
-            let expression = document.getElementById('expression').value;
-            calculator.setExpression({ id: 'graph1', latex: expression });
-        }
     </script>
 {% endblock %}

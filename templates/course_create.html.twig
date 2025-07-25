@@ -4,40 +4,150 @@
 
 {% block css %}
     <link rel="stylesheet" href="{{ asset('css/custom.css') }}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css" crossorigin="anonymous">
+    <style>
+        body {
+            background-color: #f4f7fc;
+            font-family: 'Inter', sans-serif;
+        }
+        .course-create-header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: #ffffff;
+            padding: 80px 0;
+            border-radius: 0 0 24px 24px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+            position: relative;
+            overflow: hidden;
+        }
+        .course-create-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('https://www.transparenttextures.com/patterns/subtle-dots.png');
+            opacity: 0.1;
+        }
+        .course-create-header h1 {
+            font-size: 2.8rem;
+            font-weight: 800;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        .course-create-header .lead {
+            font-size: 1.3rem;
+            max-width: 700px;
+            margin: 0 auto;
+            opacity: 0.9;
+        }
+        .form-section .card {
+            background: #ffffff;
+            border: none;
+            border-radius: 16px;
+            box-shadow: 0 6px 24px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            transition: transform 0.3s ease;
+        }
+        .form-section .card:hover {
+            transform: translateY(-4px);
+        }
+        .form-section .form-control {
+            border-radius: 10px;
+            border: 1px solid #e2e8f0;
+            padding: 12px;
+            transition: all 0.3s ease;
+        }
+        .form-section .form-control:focus {
+            border-color: #2a5298;
+            box-shadow: 0 0 0 3px rgba(42, 82, 152, 0.2);
+        }
+        .part-form {
+            background: #f9fafb;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            transition: all 0.3s ease;
+        }
+        .part-form:hover {
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        }
+        .mce-content-body {
+            min-height: 250px !important;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+        .add-part-btn, .remove-part-btn, .add-media-btn, .remove-media-btn {
+            border-radius: 50px;
+            padding: 0.6rem 1.8rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .add-part-btn, .add-media-btn {
+            background-color: #2a5298;
+            color: #ffffff;
+        }
+        .add-part-btn:hover, .add-media-btn:hover {
+            background-color: #1e3c72;
+            transform: translateY(-2px);
+        }
+        .remove-part-btn, .remove-media-btn {
+            background-color: #dc3545;
+            color: #ffffff;
+        }
+        .remove-part-btn:hover, .remove-media-btn:hover {
+            background-color: #c82333;
+            transform: translateY(-2px);
+        }
+        .media-url-container {
+            margin-bottom: 1rem;
+        }
+        h1, h2, h3, h4, h5, h6 {
+            color: #2a5298;
+        }
+        @media (max-width: 768px) {
+            .course-create-header {
+                padding: 40px 0;
+            }
+            .course-create-header h1 {
+                font-size: 2rem;
+            }
+            .form-section .card {
+                padding: 1.5rem;
+            }
+        }
+    </style>
 {% endblock %}
 
 {% block body %}
-    <!-- Course Creation Header -->
     <section class="course-create-header animate__animated animate__fadeIn">
         <div class="container text-center">
             <h1 class="display-4 fw-bold">Create a New Course</h1>
-            <p class="lead">Build your numerical analysis course with multiple parts, videos, and written content.</p>
+            <p class="lead">Craft an engaging numerical analysis course with rich, interactive content.</p>
         </div>
     </section>
 
-    <!-- Course Creation Form -->
     <section class="form-section py-5">
         <div class="container">
-            <div class="card shadow-sm rounded-3 p-4">
+            <div class="card shadow-sm rounded-3">
                 {{ form_start(form, {'attr': {'enctype': 'multipart/form-data'}}) }}
                     <div class="mb-4">
-                        {{ form_row(form.title, {'attr': {'class': 'form-control form-control-lg'}}) }}
+                        {{ form_row(form.title, {'attr': {'class': 'form-control form-control-lg', 'placeholder': 'Enter course title'}}) }}
                     </div>
                     <div class="mb-4">
-                        {{ form_row(form.description, {'attr': {'class': 'form-control'}}) }}
+                        {{ form_row(form.description, {'attr': {'class': 'form-control', 'placeholder': 'Describe your course'}}) }}
                     </div>
                     <div class="mb-4">
                         {{ form_row(form.image, {'attr': {'class': 'form-control'}}) }}
                     </div>
 
-                    <h3 class="fw-bold text-primary mb-4">Course Parts</h3>
+                    <h3 class="fw-bold mb-4">Course Parts</h3>
                     <div id="parts-container" data-prototype="{{ form_widget(form.parts.vars.prototype)|e('html_attr') }}">
                         {% for partForm in form.parts %}
-                            <div class="part-form card shadow-sm rounded-3 p-4 mb-4">
+                            <div class="part-form card shadow-sm rounded-3" data-part-index="{{ loop.index0 }}">
                                 <h4 class="fw-bold">Part {{ loop.index }}</h4>
                                 <div class="row mb-3">
                                     <div class="col-md-6">
-                                        {{ form_row(partForm.title, {'attr': {'class': 'form-control'}}) }}
+                                        {{ form_row(partForm.title, {'attr': {'class': 'form-control', 'placeholder': 'Part title'}}) }}
                                     </div>
                                     <div class="col-md-3">
                                         {{ form_row(partForm.partOrder, {'attr': {'class': 'form-control'}}) }}
@@ -47,7 +157,7 @@
                                     </div>
                                 </div>
                                 <div class="mb-3">
-                                    {{ form_row(partForm.description, {'attr': {'class': 'form-control'}}) }}
+                                    {{ form_row(partForm.description, {'label': 'Part Description', 'attr': {'class': 'form-control', 'placeholder': 'Enter a brief part description'}}) }}
                                 </div>
                                 <h5 class="fw-bold">Video Content</h5>
                                 <div class="row mb-3">
@@ -56,26 +166,54 @@
                                     </div>
                                 </div>
                                 <div class="mb-3">
-                                    {{ form_row(partForm.videoDescription, {'attr': {'class': 'form-control'}}) }}
+                                    {{ form_row(partForm.videoDescription, {'attr': {'class': 'form-control', 'placeholder': 'Video description'}}) }}
+                                </div>
+                                <h5 class="fw-bold">GeoGebra Content</h5>
+                                <div class="mb-3">
+                                    {{ form_row(partForm.geogebraMaterialId, {'attr': {'class': 'form-control', 'placeholder': 'GeoGebra material ID'}}) }}
+                                </div>
+                                <div class="mb-3">
+                                    {{ form_row(partForm.tutorialContent, {'label': 'Tutorial Content (HTML/Markdown)', 'attr': {'class': 'form-control', 'placeholder': 'Enter tutorial content in HTML or Markdown'}}) }}
                                 </div>
                                 <h5 class="fw-bold">Written Content</h5>
                                 <div class="mb-3">
-                                    {{ form_row(partForm.writtenSection.content, {'attr': {'class': 'form-control'}}) }}
+                                    {{ form_row(partForm.writtenSection.content, {
+                                        'id': 'written_section_' ~ loop.index0 ~ '_content',
+                                        'attr': {'class': 'form-control rich-text-editor'}
+                                    }) }}
+                                    <div id="course_parts_{{ loop.index0 }}_writtenSection_content_help" class="help-text">
+                                        Use headings, images, GIFs, emojis, and LaTeX (e.g., \( x^2 \)) for mathematical expressions.
+                                    </div>
                                 </div>
-                                <div class="media-urls-container" data-prototype="{{ form_widget(partForm.writtenSection.mediaUrls.vars.prototype)|e('html_attr') }}">
-                                    {% for mediaUrlField in partForm.writtenSection.mediaUrls %}
-                                        <div class="media-url-field mb-3 d-flex align-items-center">
-                                            {{ form_row(mediaUrlField, {'attr': {'class': 'form-control me-2'}}) }}
-                                            <button type="button" class="btn btn-sm btn-danger remove-media-btn">Remove</button>
-                                        </div>
-                                    {% endfor %}
-                                    <button type="button" class="btn btn-sm btn-primary add-media-btn">Add Media URL</button>
+                                <div class="mb-3">
+                                    <label class="fw-bold">Media URLs (Images, GIFs, etc.)</label>
+                                    <div class="media-urls-container" data-part-index="{{ loop.index0 }}">
+                                        {% for mediaUrlField in partForm.writtenSection.mediaUrls %}
+                                            <div class="media-url-container row mb-2">
+                                                <div class="col-md-10">
+                                                    {{ form_widget(mediaUrlField, {
+                                                        'attr': {
+                                                            'class': 'form-control media-url',
+                                                            'placeholder': 'e.g., https://example.com/image.jpg'
+                                                        }
+                                                    }) }}
+                                                </div>
+                                                <div class="col-md-2">
+                                                    <button type="button" class="btn remove-media-btn mt-1">Remove</button>
+                                                </div>
+                                            </div>
+                                        {% endfor %}
+                                        <button type="button" class="btn add-media-btn mt-2" data-part-index="{{ loop.index0 }}">Add Media URL</button>
+                                    </div>
+                                    <div id="course_parts_{{ loop.index0 }}_writtenSection_mediaUrls_help" class="help-text">
+                                        Add URLs for images, GIFs, or other media to enhance the written content.
+                                    </div>
                                 </div>
-                                <button type="button" class="btn btn-sm btn-danger remove-part-btn mt-3">Remove Part</button>
+                                <button type="button" class="btn remove-part-btn mt-3">Remove Part</button>
                             </div>
                         {% endfor %}
                     </div>
-                    <button type="button" class="btn btn-primary add-part-btn mt-3">Add Part</button>
+                    <button type="button" class="btn add-part-btn mt-3">Add Part</button>
                     <div class="mt-4">
                         <button type="submit" class="btn btn-primary btn-lg">Create Course</button>
                     </div>
@@ -86,54 +224,244 @@
 {% endblock %}
 
 {% block js %}
+    <!-- jQuery for dynamic form handling -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js" crossorigin="anonymous"></script>
+    <!-- TinyMCE version 8 with API key -->
+    <script src="https://cdn.tiny.cloud/1/ifeinrsntzv3r5s66j2ixgo39jv7rz9otzj2xzg2nirgaloc/tinymce/8/tinymce.min.js" referrerpolicy="origin" crossorigin="anonymous"></script>
+    <!-- KaTeX for LaTeX rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
+            // Verify TinyMCE is loaded
+            if (typeof tinymce === 'undefined') {
+                console.error('TinyMCE script failed to load. Check the CDN URL and ensure 127.0.0.1:8000 is added to approved domains at https://www.tiny.cloud/my-account/.');
+                return;
+            }
+
             const partsContainer = document.getElementById('parts-container');
             const addPartButton = document.querySelector('.add-part-btn');
+            let partIndex = document.querySelectorAll('.part-form').length;
 
-            let partIndex = partsContainer.children.length;
-
-            addPartButton.addEventListener('click', function () {
-                const prototype = partsContainer.dataset.prototype;
-                const newForm = prototype.replace(/__name__/g, partIndex);
-                const newPartDiv = document.createElement('div');
-                newPartDiv.classList.add('part-form', 'card', 'shadow-sm', 'rounded-3', 'p-4', 'mb-4');
-                newPartDiv.innerHTML = `<h4 class="fw-bold">Part ${partIndex + 1}</h4>` + newForm;
-                partsContainer.appendChild(newPartDiv);
-                initializeMediaUrlHandlers(newPartDiv);
-                partIndex++;
-            });
-
-            partsContainer.addEventListener('click', function (e) {
-                if (e.target.classList.contains('remove-part-btn')) {
-                    e.target.closest('.part-form').remove();
+            // Initialize TinyMCE for a given part
+            function initializeTinyMCE(partDiv, index) {
+                const editorElement = partDiv.querySelector(`#written_section_${index}_content`);
+                if (!editorElement) {
+                    console.error(`TinyMCE element not found for part ${index}. Selector: #written_section_${index}_content`);
+                    return;
                 }
-            });
+                if (editorElement.hasAttribute('data-tinymce-initialized')) {
+                    console.log(`TinyMCE already initialized for part ${index}`);
+                    return;
+                }
 
-            function initializeMediaUrlHandlers(partDiv) {
-                const mediaUrlsContainer = partDiv.querySelector('.media-urls-container');
-                const addMediaButton = partDiv.querySelector('.add-media-btn');
-                let mediaIndex = mediaUrlsContainer.children.length;
-
-                addMediaButton.addEventListener('click', function () {
-                    const prototype = mediaUrlsContainer.dataset.prototype;
-                    const newMediaForm = prototype.replace(/__name__/g, mediaIndex);
-                    const newMediaDiv = document.createElement('div');
-                    newMediaDiv.classList.add('media-url-field', 'mb-3', 'd-flex', 'align-items-center');
-                    newMediaDiv.innerHTML = newMediaForm + '<button type="button" class="btn btn-sm btn-danger remove-media-btn">Remove</button>';
-                    mediaUrlsContainer.insertBefore(newMediaDiv, addMediaButton);
-                    mediaIndex++;
-                });
-
-                mediaUrlsContainer.addEventListener('click', function (e) {
-                    if (e.target.classList.contains('remove-media-btn')) {
-                        e.target.closest('.media-url-field').remove();
+                console.log(`Initializing TinyMCE for element ID: written_section_${index}_content`);
+                tinymce.init({
+                    selector: `#written_section_${index}_content`,
+                    plugins: [
+                        'image', 'link', 'lists', 'table', 'emoticons', 'code', // Core plugins
+                        'formatpainter', 'advtable', 'editimage', 'checklist' // Premium plugins from trial
+                    ],
+                    toolbar: 'undo redo | blocks fontfamily fontsize | bold italic underline | link image table | alignleft aligncenter alignright | bullist numlist | emoticons charmap | formatpainter | removeformat',
+                    menubar: false,
+                    readonly: false,
+                    content_css: 'https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css', // KaTeX styles
+                    images_upload_url: '/upload/image',
+                 images_upload_handler: async function (blobInfo, success, failure, progress) {
+    try {
+        const formData = new FormData();
+        formData.append('file', blobInfo.blob(), blobInfo.filename());
+        const response = await fetch('/upload/image', {
+            method: 'POST',
+            body: formData
+        });
+        if (!response.ok) {
+            const errorText = await response.text(); // Get error details
+            throw new Error(`HTTP error! Status: ${response.status} - ${errorText}`);
+        }
+        const result = await response.json();
+        console.log('Upload response:', result);
+        if (result.location) {
+            success(result.location);
+        } else {
+            failure('Upload failed: No location returned in response');
+        }
+    } catch (error) {
+        console.error(`Image upload error for part ${index}:`, error);
+        alert('Image upload failed: ' + error.message); // Notify user
+        failure('Upload error: ' + error.message);
+    }
+},
+                   setup: function (editor) {
+    editor.on('init', function () {
+        console.log(`TinyMCE initialized for part ${index}, read-only: ${editor.getBody().isContentEditable ? 'false' : 'true'}`);
+        renderMathInElement(editor.getContentAreaContainer(), {
+            delimiters: [
+                { left: "$$", right: "$$", display: true },
+                { left: "\\(", right: "\\)", display: false }
+            ]
+        });
+    });
+    editor.on('change', function () {
+        editor.save(); // Syncs content to the textarea
+        renderMathInElement(editor.getContentAreaContainer(), {
+            delimiters: [
+                { left: "$$", right: "$$", display: true },
+                { left: "\\(", right: "\\)", display: false }
+            ]
+        });
+    });
+    editor.on('error', function (e) {
+        console.error(`TinyMCE error for part ${index}:`, e);
+    });
+},
+                    placeholder: 'Create rich content with headings, lists, images, and LaTeX (e.g., \\(x^2 + y^2 = z^2\\))'
+                }).then(function (editors) {
+                    editorElement.setAttribute('data-tinymce-initialized', 'true');
+                    console.log(`TinyMCE successfully initialized for part ${index}`);
+                }).catch(function (error) {
+                    console.error(`TinyMCE initialization failed for part ${index}:`, error);
+                    if (error.message.includes('API key')) {
+                        console.error('Possible issue with TinyMCE API key. Verify at https://www.tiny.cloud/my-account/ and ensure 127.0.0.1:8000 is an approved domain.');
                     }
                 });
             }
 
-            document.querySelectorAll('.part-form').forEach(initializeMediaUrlHandlers);
+            // Initialize media URL fields for a given part
+            function initializeMediaUrls(partDiv, index) {
+                const mediaUrlsContainer = partDiv.querySelector(`.media-urls-container[data-part-index="${index}"]`);
+                if (!mediaUrlsContainer) {
+                    console.error(`Media URLs container not found for part ${index}`);
+                    return;
+                }
+
+                const addMediaButton = mediaUrlsContainer.querySelector('.add-media-btn');
+                const prototype = mediaUrlsContainer.dataset.prototype || `
+                    <div class="media-url-container row mb-2">
+                        <div class="col-md-10">
+                            <input type="text" name="course[parts][${index}][writtenSection][mediaUrls][]" class="form-control media-url" placeholder="e.g., https://example.com/image.jpg">
+                        </div>
+                        <div class="col-md-2">
+                            <button type="button" class="btn remove-media-btn mt-1">Remove</button>
+                        </div>
+                    </div>
+                `;
+
+                addMediaButton.addEventListener('click', function () {
+                    const newMediaDiv = document.createElement('div');
+                    newMediaDiv.innerHTML = prototype.replace(/__name__/g, mediaUrlsContainer.children.length);
+                    mediaUrlsContainer.insertBefore(newMediaDiv.firstChild, addMediaButton);
+                    console.log(`Added media URL field for part ${index}`);
+                });
+
+                mediaUrlsContainer.addEventListener('click', function (e) {
+                    if (e.target.classList.contains('remove-media-btn')) {
+                        e.target.closest('.media-url-container').remove();
+                        console.log(`Removed media URL field for part ${index}`);
+                    }
+                });
+            }
+
+            // Initialize existing parts
+            document.querySelectorAll('.part-form').forEach((partDiv, index) => {
+                initializeTinyMCE(partDiv, index);
+                initializeMediaUrls(partDiv, index);
+            });
+
+            // Handle adding new parts
+            addPartButton.addEventListener('click', function () {
+                const prototype = partsContainer.dataset.prototype.replace(/__name__/g, partIndex);
+                const newPartDiv = document.createElement('div');
+                newPartDiv.classList.add('part-form', 'card', 'shadow-sm', 'rounded-3');
+                newPartDiv.setAttribute('data-part-index', partIndex);
+
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(prototype, 'text/html');
+                const divs = doc.getElementsByTagName('div');
+                let titleDiv = null, descriptionDiv = null, durationDiv = null, orderDiv = null, videoFileDiv = null, videoDescDiv = null, geoDiv = null, tutorialDiv = null, writtenDiv = null, mediaUrlsDiv = null;
+
+                for (let div of divs) {
+                    if (div.querySelector('input[name$="[title]"]')) titleDiv = div.outerHTML;
+                    else if (div.querySelector('textarea[name$="[description]"]')) descriptionDiv = div.outerHTML;
+                    else if (div.querySelector('input[name$="[duration]"]')) durationDiv = div.outerHTML;
+                    else if (div.querySelector('input[name$="[partOrder]"]')) orderDiv = div.outerHTML;
+                    else if (div.querySelector('input[name$="[videoFile]"]')) videoFileDiv = div.outerHTML;
+                    else if (div.querySelector('textarea[name$="[videoDescription]"]')) videoDescDiv = div.outerHTML;
+                    else if (div.querySelector('input[name$="[geogebraMaterialId]"]')) geoDiv = div.outerHTML;
+                    else if (div.querySelector('textarea[name$="[tutorialContent]"]')) tutorialDiv = div.outerHTML;
+                    else if (div.querySelector('textarea[name$="[writtenSection][content]"]')) {
+                        writtenDiv = div.outerHTML.replace(/id="[^"]*"/, `id="written_section_${partIndex}_content"`);
+                    }
+                    else if (div.querySelector('input[name$="[writtenSection][mediaUrls][]"]')) {
+                        mediaUrlsDiv = div.outerHTML;
+                    }
+                }
+
+                if (!titleDiv || !descriptionDiv || !durationDiv || !orderDiv || !videoFileDiv || !videoDescDiv || !geoDiv || !tutorialDiv || !writtenDiv) {
+                    console.error('Prototype parsing failed, using raw prototype as fallback:', prototype);
+                    newPartDiv.innerHTML = prototype;
+                } else {
+                    newPartDiv.innerHTML = `
+                        <h4 class="fw-bold">Part ${partIndex + 1}</h4>
+                        <div class="mb-3">${titleDiv}</div>
+                        <div class="mb-3">${descriptionDiv}</div>
+                        <div class="mb-3">${durationDiv}</div>
+                        <div class="mb-3">${orderDiv}</div>
+                        <h5 class="fw-bold">Video Content</h5>
+                        <div class="mb-3">${videoFileDiv}</div>
+                        <div class="mb-3">${videoDescDiv}</div>
+                        <h5 class="fw-bold">GeoGebra Content</h5>
+                        <div class="mb-3">${geoDiv}</div>
+                        <div class="mb-3">${tutorialDiv}</div>
+                        <h5 class="fw-bold">Written Content</h5>
+                        <div class="mb-3">
+                            <div>
+                                <label for="written_section_${partIndex}_content">Written Content</label>
+                                <textarea id="written_section_${partIndex}_content" name="course[parts][${partIndex}][writtenSection][content]" class="form-control rich-text-editor" rows="5"></textarea>
+                                <div id="course_parts_${partIndex}_writtenSection_content_help" class="help-text">Use headings, images, GIFs, emojis, and LaTeX (e.g., \\( x^2 \\)) for mathematical expressions.</div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="fw-bold">Media URLs (Images, GIFs, etc.)</label>
+                            <div class="media-urls-container" data-part-index="${partIndex}">
+                                <div class="media-url-container row mb-2">
+                                    <div class="col-md-10">
+                                        <input type="text" name="course[parts][${partIndex}][writtenSection][mediaUrls][]" class="form-control media-url" placeholder="e.g., https://example.com/image.jpg">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <button type="button" class="btn remove-media-btn mt-1">Remove</button>
+                                    </div>
+                                </div>
+                                <button type="button" class="btn add-media-btn mt-2" data-part-index="${partIndex}">Add Media URL</button>
+                            </div>
+                            <div id="course_parts_${partIndex}_writtenSection_mediaUrls_help" class="help-text">Add URLs for images, GIFs, or other media to enhance the written content.</div>
+                        </div>
+                        <button type="button" class="btn remove-part-btn mt-3">Remove Part</button>
+                    `;
+                    console.log(`Generated HTML for part ${partIndex}:`, newPartDiv.innerHTML);
+                }
+
+                partsContainer.appendChild(newPartDiv);
+                initializeTinyMCE(newPartDiv, partIndex);
+                initializeMediaUrls(newPartDiv, partIndex);
+                partIndex++;
+            });
+
+            // Handle part removal
+            partsContainer.addEventListener('click', function (e) {
+                if (e.target.classList.contains('remove-part-btn')) {
+                    e.target.closest('.part-form').remove();
+                    console.log('Removed part form');
+                }
+            });
+
+            // Render LaTeX on page load
+            renderMathInElement(document.body, {
+                delimiters: [
+                    { left: "$$", right: "$$", display: true },
+                    { left: "\\(", right: "\\)", display: false }
+                ]
+            });
         });
-        
     </script>
 {% endblock %}

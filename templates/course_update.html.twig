@@ -4,10 +4,43 @@
 
 {% block css %}
     <link rel="stylesheet" href="{{ asset('css/custom.css') }}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css" integrity="sha384-yxN2e0r7k3uL5P0g5ZqB7u9v7l9tL7nT0Q1j2QJ2w3X8uV5e8q2r5rvp27o3N0p" crossorigin="anonymous">
+    <style>
+        .written-section-editor {
+            min-height: 300px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .section-title {
+            color: #007bff;
+            font-weight: bold;
+            margin-top: 15px;
+        }
+        .ck-editor__editable {
+            min-height: 300px !important;
+        }
+        h1, h2, h3, h4, h5, h6 {
+            color: #007bff;
+        }
+        img, video {
+            max-width: 100%;
+            height: auto;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        katex {
+            font-size: 1.2em;
+        }
+        @media (max-width: 768px) {
+            .written-section-editor {
+                font-size: 14px;
+            }
+        }
+    </style>
 {% endblock %}
 
 {% block body %}
-    <!-- Course Update Header -->
     <section class="course-create-header animate__animated animate__fadeIn">
         <div class="container text-center">
             <h1 class="display-4 fw-bold">Update Course: {{ course.title }}</h1>
@@ -15,7 +48,6 @@
         </div>
     </section>
 
-    <!-- Course Update Form -->
     <section class="form-section py-5">
         <div class="container">
             <div class="card shadow-sm rounded-3 p-4">
@@ -59,17 +91,22 @@
                                     {{ form_row(partForm.videoDescription, {'attr': {'class': 'form-control'}}) }}
                                 </div>
                                 <h5 class="fw-bold">Written Content</h5>
-                                <div class="mb-3">
-                                    {{ form_row(partForm.writtenSection.content, {'attr': {'class': 'form-control'}}) }}
+                                <div class="mb-3 written-section-editor">
+                                    <label for="written_section_{{ loop.index0 }}_content">Written Content (Markdown)</label>
+                                    {{ form_widget(partForm.writtenSection.content, {
+                                        'id': 'written_section_' ~ loop.index0 ~ '_content',
+                                        'attr': {
+                                            'class': 'form-control rich-text-editor',
+                                            'placeholder': 'Use Markdown: # Heading, **bold**, *italic*, ![alt](url "caption"), \\(x^2\\), ::: collapsible Title'
+                                        }
+                                    }) }}
                                 </div>
-                                <div class="media-urls-container" data-prototype="{{ form_widget(partForm.writtenSection.mediaUrls.vars.prototype)|e('html_attr') }}">
-                                    {% for mediaUrlField in partForm.writtenSection.mediaUrls %}
-                                        <div class="media-url-field mb-3 d-flex align-items-center">
-                                            {{ form_row(mediaUrlField, {'attr': {'class': 'form-control me-2'}}) }}
-                                            <button type="button" class="btn btn-sm btn-danger remove-media-btn">Remove</button>
-                                        </div>
-                                    {% endfor %}
-                                    <button type="button" class="btn btn-sm btn-primary add-media-btn">Add Media URL</button>
+                                <h5 class="fw-bold">GeoGebra Content</h5>
+                                <div class="mb-3">
+                                    {{ form_row(partForm.geogebraMaterialId, {'attr': {'class': 'form-control'}}) }}
+                                </div>
+                                <div class="mb-3">
+                                    {{ form_row(partForm.tutorialContent, {'attr': {'class': 'form-control'}}) }}
                                 </div>
                                 <button type="button" class="btn btn-sm btn-danger remove-part-btn mt-3">Remove Part</button>
                             </div>
@@ -86,6 +123,11 @@
 {% endblock %}
 
 {% block js %}
+    <script src="https://cdn.ckeditor.com/ckeditor5/39.0.1/classic/ckeditor.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@joeattardi/emoji-button@4.6.0/dist/index.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked@4.0.0/lib/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js" integrity="sha384-Xi8rHCmBmhbuyyhbI88391ZKP2dmfnOl4rT9ZfRI7mLTdk1wblIUnrIq35nqwEvC" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/contrib/auto-render.min.js" integrity="sha384-+XBljXPPiv+OzfbB3cVmLHf4hdUFHlWNZN5spNQ7rmHTXpd7WvJum6fIACpNNfIR" crossorigin="anonymous"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const partsContainer = document.getElementById('parts-container');
@@ -100,7 +142,7 @@
                 newPartDiv.classList.add('part-form', 'card', 'shadow-sm', 'rounded-3', 'p-4', 'mb-4');
                 newPartDiv.innerHTML = `<h4 class="fw-bold">Part ${partIndex + 1}</h4>` + newForm;
                 partsContainer.appendChild(newPartDiv);
-                initializeMediaUrlHandlers(newPartDiv);
+                initializeCkEditor(newPartDiv, partIndex);
                 partIndex++;
             });
 
@@ -110,29 +152,90 @@
                 }
             });
 
-            function initializeMediaUrlHandlers(partDiv) {
-                const mediaUrlsContainer = partDiv.querySelector('.media-urls-container');
-                const addMediaButton = partDiv.querySelector('.add-media-btn');
-                let mediaIndex = mediaUrlsContainer.children.length;
-
-                addMediaButton.addEventListener('click', function () {
-                    const prototype = mediaUrlsContainer.dataset.prototype;
-                    const newMediaForm = prototype.replace(/__name__/g, mediaIndex);
-                    const newMediaDiv = document.createElement('div');
-                    newMediaDiv.classList.add('media-url-field', 'mb-3', 'd-flex', 'align-items-center');
-                    newMediaDiv.innerHTML = newMediaForm + '<button type="button" class="btn btn-sm btn-danger remove-media-btn">Remove</button>';
-                    mediaUrlsContainer.insertBefore(newMediaDiv, addMediaButton);
-                    mediaIndex++;
-                });
-
-                mediaUrlsContainer.addEventListener('click', function (e) {
-                    if (e.target.classList.contains('remove-media-btn')) {
-                        e.target.closest('.media-url-field').remove();
-                    }
-                });
+            function initializeCkEditor(partDiv, index) {
+                const editorElement = partDiv.querySelector(`#written_section_${index}_content`);
+                if (editorElement) {
+                    ClassicEditor
+                        .create(editorElement, {
+                            toolbar: [
+                                'heading', '|',
+                                'bold', 'italic', 'underline', 'strikethrough', '|',
+                                'link', 'imageUpload', 'mediaEmbed', '|',
+                                'bulletedList', 'numberedList', 'todoList', '|',
+                                'blockQuote', 'codeBlock', '|',
+                                'insertTable', 'tableColumn', 'tableRow', 'mergeTableCells', '|',
+                                'fontSize', 'fontColor', 'fontBackgroundColor', '|',
+                                'undo', 'redo', '|',
+                                'emoji'
+                            ],
+                            image: {
+                                toolbar: ['imageStyle:full', 'imageStyle:side', 'imageTextAlternative'],
+                                upload: {
+                                    // Requires server-side integration for actual uploads
+                                    types: ['jpeg', 'png', 'gif']
+                                }
+                            },
+                            mediaEmbed: {
+                                previewsInData: true,
+                                providers: [
+                                    {
+                                        name: 'gif',
+                                        url: /^.*\.(gif)$/,
+                                        html: match => `<img src="${match[0]}" class="img-fluid" alt="GIF">`
+                                    }
+                                ]
+                            },
+                            placeholder: 'Use Markdown: # Heading, **bold**, *italic*, ![alt](url "caption"), \\(x^2\\), ::: collapsible Title',
+                            extraPlugins: [function(editor) {
+                                editor.ui.componentFactory.add('emoji', () => {
+                                    const button = editor.ui.componentFactory.create('button');
+                                    button.label = 'Insert Emoji';
+                                    button.tooltip = 'Insert Emoji';
+                                    button.on('execute', () => {
+                                        const picker = new EmojiButton();
+                                        picker.on('emoji', emoji => {
+                                            editor.model.change(writer => {
+                                                writer.insertText(emoji, editor.model.document.selection.getFirstPosition());
+                                            });
+                                        });
+                                        picker.togglePicker(button.element);
+                                    });
+                                    return button;
+                                });
+                            }]
+                        })
+                        .then(editor => {
+                            // Convert CKEditor output to Markdown
+                            editor.editing.view.document.on('change', () => {
+                                editor.updateSourceElement();
+                            });
+                            console.log('CKEditor initialized for part:', index);
+                        })
+                        .catch(error => {
+                            console.error('CKEditor initialization failed:', error);
+                        });
+                }
             }
 
-            document.querySelectorAll('.part-form').forEach(initializeMediaUrlHandlers);
+            // Initialize CKEditor for existing parts
+            document.querySelectorAll('.part-form').forEach((partDiv, index) => {
+                initializeCkEditor(partDiv, index);
+            });
+
+            // Preview Markdown in real-time
+            document.querySelectorAll('.rich-text-editor').forEach(editor => {
+                editor.addEventListener('input', function() {
+                    const preview = document.createElement('div');
+                    preview.className = 'markdown-preview mt-2';
+                    preview.innerHTML = sanitizeHtml(marked.parse(this.value));
+                    renderMathInElement(preview);
+                    if (this.nextElementSibling && this.nextElementSibling.className.includes('markdown-preview')) {
+                        this.nextElementSibling.replaceWith(preview);
+                    } else {
+                        this.parentNode.appendChild(preview);
+                    }
+                });
+            });
         });
     </script>
 {% endblock %}

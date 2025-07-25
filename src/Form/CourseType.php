@@ -41,10 +41,13 @@ class CourseType extends AbstractType
             ])
             ->add('parts', CollectionType::class, [
                 'entry_type' => PartType::class,
+                'entry_options' => ['label' => false],
                 'allow_add' => true,
                 'allow_delete' => true,
                 'by_reference' => false,
                 'label' => 'Course Parts',
+                'help' => 'Add parts to your course, including videos, written content, quizzes, or GeoGebra interactive applets.',
+                'attr' => ['class' => 'part-collection'],
             ]);
     }
 

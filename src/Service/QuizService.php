@@ -68,9 +68,13 @@ class QuizService
             return null;
         }
 
+        // Explicitly check for existing quiz with part ID
         $quiz = $this->entityManager->getRepository(Quiz::class)->findOneBy(['part' => $part]);
         if ($quiz) {
+            $this->logger->info('Reusing existing quiz for part ID ' . $part->getId() . ', Quiz ID: ' . $quiz->getId());
             return $quiz;
+        } else {
+            $this->logger->debug('No existing quiz found for part ID ' . $part->getId() . ', proceeding to generate new quiz');
         }
 
         $content = $part->getTitle() . "\n";
@@ -80,27 +84,27 @@ class QuizService
         if ($part->getVideo() && $part->getVideo()->getDescription()) {
             $content .= $part->getVideo()->getDescription() . "\n";
         }
-        if ($part->getWrittenSection() && $part->getWrittenSection()->getContent()) {
-            $content .= $part->getWrittenSection()->getContent() . "\n";
-        }
 
         $inputData = [
             'course_title' => $part->getCourse()->getTitle(),
             'part_title' => $part->getTitle(),
             'content' => $content,
-            'part_id' => $part->getId()
+            'part_id' => $part->getId(),
+            'num_questions' => 10
         ];
         $process = new Process([$this->pythonBinary, $this->quizGeneratorScript]);
         $process->setInput(json_encode($inputData));
         $process->run();
 
         if (!$process->isSuccessful()) {
-            throw new \Exception('Quiz generation failed: ' . $process->getErrorOutput());
+            $this->logger->error('Quiz generation failed: ' . $process->getErrorOutput());
+            return $this->createFallbackQuiz($part);
         }
 
         $questionsData = json_decode($process->getOutput(), true);
-        if (!isset($questionsData['questions']) || !is_array($questionsData['questions'])) {
-            throw new \Exception('Invalid quiz data format from script');
+        if (!isset($questionsData['questions']) || !is_array($questionsData['questions']) || count($questionsData['questions']) != 10) {
+            $this->logger->error('Invalid or insufficient quiz data format from script: Expected 10 questions, got ' . (count($questionsData['questions'] ?? [])));
+            return $this->createFallbackQuiz($part);
         }
 
         $quiz = new Quiz();
@@ -113,12 +117,12 @@ class QuizService
         foreach ($questionsData['questions'] as $qData) {
             $question = new Question();
             $question->setQuiz($quiz);
-            $question->setType($qData['type'] === 'MCQ' ? QuestionType::MCQ->value : QuestionType::Numeric->value);
+            $question->setType(strtolower($qData['type']) === 'mcq' ? QuestionType::MCQ->value : QuestionType::Numeric->value);
             $question->setText($qData['text']);
-            if ($qData['type'] === 'MCQ') {
-                $question->setOptions($qData['options'] ?? []);
+            if (strtolower($qData['type']) === 'mcq') {
+                $question->setOptions($qData['options'] ?? ['Option 1', 'Option 2', 'Option 3', 'Option 4']);
             }
-            $question->setCorrectAnswer($qData['correctAnswer']);
+            $question->setCorrectAnswer($qData['correctAnswer'] ?? 'Default answer');
             $question->setGeneratedByAI(true);
 
             $quiz->addQuestion($question);
@@ -146,24 +150,28 @@ class QuizService
         $inputData = [
             'course_id' => $course->getId(),
             'course_title' => $course->getTitle(),
-            'user_id' => $user->getId()
+            'user_id' => $user->getId(),
+            'num_questions' => 10
         ];
         $process = new Process([$this->pythonBinary, $this->finalQuizGeneratorScript]);
         $process->setInput(json_encode($inputData));
         $process->run();
 
         if (!$process->isSuccessful()) {
-            throw new \Exception('Final quiz generation failed: ' . $process->getErrorOutput());
+            $this->logger->error('Final quiz generation failed: ' . $process->getErrorOutput());
+            return $this->createFallbackFinalQuiz($course);
         }
 
         $quizData = json_decode($process->getOutput(), true);
-        if (!isset($quizData['quiz_id']) || !isset($quizData['questions']) || !is_array($quizData['questions'])) {
-            throw new \Exception('Invalid final quiz data format from script');
+        if (!isset($quizData['quiz_id']) || !isset($quizData['questions']) || !is_array($quizData['questions']) || count($quizData['questions']) != 10) {
+            $this->logger->error('Invalid or insufficient final quiz data format from script: Expected 10 questions, got ' . (count($quizData['questions'] ?? [])));
+            return $this->createFallbackFinalQuiz($course);
         }
 
         $quiz = $this->entityManager->getRepository(Quiz::class)->find($quizData['quiz_id']);
         if (!$quiz) {
-            throw new \Exception('Final quiz not found in database');
+            $this->logger->error('Final quiz not found in database with ID: ' . $quizData['quiz_id']);
+            return $this->createFallbackFinalQuiz($course);
         }
 
         return $quiz;
@@ -178,32 +186,30 @@ class QuizService
         $quiz->setCreatedAt(new \DateTime());
         $quiz->setScoreWeight(1.0);
 
-        $question1 = new Question();
-        $question1->setQuiz($quiz);
-        $question1->setType(QuestionType::MCQ->value);
-        $question1->setText('What is the main goal of interpolation in numerical analysis?');
-        $question1->setOptions([
-            'To approximate functions between known points',
-            'To solve differential equations',
-            'To optimize functions',
-            'To find eigenvalues',
-        ]);
-        $question1->setCorrectAnswer('To approximate functions between known points');
-        $question1->setGeneratedByAI(false);
+        for ($i = 0; $i < 5; $i++) {
+            $question = new Question();
+            $question->setQuiz($quiz);
+            $question->setType(QuestionType::MCQ->value);
+            $question->setText("Fallback MCQ Question " . ($i + 1) . " for " . $part->getTitle());
+            $question->setOptions(['Option A', 'Option B', 'Option C', 'Option D']);
+            $question->setCorrectAnswer('Option A');
+            $question->setGeneratedByAI(false);
+            $quiz->addQuestion($question);
+            $this->entityManager->persist($question);
+        }
 
-        $question2 = new Question();
-        $question2->setQuiz($quiz);
-        $question2->setType(QuestionType::Numeric->value);
-        $question2->setText('Using linear interpolation between points (1, 2) and (3, 4), what is the value at x = 2?');
-        $question2->setCorrectAnswer('3');
-        $question2->setGeneratedByAI(false);
-
-        $quiz->addQuestion($question1);
-        $quiz->addQuestion($question2);
+        for ($i = 0; $i < 5; $i++) {
+            $question = new Question();
+            $question->setQuiz($quiz);
+            $question->setType(QuestionType::Numeric->value);
+            $question->setText("Fallback Numeric Question " . ($i + 1) . " for " . $part->getTitle());
+            $question->setCorrectAnswer((string) ($i + 1));
+            $question->setGeneratedByAI(false);
+            $quiz->addQuestion($question);
+            $this->entityManager->persist($question);
+        }
 
         $this->entityManager->persist($quiz);
-        $this->entityManager->persist($question1);
-        $this->entityManager->persist($question2);
         $this->entityManager->flush();
 
         return $quiz;
@@ -217,32 +223,30 @@ class QuizService
         $quiz->setCreatedAt(new \DateTime());
         $quiz->setScoreWeight(1.0);
 
-        $question1 = new Question();
-        $question1->setQuiz($quiz);
-        $question1->setType(QuestionType::MCQ->value);
-        $question1->setText('What is the primary purpose of numerical analysis?');
-        $question1->setOptions([
-            'To approximate mathematical solutions',
-            'To write software code',
-            'To design hardware',
-            'To analyze data structures',
-        ]);
-        $question1->setCorrectAnswer('To approximate mathematical solutions');
-        $question1->setGeneratedByAI(false);
+        for ($i = 0; $i < 5; $i++) {
+            $question = new Question();
+            $question->setQuiz($quiz);
+            $question->setType(QuestionType::MCQ->value);
+            $question->setText("Fallback Final MCQ Question " . ($i + 1) . " for " . $course->getTitle());
+            $question->setOptions(['Option A', 'Option B', 'Option C', 'Option D']);
+            $question->setCorrectAnswer('Option A');
+            $question->setGeneratedByAI(false);
+            $quiz->addQuestion($question);
+            $this->entityManager->persist($question);
+        }
 
-        $question2 = new Question();
-        $question2->setQuiz($quiz);
-        $question2->setType(QuestionType::Numeric->value);
-        $question2->setText('What is the result of linear interpolation between points (0, 0) and (2, 4) at x = 1?');
-        $question2->setCorrectAnswer('2');
-        $question2->setGeneratedByAI(false);
-
-        $quiz->addQuestion($question1);
-        $quiz->addQuestion($question2);
+        for ($i = 0; $i < 5; $i++) {
+            $question = new Question();
+            $question->setQuiz($quiz);
+            $question->setType(QuestionType::Numeric->value);
+            $question->setText("Fallback Final Numeric Question " . ($i + 1) . " for " . $course->getTitle());
+            $question->setCorrectAnswer((string) ($i + 1));
+            $question->setGeneratedByAI(false);
+            $quiz->addQuestion($question);
+            $this->entityManager->persist($question);
+        }
 
         $this->entityManager->persist($quiz);
-        $this->entityManager->persist($question1);
-        $this->entityManager->persist($question2);
         $this->entityManager->flush();
 
         return $quiz;

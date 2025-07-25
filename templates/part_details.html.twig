@@ -4,113 +4,190 @@
 
 {% block css %}
     <link rel="stylesheet" href="{{ asset('css/custom.css') }}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css" crossorigin="anonymous">
+    <style>
+        body {
+            background-color: #f4f7fc;
+            font-family: 'Inter', sans-serif;
+        }
+        .course-content {
+            padding: 80px 0;
+        }
+        .content-section {
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+        }
+        .content-section h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: #2a5298;
+        }
+        .tutorial, .written-content, .geogebra-container, .quiz-section {
+            background: #f9fafb;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+        .content-section video {
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        }
+        .quiz-section .btn {
+            border-radius: 50px;
+            padding: 0.6rem 1.8rem;
+            font-weight: 600;
+        }
+        .alert {
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        @media (max-width: 768px) {
+            .course-content {
+                padding: 40px 0;
+            }
+            .content-section h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
 {% endblock %}
 
 {% block body %}
     <section class="course-content py-5">
         <div class="container">
-            <h1 class="fw-bold text-primary">{{ part.title }}</h1>
-            {% if not is_granted('ROLE_ADMIN') and not is_granted('ROLE_TEACHER') and not progressService.isPartUnlocked(part, app.user) %}
-                <div class="alert alert-warning">This part is locked. Complete the previous part's quiz to unlock.</div>
-            {% else %}
-                {% if part.video %}
-                    <div class="mb-4">
-                        <h4>Video Content</h4>
-                        <video controls class="w-100 rounded-3" style="max-height: 400px;">
-                            <source src="{{ asset('Uploads/videos/' ~ part.video.filename) }}" type="video/mp4">
-                            Your browser does not support the video tag.
-                        </video>
-                        {% if part.video.description %}
-                            <p class="mt-3">{{ part.video.description }}</p>
-                        {% endif %}
-                    </div>
-                {% endif %}
+            <div class="content-section">
+                <h1 class="fw-bold">{{ part.title }}</h1>
+                {% if not is_granted('ROLE_ADMIN') and not is_granted('ROLE_TEACHER') and not progressService.isPartUnlocked(part, app.user) %}
+                    <div class="alert alert-warning animate__animated animate__fadeIn">This part is locked. Complete the previous part's quiz to unlock.</div>
+                {% else %}
+                    {% if part.tutorialContent %}
+                        <div class="tutorial animate__animated animate__fadeIn">
+                            {{ part.tutorialContent|raw }}
+                        </div>
+                    {% endif %}
 
-                {% if part.writtenSection %}
-                    <div class="mb-4">
-                        <h4>Written Content</h4>
-                        <div class="written-content p-3 rounded-3">
-                            {{ part.writtenSection.content|raw }}
-                            {% if part.writtenSection.mediaUrls %}
-                                <div class="mt-3">
-                                    <h6>Media</h6>
-                                    {% for mediaUrl in part.writtenSection.mediaUrls|json_decode %}
-                                        {% if mediaUrl|slice(-4) in ['.jpg', '.png', '.gif'] %}
-                                            <img src="{{ mediaUrl }}" alt="Media" class="img-fluid mb-2 rounded-3" style="max-width: 200px;">
-                                        {% else %}
-                                            <a href="{{ mediaUrl }}" target="_blank" class="btn btn-sm btn-primary mb-2">View Media</a>
-                                        {% endif %}
-                                    {% endfor %}
-                                </div>
+                    {% if part.video %}
+                        <div class="mb-4">
+                            <h4>Video Content</h4>
+                            <video controls class="w-100">
+                                <source src="{{ asset('Uploads/videos/' ~ part.video.filename) }}" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                            {% if part.video.description %}
+                                <p class="mt-3">{{ part.video.description }}</p>
                             {% endif %}
                         </div>
-                    </div>
-                {% endif %}
+                    {% endif %}
 
-                <div class="desmos-container card shadow-sm rounded-3 p-4 mt-4">
-                    <h4>Interactive Graphing</h4>
-                    <div id="calculator" style="width: 100%; height: 400px;"></div>
-                    <div class="mt-3">
-                        <label for="expression" class="form-label">Enter Mathematical Expression:</label>
-                        <input type="text" id="expression" class="form-control" placeholder="e.g., y = x^2" value="y = x^2">
-                        <button onclick="updateGraph()" class="btn btn-primary mt-2">Update Graph</button>
-                    </div>
-                </div>
+                    {% if part.writtenSection %}
+                        <div class="mb-4">
+                            <h4>Written Content</h4>
+                            <div class="written-content">
+                                {{ part.writtenSection.content|raw }}
+                                {% if part.writtenSection.getDecodedMediaUrls() is not null %}
+                                    <div class="mt-3">
+                                        <h6>Media</h6>
+                                        {% for mediaUrl in part.writtenSection.getDecodedMediaUrls() %}
+                                            {% if mediaUrl|slice(-4) in ['.jpg', '.png', '.gif'] %}
+                                                <img src="{{ mediaUrl }}" alt="Media" class="img-fluid mb-2 rounded-3" style="max-width: 200px;">
+                                            {% else %}
+                                                <a href="{{ mediaUrl }}" target="_blank" class="btn btn-sm btn-primary mb-2">View Media</a>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endif %}
 
-                {% if quiz %}
-                    <div class="quiz-section card shadow-sm rounded-3 p-4 mt-4">
-                        <h4>Quiz: Test Your Knowledge</h4>
-                        {% if app.user %}
-                            {% set latest_attempt = entityManager.getRepository(QuizAttempt::class).findOneBy(['quiz' => quiz, 'user' => app.user], ['takenAt' => 'DESC']) %}
-                            {% if latest_attempt %}
-                                <p>Your last score: {{ latest_attempt.score }}%</p>
-                                {% if latest_attempt.score >= 70 %}
-                                    <p class="text-success">You passed! The next part is unlocked.</p>
-                                {% else %}
-                                    <p class="text-danger">You need a score of at least 70% to unlock the next part.</p>
+                    {% if part.geogebraMaterialId %}
+                        <div class="geogebra-container">
+                            <h4>Interactive Graphing</h4>
+                            <div id="ggb-element-{{ part.id }}" style="width: 100%; height: 400px;"></div>
+                        </div>
+                    {% endif %}
+
+                    {% if quiz %}
+                        <div class="quiz-section">
+                            <h4>Quiz: Test Your Knowledge</h4>
+                            {% if app.user %}
+                                {% set latest_attempt = entityManager.getRepository('App\Entity\QuizAttempt').findOneBy(['quiz' => quiz, 'user' => app.user], ['takenAt' => 'DESC']) %}
+                                {% if latest_attempt %}
+                                    <p>Your last score: {{ latest_attempt.score }}%</p>
+                                    {% if latest_attempt.score >= 70 %}
+                                        <p class="text-success">You passed! The next part is unlocked.</p>
+                                    {% else %}
+                                        <p class="text-danger">You need a score of at least 70% to unlock the next part.</p>
+                                    {% endif %}
                                 {% endif %}
                             {% endif %}
-                        {% endif %}
-                        <form action="{{ path('app_quiz_submit', {'id': quiz.id}) }}" method="post">
-                            {% for question in quiz.questions %}
-                                <div class="quiz-question mb-4">
-                                    <h5 class="fw-bold">{{ loop.index }}. {{ question.text }}</h5>
-                                    {% if question.type == 'MCQ' %}
-                                        {% for option in question.options|json_decode %}
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="radio" name="answers[{{ question.id }}]" value="{{ option }}" required>
-                                                <label class="form-check-label">{{ option }}</label>
-                                            </div>
-                                        {% endfor %}
-                                    {% elseif question.type == 'Numeric' %}
-                                        <input type="number" name="answers[{{ question.id }}]" class="form-control" step="0.01" placeholder="Enter your answer" required>
-                                    {% endif %}
-                                </div>
-                            {% endfor %}
-                            <button type="submit" class="btn btn-primary">Submit Quiz</button>
-                        </form>
-                    </div>
-                {% else %}
-                    <p class="text-muted">No quiz available for this part yet.</p>
+                            <form action="{{ path('app_quiz_submit', {'id': quiz.id}) }}" method="post">
+                                {% for question in quiz.questions %}
+                                    <div class="quiz-question mb-4">
+                                        <h5 class="fw-bold">{{ loop.index }}. {{ question.text }}</h5>
+                                        {% if question.type == 'MCQ' %}
+                                            {% for option in question.options|json_decode %}
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="radio" name="answers[{{ question.id }}]" value="{{ option }}" required>
+                                                    <label class="form-check-label">{{ option }}</label>
+                                                </div>
+                                            {% endfor %}
+                                        {% elseif question.type == 'Numeric' %}
+                                            <input type="number" name="answers[{{ question.id }}]" class="form-control mb-2" step="0.01" placeholder="Enter your answer" required>
+                                        {% endif %}
+                                    </div>
+                                {% endfor %}
+                                <button type="submit" class="btn btn-primary">Submit Quiz</button>
+                            </form>
+                        </div>
+                    {% else %}
+                        <p class="text-muted">No quiz available for this part yet.</p>
+                    {% endif %}
                 {% endif %}
-            {% endif %}
+            </div>
         </div>
     </section>
 {% endblock %}
 
 {% block js %}
-    <script src="https://www.desmos.com/api/v1.9/calculator.js?apiKey=dcb31709b452b1cf9dc26972add0fda6"></script>
+    {% if part.geogebraMaterialId %}
+        <script defer src="https://www.geogebra.org/apps/deployggb.js"></script>
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const materialId = '{{ part.geogebraMaterialId|e('js') }}';
+                if (materialId) {
+                    let ggbApp = new GGBApplet({
+                        appName: 'graphing',
+                        width: '100%',
+                        height: 400,
+                        showToolBar: true,
+                        showAlgebraInput: true,
+                        showMenuBar: true,
+                        material_id: materialId
+                    }, true);
+                    ggbApp.inject('ggb-element-{{ part.id|e('js') }}');
+                }
+            });
+        </script>
+    {% endif %}
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
     <script>
-        let calculator = Desmos.Calculator(document.getElementById('calculator'), {
-            keypad: true,
-            expressions: true,
-            settingsMenu: true
+        document.addEventListener('DOMContentLoaded', function() {
+            try {
+                renderMathInElement(document.body, {
+                    delimiters: [
+                        { left: "$$", right: "$$", display: true },
+                        { left: "\\(", right: "\\)", display: false }
+                    ],
+                    throwOnError: false
+                });
+            } catch (e) {
+                console.error('KaTeX rendering failed:', e);
+            }
         });
-        calculator.setExpression({ id: 'graph1', latex: 'y=x^2' });
-
-        function updateGraph() {
-            let expression = document.getElementById('expression').value;
-            calculator.setExpression({ id: 'graph1', latex: expression });
-        }
     </script>
 {% endblock %}
