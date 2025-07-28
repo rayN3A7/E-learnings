@@ -1,15 +1,8 @@
-# This file is the entry point to configure your own services.
-# Files in the packages/ subdirectory configure your dependencies.
-
-# Put parameters here that don't need to change on each machine where the app is deployed
-# https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
+# config/services.yaml
 parameters:
     course_images_directory: '%kernel.project_dir%/public/uploads/images'
     part_videos_directory: '%kernel.project_dir%/public/uploads/videos'
     upload_directory: '%kernel.project_dir%/public/uploads'
-    python_binary: '%env(PYTHON_BINARY)%'
-    quiz_generator_script: '%env(QUIZ_GENERATOR_SCRIPT)%'
-    final_quiz_generator_script: '%env(FINAL_QUIZ_GENERATOR_SCRIPT)%'
     app.request_context.base_url: 'http://127.0.0.1:8000' # Adjust for your environment
 
 services:
@@ -35,9 +28,7 @@ services:
         arguments:
             $entityManager: '@doctrine.orm.entity_manager'
             $logger: '@logger'
-            $pythonBinary: '%python_binary%'
-            $quizGeneratorScript: '%quiz_generator_script%'
-            $finalQuizGeneratorScript: '%final_quiz_generator_script%'
+            $geminiApiKey: '%env(GEMINI_API_KEY)%'
 
     App\Controller\CourseController:
         arguments:
@@ -52,6 +43,3 @@ services:
             $entityManager: '@doctrine.orm.entity_manager'
             $quizAttemptRepository: '@App\Repository\QuizAttemptRepository'
         tags: ['twig.extension']
-
-    # add more service definitions when explicit configuration is needed
-    # please note that last definitions always *replace* previous ones

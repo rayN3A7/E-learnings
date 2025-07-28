@@ -25,7 +25,16 @@ class PartController extends AbstractController
     #[Route('/part/{id}', name: 'app_part_details')]
     public function show(int $id): Response
     {
-        $part = $this->entityManager->getRepository(Part::class)->find($id);
+        $part = $this->entityManager->createQueryBuilder()
+            ->select('p')
+            ->from(Part::class, 'p')
+            ->leftJoin('p.writtenSection', 'ws')
+            ->leftJoin('ws.mediaUploads', 'mu')
+            ->where('p.id = :id')
+            ->setParameter('id', $id)
+            ->getQuery()
+            ->getOneOrNullResult();
+
         if (!$part) {
             throw $this->createNotFoundException('Part not found');
         }

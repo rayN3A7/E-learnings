@@ -4,38 +4,127 @@
 
 {% block css %}
     <link rel="stylesheet" href="{{ asset('css/custom.css') }}">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css" integrity="sha384-yxN2e0r7k3uL5P0g5ZqB7u9v7l9tL7nT0Q1j2QJ2w3X8uV5e8q2r5rvp27o3N0p" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css" crossorigin="anonymous">
     <style>
-        .written-section-editor {
-            min-height: 300px;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
+        body {
+            background-color: #f4f7fc;
+            font-family: 'Inter', sans-serif;
         }
-        .section-title {
-            color: #007bff;
-            font-weight: bold;
-            margin-top: 15px;
+        .course-create-header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: #ffffff;
+            padding: 80px 0;
+            border-radius: 0 0 24px 24px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+            position: relative;
+            overflow: hidden;
         }
-        .ck-editor__editable {
-            min-height: 300px !important;
+        .course-create-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('https://www.transparenttextures.com/patterns/subtle-dots.png');
+            opacity: 0.1;
+        }
+        .course-create-header h1 {
+            font-size: 2.8rem;
+            font-weight: 800;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        .course-create-header .lead {
+            font-size: 1.3rem;
+            max-width: 700px;
+            margin: 0 auto;
+            opacity: 0.9;
+        }
+        .form-section .card {
+            background: #ffffff;
+            border: none;
+            border-radius: 16px;
+            box-shadow: 0 6px 24px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            transition: transform 0.3s ease;
+        }
+        .form-section .card:hover {
+            transform: translateY(-4px);
+        }
+        .form-section .form-control {
+            border-radius: 10px;
+            border: 1px solid #e2e8f0;
+            padding: 12px;
+            transition: all 0.3s ease;
+        }
+        .form-section .form-control:focus {
+            border-color: #2a5298;
+            box-shadow: 0 0 0 3px rgba(42, 82, 152, 0.2);
+        }
+        .part-form {
+            background: #f9fafb;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            transition: all 0.3s ease;
+        }
+        .part-form:hover {
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        }
+        .mce-content-body {
+            min-height: 250px !important;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+        .add-part-btn, .remove-part-btn, .add-media-btn, .remove-media-btn {
+            border-radius: 50px;
+            padding: 0.6rem 1.8rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .add-part-btn, .add-media-btn {
+            background-color: #2a5298;
+            color: #ffffff;
+        }
+        .add-part-btn:hover, .add-media-btn:hover {
+            background-color: #1e3c72;
+            transform: translateY(-2px);
+        }
+        .remove-part-btn, .remove-media-btn {
+            background-color: #dc3545;
+            color: #ffffff;
+        }
+        .remove-part-btn:hover, .remove-media-btn:hover {
+            background-color: #c82333;
+            transform: translateY(-2px);
+        }
+        .media-url-container {
+            margin-bottom: 1rem;
         }
         h1, h2, h3, h4, h5, h6 {
-            color: #007bff;
+            color: #2a5298;
         }
-        img, video {
-            max-width: 100%;
-            height: auto;
-            margin: 10px 0;
-            border-radius: 4px;
-        }
-        katex {
-            font-size: 1.2em;
+        .error-message {
+            color: #dc3545;
+            font-size: 0.9rem;
+            margin-top: 0.25rem;
         }
         @media (max-width: 768px) {
-            .written-section-editor {
-                font-size: 14px;
+            .course-create-header {
+                padding: 40px 0;
             }
+            .course-create-header h1 {
+                font-size: 2rem;
+            }
+            .form-section .card {
+                padding: 1.5rem;
+            }
+        }
+        #geogebra-container {
+            width: 100%;
+            height: 400px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
         }
     </style>
 {% endblock %}
@@ -44,32 +133,33 @@
     <section class="course-create-header animate__animated animate__fadeIn">
         <div class="container text-center">
             <h1 class="display-4 fw-bold">Update Course: {{ course.title }}</h1>
-            <p class="lead">Modify your numerical analysis course details.</p>
+            <p class="lead">Modify your numerical analysis course with rich, interactive content.</p>
         </div>
     </section>
 
     <section class="form-section py-5">
         <div class="container">
-            <div class="card shadow-sm rounded-3 p-4">
-                {{ form_start(form, {'attr': {'enctype': 'multipart/form-data'}}) }}
+            <div class="card shadow-sm rounded-3">
+                {{ form_start(form, {'attr': {'enctype': 'multipart/form-data', 'id': 'course-update-form'}}) }}
+                    {{ form_widget(form._token) }}
                     <div class="mb-4">
-                        {{ form_row(form.title, {'attr': {'class': 'form-control form-control-lg'}}) }}
+                        {{ form_row(form.title, {'attr': {'class': 'form-control form-control-lg', 'placeholder': 'Enter course title'}}) }}
                     </div>
                     <div class="mb-4">
-                        {{ form_row(form.description, {'attr': {'class': 'form-control'}}) }}
+                        {{ form_row(form.description, {'attr': {'class': 'form-control', 'placeholder': 'Describe your course'}}) }}
                     </div>
                     <div class="mb-4">
                         {{ form_row(form.image, {'attr': {'class': 'form-control'}}) }}
                     </div>
 
-                    <h3 class="fw-bold text-primary mb-4">Course Parts</h3>
+                    <h3 class="fw-bold mb-4">Course Parts</h3>
                     <div id="parts-container" data-prototype="{{ form_widget(form.parts.vars.prototype)|e('html_attr') }}">
                         {% for partForm in form.parts %}
-                            <div class="part-form card shadow-sm rounded-3 p-4 mb-4">
+                            <div class="part-form card shadow-sm rounded-3" data-part-index="{{ loop.index0 }}">
                                 <h4 class="fw-bold">Part {{ loop.index }}</h4>
                                 <div class="row mb-3">
                                     <div class="col-md-6">
-                                        {{ form_row(partForm.title, {'attr': {'class': 'form-control'}}) }}
+                                        {{ form_row(partForm.title, {'attr': {'class': 'form-control', 'placeholder': 'Part title'}}) }}
                                     </div>
                                     <div class="col-md-3">
                                         {{ form_row(partForm.partOrder, {'attr': {'class': 'form-control'}}) }}
@@ -79,7 +169,7 @@
                                     </div>
                                 </div>
                                 <div class="mb-3">
-                                    {{ form_row(partForm.description, {'attr': {'class': 'form-control'}}) }}
+                                    {{ form_row(partForm.description, {'label': 'Part Description', 'attr': {'class': 'form-control', 'placeholder': 'Enter a brief part description'}}) }}
                                 </div>
                                 <h5 class="fw-bold">Video Content</h5>
                                 <div class="row mb-3">
@@ -88,31 +178,60 @@
                                     </div>
                                 </div>
                                 <div class="mb-3">
-                                    {{ form_row(partForm.videoDescription, {'attr': {'class': 'form-control'}}) }}
-                                </div>
-                                <h5 class="fw-bold">Written Content</h5>
-                                <div class="mb-3 written-section-editor">
-                                    <label for="written_section_{{ loop.index0 }}_content">Written Content (Markdown)</label>
-                                    {{ form_widget(partForm.writtenSection.content, {
-                                        'id': 'written_section_' ~ loop.index0 ~ '_content',
-                                        'attr': {
-                                            'class': 'form-control rich-text-editor',
-                                            'placeholder': 'Use Markdown: # Heading, **bold**, *italic*, ![alt](url "caption"), \\(x^2\\), ::: collapsible Title'
-                                        }
-                                    }) }}
+                                    {{ form_row(partForm.videoDescription, {'attr': {'class': 'form-control', 'placeholder': 'Video description'}}) }}
                                 </div>
                                 <h5 class="fw-bold">GeoGebra Content</h5>
                                 <div class="mb-3">
-                                    {{ form_row(partForm.geogebraMaterialId, {'attr': {'class': 'form-control'}}) }}
+                                    {{ form_row(partForm.geogebraMaterialId, {'attr': {'class': 'form-control', 'placeholder': 'GeoGebra material ID', 'value': partForm.geogebraMaterialId.vars.value|default('efz9m6pc')}}) }}
                                 </div>
                                 <div class="mb-3">
-                                    {{ form_row(partForm.tutorialContent, {'attr': {'class': 'form-control'}}) }}
+                                    {{ form_row(partForm.tutorialContent, {'label': 'Tutorial Content (HTML/Markdown)', 'attr': {'class': 'form-control', 'placeholder': 'Enter tutorial content in HTML or Markdown', 'value': partForm.tutorialContent.vars.value|default('Utilisez les curseurs pour ajuster la courbe de Lagrange')}}) }}
                                 </div>
-                                <button type="button" class="btn btn-sm btn-danger remove-part-btn mt-3">Remove Part</button>
+                                <div id="geogebra-container-{{ loop.index0 }}" style="width: 100%; height: 400px;"></div>
+                                <h5 class="fw-bold">Written Content</h5>
+                                <div class="mb-3">
+                                    {{ form_row(partForm.writtenSection.content, {
+                                        'id': 'written_section_' ~ loop.index0 ~ '_content',
+                                        'attr': {'class': 'form-control rich-text-editor'}
+                                    }) }}
+                                    <div id="course_parts_{{ loop.index0 }}_writtenSection_content_help" class="help-text">
+                                        Use headings, images, videos, GIFs, emojis, and LaTeX (e.g., \( x^2 \)) for mathematical expressions.
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="fw-bold">Media URLs (Images, Videos, GIFs, etc.)</label>
+                                    <div class="media-urls-container" data-part-index="{{ loop.index0 }}">
+                                        {% for mediaUrlField in partForm.writtenSection.mediaUrls %}
+                                            <div class="media-url-container row mb-2">
+                                                <div class="col-md-10">
+                                                    {{ form_widget(mediaUrlField, {
+                                                        'attr': {
+                                                            'class': 'form-control media-url',
+                                                            'placeholder': 'e.g., https://example.com/image.jpg or https://example.com/video.mp4'
+                                                        }
+                                                    }) }}
+                                                </div>
+                                                <div class="col-md-2">
+                                                    <button type="button" class="btn remove-media-btn mt-1">Remove</button>
+                                                </div>
+                                            </div>
+                                        {% endfor %}
+                                        <button type="button" class="btn add-media-btn mt-2" data-part-index="{{ loop.index0 }}">Add Media URL</button>
+                                    </div>
+                                    <div id="course_parts_{{ loop.index0 }}_writtenSection_mediaUrls_help" class="help-text">
+                                        Add URLs for images, videos, GIFs, or other media to enhance the written content.
+                                    </div>
+                                </div>
+                                <h5 class="fw-bold">Media Files (Uploads)</h5>
+                                <div class="mb-3">
+                                    {{ form_row(partForm.writtenSection.mediaUploads) }}
+                                    <button type="button" class="btn add-media-upload-btn mt-2" data-part-index="{{ loop.index0 }}">Add Media Upload</button>
+                                </div>
+                                <button type="button" class="btn remove-part-btn mt-3">Remove Part</button>
                             </div>
                         {% endfor %}
                     </div>
-                    <button type="button" class="btn btn-primary add-part-btn mt-3">Add Part</button>
+                    <button type="button" class="btn add-part-btn mt-3">Add Part</button>
                     <div class="mt-4">
                         <button type="submit" class="btn btn-primary btn-lg">Update Course</button>
                     </div>
@@ -123,118 +242,332 @@
 {% endblock %}
 
 {% block js %}
-    <script src="https://cdn.ckeditor.com/ckeditor5/39.0.1/classic/ckeditor.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@joeattardi/emoji-button@4.6.0/dist/index.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/marked@4.0.0/lib/marked.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js" integrity="sha384-Xi8rHCmBmhbuyyhbI88391ZKP2dmfnOl4rT9ZfRI7mLTdk1wblIUnrIq35nqwEvC" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/contrib/auto-render.min.js" integrity="sha384-+XBljXPPiv+OzfbB3cVmLHf4hdUFHlWNZN5spNQ7rmHTXpd7WvJum6fIACpNNfIR" crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.tiny.cloud/1/ifeinrsntzv3r5s66j2ixgo39jv7rz9otzj2xzg2nirgaloc/tinymce/8/tinymce.min.js" referrerpolicy="origin" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
+    <script src="https://www.geogebra.org/apps/deployggb.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
+            if (typeof tinymce === 'undefined') {
+                console.error('TinyMCE script failed to load. Check the CDN URL and ensure 127.0.0.1:8000 is added to approved domains at https://www.tiny.cloud/my-account/.');
+                return;
+            }
+
             const partsContainer = document.getElementById('parts-container');
             const addPartButton = document.querySelector('.add-part-btn');
+            let partIndex = document.querySelectorAll('.part-form').length;
 
-            let partIndex = partsContainer.children.length;
+            function initializeTinyMCE(partDiv, index) {
+                const editorElement = partDiv.querySelector(`#written_section_${index}_content`);
+                if (!editorElement) {
+                    console.error(`TinyMCE element not found for part ${index}. Selector: #written_section_${index}_content`);
+                    return;
+                }
+                if (editorElement.hasAttribute('data-tinymce-initialized')) {
+                    console.log(`TinyMCE already initialized for part ${index}`);
+                    return;
+                }
+
+                console.log(`Initializing TinyMCE for element ID: written_section_${index}_content`);
+                tinymce.init({
+                    selector: `#written_section_${index}_content`,
+                    plugins: [
+                        'image', 'media', 'link', 'lists', 'table', 'emoticons', 'code',
+                        'formatpainter', 'advtable', 'editimage', 'checklist'
+                    ],
+                    toolbar: 'undo redo | blocks fontfamily fontsize | bold italic underline | link image media | alignleft aligncenter alignright | bullist numlist | emoticons charmap | formatpainter | removeformat',
+                    menubar: 'file edit insert view format table tools',
+                    content_css: 'https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css',
+                    images_upload_url: '/upload/image',
+                    images_upload_handler: async function (blobInfo, success, failure) {
+                        try {
+                            const formData = new FormData();
+                            formData.append('file', blobInfo.blob(), blobInfo.filename());
+                            const response = await fetch('/upload/image', {
+                                method: 'POST',
+                                body: formData,
+                                headers: {
+                                    'X-CSRF-TOKEN': document.querySelector('input[name="course[_token]"]').value
+                                }
+                            });
+                            if (!response.ok) {
+                                const errorText = await response.text();
+                                throw new Error(`HTTP error! Status: ${response.status} - ${errorText}`);
+                            }
+                            const result = await response.json();
+                            console.log('Upload response:', result);
+                            if (result.location) {
+                                success(result.location);
+                            } else {
+                                failure('Upload failed: No location returned in response');
+                            }
+                        } catch (error) {
+                            console.error(`Image upload error for part ${index}:`, error);
+                            alert('Image upload failed: ' + error.message);
+                            failure('Upload error: ' + error.message);
+                        }
+                    },
+                    media_url_resolver: function (data, resolve, reject) {
+                        const url = data.url;
+                        const supportedVideoExtensions = ['mp4', 'webm', 'ogg'];
+                        const extension = url.split('.').pop().toLowerCase();
+                        if (supportedVideoExtensions.includes(extension)) {
+                            resolve({ html: `<video controls src="${url}" class="img-fluid rounded-3" style="max-width: 400px;"></video>` });
+                        } else {
+                            reject('Unsupported video format. Please use MP4, WebM, or OGG.');
+                        }
+                    },
+                    setup: function (editor) {
+                        editor.on('init', function () {
+                            console.log(`TinyMCE initialized for part ${index}, read-only: ${editor.getBody().isContentEditable ? 'false' : 'true'}`);
+                            renderMathInElement(editor.getContentAreaContainer(), {
+                                delimiters: [
+                                    { left: "$$", right: "$$", display: true },
+                                    { left: "\\(", right: "\\)", display: false }
+                                ]
+                            });
+                        });
+                        editor.on('change', function () {
+                            editor.save();
+                            renderMathInElement(editor.getContentAreaContainer(), {
+                                delimiters: [
+                                    { left: "$$", right: "$$", display: true },
+                                    { left: "\\(", right: "\\)", display: false }
+                                ]
+                            });
+                        });
+                        editor.on('error', function (e) {
+                            console.error(`TinyMCE error for part ${index}:`, e);
+                        });
+                    },
+                    placeholder: 'Create rich content with headings, lists, images, videos, and LaTeX (e.g., \\(x^2 + y^2 = z^2\\))'
+                }).then(function (editors) {
+                    editorElement.setAttribute('data-tinymce-initialized', 'true');
+                    console.log(`TinyMCE successfully initialized for part ${index}`);
+                }).catch(function (error) {
+                    console.error(`TinyMCE initialization failed for part ${index}:`, error);
+                    if (error.message.includes('API key')) {
+                        console.error('Possible issue with TinyMCE API key. Verify at https://www.tiny.cloud/my-account/ and ensure 127.0.0.1:8000 is an approved domain.');
+                    }
+                });
+            }
+
+            function initializeMediaUrls(partDiv, index) {
+                const mediaUrlsContainer = partDiv.querySelector(`.media-urls-container[data-part-index="${index}"]`);
+                if (!mediaUrlsContainer) {
+                    console.error(`Media URLs container not found for part ${index}`);
+                    return;
+                }
+
+                const addMediaButton = mediaUrlsContainer.querySelector('.add-media-btn');
+                const prototype = mediaUrlsContainer.dataset.prototype || `
+                    <div class="media-url-container row mb-2">
+                        <div class="col-md-10">
+                            <input type="url" name="course[parts][${index}][writtenSection][mediaUrls][]" class="form-control media-url" placeholder="e.g., https://example.com/image.jpg or https://example.com/video.mp4">
+                        </div>
+                        <div class="col-md-2">
+                            <button type="button" class="btn remove-media-btn mt-1">Remove</button>
+                        </div>
+                    </div>
+                `;
+
+                addMediaButton.addEventListener('click', function () {
+                    const newMediaDiv = document.createElement('div');
+                    newMediaDiv.innerHTML = prototype.replace(/__name__/g, mediaUrlsContainer.children.length);
+                    mediaUrlsContainer.insertBefore(newMediaDiv.firstChild, addMediaButton);
+                    console.log(`Added media URL field for part ${index}`);
+                });
+
+                mediaUrlsContainer.addEventListener('click', function (e) {
+                    if (e.target.classList.contains('remove-media-btn')) {
+                        e.target.closest('.media-url-container').remove();
+                        console.log(`Removed media URL field for part ${index}`);
+                    }
+                });
+            }
+
+            function initializeMediaUploads(partDiv, index) {
+                const mediaUploadsContainer = partDiv.querySelector(`[id^="course_parts_${index}_writtenSection_mediaUploads"]`);
+                if (!mediaUploadsContainer) {
+                    console.error(`Media uploads container not found for part ${index}`);
+                    return;
+                }
+
+                const addMediaUploadButton = partDiv.querySelector(`.add-media-upload-btn[data-part-index="${index}"]`);
+                const prototype = mediaUploadsContainer.dataset.prototype || `
+                    <div class="media-upload-container row mb-2">
+                        <div class="col-md-10">
+                            <input type="file" name="course[parts][${index}][writtenSection][mediaUploads][__name__]" class="form-control">
+                        </div>
+                        <div class="col-md-2">
+                            <button type="button" class="btn remove-media-upload-btn mt-1">Remove</button>
+                        </div>
+                    </div>
+                `;
+
+                addMediaUploadButton.addEventListener('click', function () {
+                    const newMediaDiv = document.createElement('div');
+                    newMediaDiv.innerHTML = prototype.replace(/__name__/g, mediaUploadsContainer.children.length);
+                    mediaUploadsContainer.insertBefore(newMediaDiv.firstChild, addMediaUploadButton);
+                    console.log(`Added media upload field for part ${index}`);
+                });
+
+                mediaUploadsContainer.addEventListener('click', function (e) {
+                    if (e.target.classList.contains('remove-media-upload-btn')) {
+                        e.target.closest('.media-upload-container').remove();
+                        console.log(`Removed media upload field for part ${index}`);
+                    }
+                });
+            }
+
+            function initializeGeoGebra(partDiv, index) {
+                const container = partDiv.querySelector(`#geogebra-container-${index}`);
+                if (!container) {
+                    console.error(`GeoGebra container not found for part ${index}`);
+                    return;
+                }
+
+                const materialId = partDiv.querySelector(`[name="course[parts][${index}][geogebraMaterialId]"]`).value || 'efz9m6pc';
+                const applet = new GGBApplet({
+                    appletId: `ggb-element-${index}`,
+                    material_id: materialId,
+                    width: 800,
+                    height: 600,
+                    showToolBar: true,
+                    showAlgebraInput: true,
+                    showMenuBar: true
+                }, true);
+
+                applet.inject(`geogebra-container-${index}`, function() {
+                    console.log(`GeoGebra applet initialized for part ${index}`);
+                    const ggbApp = window[`ggbApplet${index}`];
+                    if (ggbApp) {
+                        ggbApp.registerAddListener(function(objName) {
+                            console.log(`Object added in part ${index}: ${objName}`);
+                        });
+                    } else {
+                        console.error(`ggbApp not found for part ${index}`);
+                    }
+                }, function(error) {
+                    console.error(`GeoGebra initialization failed for part ${index}:`, error);
+                    container.innerHTML = '<p>Failed to load GeoGebra applet. Please check the material ID or network connection.</p>';
+                });
+            }
+
+            document.querySelectorAll('.part-form').forEach((partDiv, index) => {
+                initializeTinyMCE(partDiv, index);
+                initializeMediaUrls(partDiv, index);
+                initializeMediaUploads(partDiv, index);
+                initializeGeoGebra(partDiv, index);
+            });
 
             addPartButton.addEventListener('click', function () {
-                const prototype = partsContainer.dataset.prototype;
-                const newForm = prototype.replace(/__name__/g, partIndex);
+                const prototype = partsContainer.dataset.prototype.replace(/__name__/g, partIndex);
                 const newPartDiv = document.createElement('div');
-                newPartDiv.classList.add('part-form', 'card', 'shadow-sm', 'rounded-3', 'p-4', 'mb-4');
-                newPartDiv.innerHTML = `<h4 class="fw-bold">Part ${partIndex + 1}</h4>` + newForm;
+                newPartDiv.classList.add('part-form', 'card', 'shadow-sm', 'rounded-3');
+                newPartDiv.setAttribute('data-part-index', partIndex);
+
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(prototype, 'text/html');
+                const divs = doc.getElementsByTagName('div');
+                let titleDiv = null, descriptionDiv = null, durationDiv = null, orderDiv = null, videoFileDiv = null, videoDescDiv = null, geoDiv = null, tutorialDiv = null, writtenDiv = null, mediaUrlsDiv = null, mediaUploadsDiv = null;
+
+                for (let div of divs) {
+                    if (div.querySelector('input[name$="[title]"]')) titleDiv = div.outerHTML;
+                    else if (div.querySelector('textarea[name$="[description]"]')) descriptionDiv = div.outerHTML;
+                    else if (div.querySelector('input[name$="[duration]"]')) durationDiv = div.outerHTML;
+                    else if (div.querySelector('input[name$="[partOrder]"]')) orderDiv = div.outerHTML;
+                    else if (div.querySelector('input[name$="[videoFile]"]')) videoFileDiv = div.outerHTML;
+                    else if (div.querySelector('textarea[name$="[videoDescription]"]')) videoDescDiv = div.outerHTML;
+                    else if (div.querySelector('input[name$="[geogebraMaterialId]"]')) geoDiv = div.outerHTML;
+                    else if (div.querySelector('textarea[name$="[tutorialContent]"]')) tutorialDiv = div.outerHTML;
+                    else if (div.querySelector('textarea[name$="[writtenSection][content]"]')) {
+                        writtenDiv = div.outerHTML.replace(/id="[^"]*"/, `id="written_section_${partIndex}_content"`);
+                    }
+                    else if (div.querySelector('input[name$="[writtenSection][mediaUrls][]"]')) {
+                        mediaUrlsDiv = div.outerHTML;
+                    }
+                    else if (div.querySelector('input[name$="[writtenSection][mediaUploads][]"]')) {
+                        mediaUploadsDiv = div.outerHTML;
+                    }
+                }
+
+                if (!titleDiv || !descriptionDiv || !durationDiv || !orderDiv || !videoFileDiv || !videoDescDiv || !geoDiv || !tutorialDiv || !writtenDiv || !mediaUrlsDiv || !mediaUploadsDiv) {
+                    console.error('Prototype parsing failed, using raw prototype as fallback:', prototype);
+                    newPartDiv.innerHTML = prototype;
+                } else {
+                    newPartDiv.innerHTML = `
+                        <h4 class="fw-bold">Part ${partIndex + 1}</h4>
+                        <div class="mb-3">${titleDiv}</div>
+                        <div class="mb-3">${descriptionDiv}</div>
+                        <div class="mb-3">${durationDiv}</div>
+                        <div class="mb-3">${orderDiv}</div>
+                        <h5 class="fw-bold">Video Content</h5>
+                        <div class="mb-3">${videoFileDiv}</div>
+                        <div class="mb-3">${videoDescDiv}</div>
+                        <h5 class="fw-bold">GeoGebra Content</h5>
+                        <div class="mb-3">${geoDiv}</div>
+                        <div class="mb-3">${tutorialDiv}</div>
+                        <div id="geogebra-container-${partIndex}" style="width: 100%; height: 400px;"></div>
+                        <h5 class="fw-bold">Written Content</h5>
+                        <div class="mb-3">
+                            <div>
+                                <label for="written_section_${partIndex}_content">Written Content</label>
+                                <textarea id="written_section_${partIndex}_content" name="course[parts][${partIndex}][writtenSection][content]" class="form-control rich-text-editor" rows="5"></textarea>
+                                <div id="course_parts_${partIndex}_writtenSection_content_help" class="help-text">Use headings, images, videos, GIFs, emojis, and LaTeX (e.g., \\( x^2 \\)) for mathematical expressions.</div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="fw-bold">Media URLs (Images, Videos, GIFs, etc.)</label>
+                            <div class="media-urls-container" data-part-index="${partIndex}">
+                                ${mediaUrlsDiv}
+                                <button type="button" class="btn add-media-btn mt-2" data-part-index="${partIndex}">Add Media URL</button>
+                            </div>
+                            <div id="course_parts_${partIndex}_writtenSection_mediaUrls_help" class="help-text">Add URLs for images, videos, GIFs, or other media to enhance the written content.</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="fw-bold">Media Files (Uploads)</label>
+                            <div>
+                                ${mediaUploadsDiv}
+                                <button type="button" class="btn add-media-upload-btn mt-2" data-part-index="${partIndex}">Add Media Upload</button>
+                            </div>
+                        </div>
+                        <button type="button" class="btn remove-part-btn mt-3">Remove Part</button>
+                    `;
+                    console.log(`Generated HTML for part ${partIndex}:`, newPartDiv.innerHTML);
+                }
+
                 partsContainer.appendChild(newPartDiv);
-                initializeCkEditor(newPartDiv, partIndex);
+                initializeTinyMCE(newPartDiv, partIndex);
+                initializeMediaUrls(newPartDiv, partIndex);
+                initializeMediaUploads(newPartDiv, partIndex);
+                initializeGeoGebra(newPartDiv, partIndex);
                 partIndex++;
             });
 
             partsContainer.addEventListener('click', function (e) {
                 if (e.target.classList.contains('remove-part-btn')) {
-                    e.target.closest('.part-form').remove();
-                }
-            });
-
-            function initializeCkEditor(partDiv, index) {
-                const editorElement = partDiv.querySelector(`#written_section_${index}_content`);
-                if (editorElement) {
-                    ClassicEditor
-                        .create(editorElement, {
-                            toolbar: [
-                                'heading', '|',
-                                'bold', 'italic', 'underline', 'strikethrough', '|',
-                                'link', 'imageUpload', 'mediaEmbed', '|',
-                                'bulletedList', 'numberedList', 'todoList', '|',
-                                'blockQuote', 'codeBlock', '|',
-                                'insertTable', 'tableColumn', 'tableRow', 'mergeTableCells', '|',
-                                'fontSize', 'fontColor', 'fontBackgroundColor', '|',
-                                'undo', 'redo', '|',
-                                'emoji'
-                            ],
-                            image: {
-                                toolbar: ['imageStyle:full', 'imageStyle:side', 'imageTextAlternative'],
-                                upload: {
-                                    // Requires server-side integration for actual uploads
-                                    types: ['jpeg', 'png', 'gif']
-                                }
-                            },
-                            mediaEmbed: {
-                                previewsInData: true,
-                                providers: [
-                                    {
-                                        name: 'gif',
-                                        url: /^.*\.(gif)$/,
-                                        html: match => `<img src="${match[0]}" class="img-fluid" alt="GIF">`
-                                    }
-                                ]
-                            },
-                            placeholder: 'Use Markdown: # Heading, **bold**, *italic*, ![alt](url "caption"), \\(x^2\\), ::: collapsible Title',
-                            extraPlugins: [function(editor) {
-                                editor.ui.componentFactory.add('emoji', () => {
-                                    const button = editor.ui.componentFactory.create('button');
-                                    button.label = 'Insert Emoji';
-                                    button.tooltip = 'Insert Emoji';
-                                    button.on('execute', () => {
-                                        const picker = new EmojiButton();
-                                        picker.on('emoji', emoji => {
-                                            editor.model.change(writer => {
-                                                writer.insertText(emoji, editor.model.document.selection.getFirstPosition());
-                                            });
-                                        });
-                                        picker.togglePicker(button.element);
-                                    });
-                                    return button;
-                                });
-                            }]
-                        })
-                        .then(editor => {
-                            // Convert CKEditor output to Markdown
-                            editor.editing.view.document.on('change', () => {
-                                editor.updateSourceElement();
-                            });
-                            console.log('CKEditor initialized for part:', index);
-                        })
-                        .catch(error => {
-                            console.error('CKEditor initialization failed:', error);
-                        });
-                }
-            }
-
-            // Initialize CKEditor for existing parts
-            document.querySelectorAll('.part-form').forEach((partDiv, index) => {
-                initializeCkEditor(partDiv, index);
-            });
-
-            // Preview Markdown in real-time
-            document.querySelectorAll('.rich-text-editor').forEach(editor => {
-                editor.addEventListener('input', function() {
-                    const preview = document.createElement('div');
-                    preview.className = 'markdown-preview mt-2';
-                    preview.innerHTML = sanitizeHtml(marked.parse(this.value));
-                    renderMathInElement(preview);
-                    if (this.nextElementSibling && this.nextElementSibling.className.includes('markdown-preview')) {
-                        this.nextElementSibling.replaceWith(preview);
-                    } else {
-                        this.parentNode.appendChild(preview);
+                    const partDiv = e.target.closest('.part-form');
+                    const index = partDiv.getAttribute('data-part-index');
+                    if (tinymce.get(`written_section_${index}_content`)) {
+                        tinymce.get(`written_section_${index}_content`).remove();
                     }
-                });
+                    partDiv.remove();
+                    console.log(`Removed part form ${index}`);
+                }
+            });
+
+            document.getElementById('course-update-form').addEventListener('submit', function (e) {
+                tinymce.triggerSave();
+                console.log('TinyMCE content saved before form submission');
+            });
+
+            renderMathInElement(document.body, {
+                delimiters: [
+                    { left: "$$", right: "$$", display: true },
+                    { left: "\\(", right: "\\)", display: false }
+                ]
             });
         });
     </script>
