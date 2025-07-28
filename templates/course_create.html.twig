@@ -104,6 +104,11 @@
         h1, h2, h3, h4, h5, h6 {
             color: #2a5298;
         }
+        .error-message {
+            color: #dc3545;
+            font-size: 0.9rem;
+            margin-top: 0.25rem;
+        }
         @media (max-width: 768px) {
             .course-create-header {
                 padding: 40px 0;
@@ -114,6 +119,12 @@
             .form-section .card {
                 padding: 1.5rem;
             }
+        }
+        #geogebra-container {
+            width: 100%;
+            height: 400px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
         }
     </style>
 {% endblock %}
@@ -129,7 +140,8 @@
     <section class="form-section py-5">
         <div class="container">
             <div class="card shadow-sm rounded-3">
-                {{ form_start(form, {'attr': {'enctype': 'multipart/form-data'}}) }}
+                {{ form_start(form, {'attr': {'enctype': 'multipart/form-data', 'id': 'course-create-form'}}) }}
+                    {{ form_widget(form._token) }}
                     <div class="mb-4">
                         {{ form_row(form.title, {'attr': {'class': 'form-control form-control-lg', 'placeholder': 'Enter course title'}}) }}
                     </div>
@@ -170,11 +182,12 @@
                                 </div>
                                 <h5 class="fw-bold">GeoGebra Content</h5>
                                 <div class="mb-3">
-                                    {{ form_row(partForm.geogebraMaterialId, {'attr': {'class': 'form-control', 'placeholder': 'GeoGebra material ID'}}) }}
+                                    {{ form_row(partForm.geogebraMaterialId, {'attr': {'class': 'form-control', 'placeholder': 'GeoGebra material ID', 'value': partForm.geogebraMaterialId.vars.value|default('efz9m6pc')}}) }}
                                 </div>
                                 <div class="mb-3">
-                                    {{ form_row(partForm.tutorialContent, {'label': 'Tutorial Content (HTML/Markdown)', 'attr': {'class': 'form-control', 'placeholder': 'Enter tutorial content in HTML or Markdown'}}) }}
+                                    {{ form_row(partForm.tutorialContent, {'label': 'Tutorial Content (HTML/Markdown)', 'attr': {'class': 'form-control', 'placeholder': 'Enter tutorial content in HTML or Markdown', 'value': partForm.tutorialContent.vars.value|default('Utilisez les curseurs pour ajuster la courbe de Lagrange')}}) }}
                                 </div>
+                                <div id="geogebra-container-{{ loop.index0 }}" style="width: 100%; height: 400px;"></div>
                                 <h5 class="fw-bold">Written Content</h5>
                                 <div class="mb-3">
                                     {{ form_row(partForm.writtenSection.content, {
@@ -182,11 +195,11 @@
                                         'attr': {'class': 'form-control rich-text-editor'}
                                     }) }}
                                     <div id="course_parts_{{ loop.index0 }}_writtenSection_content_help" class="help-text">
-                                        Use headings, images, GIFs, emojis, and LaTeX (e.g., \( x^2 \)) for mathematical expressions.
+                                        Use headings, images, videos, GIFs, emojis, and LaTeX (e.g., \( x^2 \)) for mathematical expressions.
                                     </div>
                                 </div>
                                 <div class="mb-3">
-                                    <label class="fw-bold">Media URLs (Images, GIFs, etc.)</label>
+                                    <label class="fw-bold">Media URLs (Images, Videos, GIFs, etc.)</label>
                                     <div class="media-urls-container" data-part-index="{{ loop.index0 }}">
                                         {% for mediaUrlField in partForm.writtenSection.mediaUrls %}
                                             <div class="media-url-container row mb-2">
@@ -194,7 +207,7 @@
                                                     {{ form_widget(mediaUrlField, {
                                                         'attr': {
                                                             'class': 'form-control media-url',
-                                                            'placeholder': 'e.g., https://example.com/image.jpg'
+                                                            'placeholder': 'e.g., https://example.com/image.jpg or https://example.com/video.mp4'
                                                         }
                                                     }) }}
                                                 </div>
@@ -206,8 +219,13 @@
                                         <button type="button" class="btn add-media-btn mt-2" data-part-index="{{ loop.index0 }}">Add Media URL</button>
                                     </div>
                                     <div id="course_parts_{{ loop.index0 }}_writtenSection_mediaUrls_help" class="help-text">
-                                        Add URLs for images, GIFs, or other media to enhance the written content.
+                                        Add URLs for images, videos, GIFs, or other media to enhance the written content.
                                     </div>
+                                </div>
+                                <h5 class="fw-bold">Media Files (Uploads)</h5>
+                                <div class="mb-3">
+                                    {{ form_row(partForm.writtenSection.mediaUploads) }}
+                                    <button type="button" class="btn add-media-upload-btn mt-2" data-part-index="{{ loop.index0 }}">Add Media Upload</button>
                                 </div>
                                 <button type="button" class="btn remove-part-btn mt-3">Remove Part</button>
                             </div>
@@ -224,16 +242,13 @@
 {% endblock %}
 
 {% block js %}
-    <!-- jQuery for dynamic form handling -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js" crossorigin="anonymous"></script>
-    <!-- TinyMCE version 8 with API key -->
     <script src="https://cdn.tiny.cloud/1/ifeinrsntzv3r5s66j2ixgo39jv7rz9otzj2xzg2nirgaloc/tinymce/8/tinymce.min.js" referrerpolicy="origin" crossorigin="anonymous"></script>
-    <!-- KaTeX for LaTeX rendering -->
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
+    <script src="https://www.geogebra.org/apps/deployggb.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            // Verify TinyMCE is loaded
             if (typeof tinymce === 'undefined') {
                 console.error('TinyMCE script failed to load. Check the CDN URL and ensure 127.0.0.1:8000 is added to approved domains at https://www.tiny.cloud/my-account/.');
                 return;
@@ -243,7 +258,6 @@
             const addPartButton = document.querySelector('.add-part-btn');
             let partIndex = document.querySelectorAll('.part-form').length;
 
-            // Initialize TinyMCE for a given part
             function initializeTinyMCE(partDiv, index) {
                 const editorElement = partDiv.querySelector(`#written_section_${index}_content`);
                 if (!editorElement) {
@@ -259,63 +273,75 @@
                 tinymce.init({
                     selector: `#written_section_${index}_content`,
                     plugins: [
-                        'image', 'link', 'lists', 'table', 'emoticons', 'code', // Core plugins
-                        'formatpainter', 'advtable', 'editimage', 'checklist' // Premium plugins from trial
+                        'image', 'media', 'link', 'lists', 'table', 'emoticons', 'code',
+                        'formatpainter', 'advtable', 'editimage', 'checklist'
                     ],
-                    toolbar: 'undo redo | blocks fontfamily fontsize | bold italic underline | link image table | alignleft aligncenter alignright | bullist numlist | emoticons charmap | formatpainter | removeformat',
-                    menubar: false,
-                    readonly: false,
-                    content_css: 'https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css', // KaTeX styles
+                    toolbar: 'undo redo | blocks fontfamily fontsize | bold italic underline | link image media | alignleft aligncenter alignright | bullist numlist | emoticons charmap | formatpainter | removeformat',
+                    menubar: 'file edit insert view format table tools',
+                    content_css: 'https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css',
                     images_upload_url: '/upload/image',
-                 images_upload_handler: async function (blobInfo, success, failure, progress) {
-    try {
-        const formData = new FormData();
-        formData.append('file', blobInfo.blob(), blobInfo.filename());
-        const response = await fetch('/upload/image', {
-            method: 'POST',
-            body: formData
-        });
-        if (!response.ok) {
-            const errorText = await response.text(); // Get error details
-            throw new Error(`HTTP error! Status: ${response.status} - ${errorText}`);
-        }
-        const result = await response.json();
-        console.log('Upload response:', result);
-        if (result.location) {
-            success(result.location);
-        } else {
-            failure('Upload failed: No location returned in response');
-        }
-    } catch (error) {
-        console.error(`Image upload error for part ${index}:`, error);
-        alert('Image upload failed: ' + error.message); // Notify user
-        failure('Upload error: ' + error.message);
-    }
-},
-                   setup: function (editor) {
-    editor.on('init', function () {
-        console.log(`TinyMCE initialized for part ${index}, read-only: ${editor.getBody().isContentEditable ? 'false' : 'true'}`);
-        renderMathInElement(editor.getContentAreaContainer(), {
-            delimiters: [
-                { left: "$$", right: "$$", display: true },
-                { left: "\\(", right: "\\)", display: false }
-            ]
-        });
-    });
-    editor.on('change', function () {
-        editor.save(); // Syncs content to the textarea
-        renderMathInElement(editor.getContentAreaContainer(), {
-            delimiters: [
-                { left: "$$", right: "$$", display: true },
-                { left: "\\(", right: "\\)", display: false }
-            ]
-        });
-    });
-    editor.on('error', function (e) {
-        console.error(`TinyMCE error for part ${index}:`, e);
-    });
-},
-                    placeholder: 'Create rich content with headings, lists, images, and LaTeX (e.g., \\(x^2 + y^2 = z^2\\))'
+                    images_upload_handler: async function (blobInfo, success, failure) {
+                        try {
+                            const formData = new FormData();
+                            formData.append('file', blobInfo.blob(), blobInfo.filename());
+                            const response = await fetch('/upload/image', {
+                                method: 'POST',
+                                body: formData,
+                                headers: {
+                                    'X-CSRF-TOKEN': document.querySelector('input[name="course[_token]"]').value
+                                }
+                            });
+                            if (!response.ok) {
+                                const errorText = await response.text();
+                                throw new Error(`HTTP error! Status: ${response.status} - ${errorText}`);
+                            }
+                            const result = await response.json();
+                            console.log('Upload response:', result);
+                            if (result.location) {
+                                success(result.location);
+                            } else {
+                                failure('Upload failed: No location returned in response');
+                            }
+                        } catch (error) {
+                            console.error(`Image upload error for part ${index}:`, error);
+                            alert('Image upload failed: ' + error.message);
+                            failure('Upload error: ' + error.message);
+                        }
+                    },
+                    media_url_resolver: function (data, resolve, reject) {
+                        const url = data.url;
+                        const supportedVideoExtensions = ['mp4', 'webm', 'ogg'];
+                        const extension = url.split('.').pop().toLowerCase();
+                        if (supportedVideoExtensions.includes(extension)) {
+                            resolve({ html: `<video controls src="${url}" class="img-fluid rounded-3" style="max-width: 400px;"></video>` });
+                        } else {
+                            reject('Unsupported video format. Please use MP4, WebM, or OGG.');
+                        }
+                    },
+                    setup: function (editor) {
+                        editor.on('init', function () {
+                            console.log(`TinyMCE initialized for part ${index}, read-only: ${editor.getBody().isContentEditable ? 'false' : 'true'}`);
+                            renderMathInElement(editor.getContentAreaContainer(), {
+                                delimiters: [
+                                    { left: "$$", right: "$$", display: true },
+                                    { left: "\\(", right: "\\)", display: false }
+                                ]
+                            });
+                        });
+                        editor.on('change', function () {
+                            editor.save();
+                            renderMathInElement(editor.getContentAreaContainer(), {
+                                delimiters: [
+                                    { left: "$$", right: "$$", display: true },
+                                    { left: "\\(", right: "\\)", display: false }
+                                ]
+                            });
+                        });
+                        editor.on('error', function (e) {
+                            console.error(`TinyMCE error for part ${index}:`, e);
+                        });
+                    },
+                    placeholder: 'Create rich content with headings, lists, images, videos, and LaTeX (e.g., \\(x^2 + y^2 = z^2\\))'
                 }).then(function (editors) {
                     editorElement.setAttribute('data-tinymce-initialized', 'true');
                     console.log(`TinyMCE successfully initialized for part ${index}`);
@@ -327,7 +353,6 @@
                 });
             }
 
-            // Initialize media URL fields for a given part
             function initializeMediaUrls(partDiv, index) {
                 const mediaUrlsContainer = partDiv.querySelector(`.media-urls-container[data-part-index="${index}"]`);
                 if (!mediaUrlsContainer) {
@@ -339,7 +364,7 @@
                 const prototype = mediaUrlsContainer.dataset.prototype || `
                     <div class="media-url-container row mb-2">
                         <div class="col-md-10">
-                            <input type="text" name="course[parts][${index}][writtenSection][mediaUrls][]" class="form-control media-url" placeholder="e.g., https://example.com/image.jpg">
+                            <input type="url" name="course[parts][${index}][writtenSection][mediaUrls][]" class="form-control media-url" placeholder="e.g., https://example.com/image.jpg or https://example.com/video.mp4">
                         </div>
                         <div class="col-md-2">
                             <button type="button" class="btn remove-media-btn mt-1">Remove</button>
@@ -362,13 +387,81 @@
                 });
             }
 
-            // Initialize existing parts
+            function initializeMediaUploads(partDiv, index) {
+                const mediaUploadsContainer = partDiv.querySelector(`[id^="course_parts_${index}_writtenSection_mediaUploads"]`);
+                if (!mediaUploadsContainer) {
+                    console.error(`Media uploads container not found for part ${index}`);
+                    return;
+                }
+
+                const addMediaUploadButton = partDiv.querySelector(`.add-media-upload-btn[data-part-index="${index}"]`);
+                const prototype = mediaUploadsContainer.dataset.prototype || `
+                    <div class="media-upload-container row mb-2">
+                        <div class="col-md-10">
+                            <input type="file" name="course[parts][${index}][writtenSection][mediaUploads][__name__]" class="form-control">
+                        </div>
+                        <div class="col-md-2">
+                            <button type="button" class="btn remove-media-upload-btn mt-1">Remove</button>
+                        </div>
+                    </div>
+                `;
+
+                addMediaUploadButton.addEventListener('click', function () {
+                    const newMediaDiv = document.createElement('div');
+                    newMediaDiv.innerHTML = prototype.replace(/__name__/g, mediaUploadsContainer.children.length);
+                    mediaUploadsContainer.insertBefore(newMediaDiv.firstChild, addMediaUploadButton);
+                    console.log(`Added media upload field for part ${index}`);
+                });
+
+                mediaUploadsContainer.addEventListener('click', function (e) {
+                    if (e.target.classList.contains('remove-media-upload-btn')) {
+                        e.target.closest('.media-upload-container').remove();
+                        console.log(`Removed media upload field for part ${index}`);
+                    }
+                });
+            }
+
+            function initializeGeoGebra(partDiv, index) {
+                const container = partDiv.querySelector(`#geogebra-container-${index}`);
+                if (!container) {
+                    console.error(`GeoGebra container not found for part ${index}`);
+                    return;
+                }
+
+                const materialId = partDiv.querySelector(`[name="course[parts][${index}][geogebraMaterialId]"]`).value || 'efz9m6pc';
+                const applet = new GGBApplet({
+                    appletId: `ggb-element-${index}`,
+                    material_id: materialId,
+                    width: 800,
+                    height: 600,
+                    showToolBar: true,
+                    showAlgebraInput: true,
+                    showMenuBar: true
+                }, true);
+
+                applet.inject(`geogebra-container-${index}`, function() {
+                    console.log(`GeoGebra applet initialized for part ${index}`);
+                    const ggbApp = window[`ggbApplet${index}`];
+                    if (ggbApp) {
+                        ggbApp.registerAddListener(function(objName) {
+                            console.log(`Object added in part ${index}: ${objName}`);
+                        });
+                    } else {
+                        console.error(`ggbApp not found for part ${index}`);
+                    }
+                }, function(error) {
+                    console.error(`GeoGebra initialization failed for part ${index}:`, error);
+                    container.innerHTML = '<p>Failed to load GeoGebra applet. Please check the material ID or network connection.</p>';
+                });
+            }
+
             document.querySelectorAll('.part-form').forEach((partDiv, index) => {
                 initializeTinyMCE(partDiv, index);
                 initializeMediaUrls(partDiv, index);
+                initializeMediaUploads(partDiv, index);
+                initializeGeoGebra(partDiv, index);
             });
 
-            // Handle adding new parts
             addPartButton.addEventListener('click', function () {
                 const prototype = partsContainer.dataset.prototype.replace(/__name__/g, partIndex);
                 const newPartDiv = document.createElement('div');
@@ -378,7 +471,7 @@
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(prototype, 'text/html');
                 const divs = doc.getElementsByTagName('div');
-                let titleDiv = null, descriptionDiv = null, durationDiv = null, orderDiv = null, videoFileDiv = null, videoDescDiv = null, geoDiv = null, tutorialDiv = null, writtenDiv = null, mediaUrlsDiv = null;
+                let titleDiv = null, descriptionDiv = null, durationDiv = null, orderDiv = null, videoFileDiv = null, videoDescDiv = null, geoDiv = null, tutorialDiv = null, writtenDiv = null, mediaUrlsDiv = null, mediaUploadsDiv = null;
 
                 for (let div of divs) {
                     if (div.querySelector('input[name$="[title]"]')) titleDiv = div.outerHTML;
@@ -395,9 +488,12 @@
                     else if (div.querySelector('input[name$="[writtenSection][mediaUrls][]"]')) {
                         mediaUrlsDiv = div.outerHTML;
                     }
+                    else if (div.querySelector('input[name$="[writtenSection][mediaUploads][]"]')) {
+                        mediaUploadsDiv = div.outerHTML;
+                    }
                 }
 
-                if (!titleDiv || !descriptionDiv || !durationDiv || !orderDiv || !videoFileDiv || !videoDescDiv || !geoDiv || !tutorialDiv || !writtenDiv) {
+                if (!titleDiv || !descriptionDiv || !durationDiv || !orderDiv || !videoFileDiv || !videoDescDiv || !geoDiv || !tutorialDiv || !writtenDiv || !mediaUrlsDiv || !mediaUploadsDiv) {
                     console.error('Prototype parsing failed, using raw prototype as fallback:', prototype);
                     newPartDiv.innerHTML = prototype;
                 } else {
@@ -413,28 +509,29 @@
                         <h5 class="fw-bold">GeoGebra Content</h5>
                         <div class="mb-3">${geoDiv}</div>
                         <div class="mb-3">${tutorialDiv}</div>
+                        <div id="geogebra-container-${partIndex}" style="width: 100%; height: 400px;"></div>
                         <h5 class="fw-bold">Written Content</h5>
                         <div class="mb-3">
                             <div>
                                 <label for="written_section_${partIndex}_content">Written Content</label>
                                 <textarea id="written_section_${partIndex}_content" name="course[parts][${partIndex}][writtenSection][content]" class="form-control rich-text-editor" rows="5"></textarea>
-                                <div id="course_parts_${partIndex}_writtenSection_content_help" class="help-text">Use headings, images, GIFs, emojis, and LaTeX (e.g., \\( x^2 \\)) for mathematical expressions.</div>
+                                <div id="course_parts_${partIndex}_writtenSection_content_help" class="help-text">Use headings, images, videos, GIFs, emojis, and LaTeX (e.g., \\( x^2 \\)) for mathematical expressions.</div>
                             </div>
                         </div>
                         <div class="mb-3">
-                            <label class="fw-bold">Media URLs (Images, GIFs, etc.)</label>
+                            <label class="fw-bold">Media URLs (Images, Videos, GIFs, etc.)</label>
                             <div class="media-urls-container" data-part-index="${partIndex}">
-                                <div class="media-url-container row mb-2">
-                                    <div class="col-md-10">
-                                        <input type="text" name="course[parts][${partIndex}][writtenSection][mediaUrls][]" class="form-control media-url" placeholder="e.g., https://example.com/image.jpg">
-                                    </div>
-                                    <div class="col-md-2">
-                                        <button type="button" class="btn remove-media-btn mt-1">Remove</button>
-                                    </div>
-                                </div>
+                                ${mediaUrlsDiv}
                                 <button type="button" class="btn add-media-btn mt-2" data-part-index="${partIndex}">Add Media URL</button>
                             </div>
-                            <div id="course_parts_${partIndex}_writtenSection_mediaUrls_help" class="help-text">Add URLs for images, GIFs, or other media to enhance the written content.</div>
+                            <div id="course_parts_${partIndex}_writtenSection_mediaUrls_help" class="help-text">Add URLs for images, videos, GIFs, or other media to enhance the written content.</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="fw-bold">Media Files (Uploads)</label>
+                            <div>
+                                ${mediaUploadsDiv}
+                                <button type="button" class="btn add-media-upload-btn mt-2" data-part-index="${partIndex}">Add Media Upload</button>
+                            </div>
                         </div>
                         <button type="button" class="btn remove-part-btn mt-3">Remove Part</button>
                     `;
@@ -444,18 +541,28 @@
                 partsContainer.appendChild(newPartDiv);
                 initializeTinyMCE(newPartDiv, partIndex);
                 initializeMediaUrls(newPartDiv, partIndex);
+                initializeMediaUploads(newPartDiv, partIndex);
+                initializeGeoGebra(newPartDiv, partIndex);
                 partIndex++;
             });
 
-            // Handle part removal
             partsContainer.addEventListener('click', function (e) {
                 if (e.target.classList.contains('remove-part-btn')) {
-                    e.target.closest('.part-form').remove();
-                    console.log('Removed part form');
+                    const partDiv = e.target.closest('.part-form');
+                    const index = partDiv.getAttribute('data-part-index');
+                    if (tinymce.get(`written_section_${index}_content`)) {
+                        tinymce.get(`written_section_${index}_content`).remove();
+                    }
+                    partDiv.remove();
+                    console.log(`Removed part form ${index}`);
                 }
             });
 
-            // Render LaTeX on page load
+            document.getElementById('course-create-form').addEventListener('submit', function (e) {
+                tinymce.triggerSave();
+                console.log('TinyMCE content saved before form submission');
+            });
+
             renderMathInElement(document.body, {
                 delimiters: [
                     { left: "$$", right: "$$", display: true },
