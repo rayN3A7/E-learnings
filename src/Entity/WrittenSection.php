@@ -21,7 +21,7 @@ class WrittenSection
     #[ORM\OneToMany(targetEntity: MediaUpload::class, mappedBy: 'writtenSection', cascade: ['persist', 'remove'])]
     private Collection $mediaUploads;
 
-    #[ORM\OneToOne(targetEntity: Part::class, inversedBy: 'writtenSection')]
+    #[ORM\OneToOne(targetEntity: Part::class, inversedBy: 'writtenSection', cascade: ['persist'])]
     #[ORM\JoinColumn(name: 'partId', referencedColumnName: 'id')]
     private ?Part $part = null;
 
@@ -77,5 +77,10 @@ class WrittenSection
     {
         $this->part = $part;
         return $this;
+    }
+
+    public function __toString(): string
+    {
+        return 'WrittenSection #' . ($this->id ?? 'unsaved');
     }
 }

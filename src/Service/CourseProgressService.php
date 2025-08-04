@@ -8,8 +8,8 @@ use App\Entity\Progress;
 use App\Entity\QuizAttempt;
 use App\Entity\User;
 use App\Entity\Enrollment;
-use Doctrine\ORM\EntityManagerInterface;
 use App\Entity\Quiz;
+use Doctrine\ORM\EntityManagerInterface;
 
 class CourseProgressService
 {
@@ -68,11 +68,12 @@ class CourseProgressService
             return false;
         }
 
-        // Only the first part (partOrder = 1) is unlocked by default
+        // First part (partOrder = 1) is unlocked by default
         if ($part->getPartOrder() === 1) {
             return true;
         }
 
+        // Find the previous part
         $previousPart = $this->entityManager->getRepository(Part::class)->findOneBy([
             'course' => $part->getCourse(),
             'partOrder' => $part->getPartOrder() - 1,
@@ -82,17 +83,30 @@ class CourseProgressService
             return true;
         }
 
+        // Check if the previous part has a quiz
         $quiz = $this->entityManager->getRepository(Quiz::class)->findOneBy(['part' => $previousPart]);
         if (!$quiz) {
-            return true;
+            return true; // No quiz, so part is unlocked
         }
 
-        $attempt = $this->entityManager->getRepository(QuizAttempt::class)->findOneBy([
+        // Check quiz attempts
+        $attempts = $this->entityManager->getRepository(QuizAttempt::class)->findBy([
             'user' => $user,
             'quiz' => $quiz,
         ], ['takenAt' => 'DESC']);
 
-        return $attempt && $attempt->getScore() >= 70;
+        if (empty($attempts)) {
+            return false; // No attempts made
+        }
+
+        // Unlock if user has scored >= 70 or completed 3 attempts
+        foreach ($attempts as $attempt) {
+            if ($attempt->getScore() >= 70) {
+                return true;
+            }
+        }
+
+        return count($attempts) >= 3;
     }
 
     public function getCurrentPart(User $user, Course $course): ?Part

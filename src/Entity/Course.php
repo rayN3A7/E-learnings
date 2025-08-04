@@ -40,6 +40,9 @@ class Course
 
     #[ORM\OneToMany(mappedBy: 'course', targetEntity: CourseLike::class, cascade: ['persist', 'remove'])]
     private Collection $likes;
+       #[ORM\OneToOne(targetEntity: Quiz::class, cascade: ['persist', 'remove'])]
+    #[ORM\JoinColumn(nullable: true, name: 'final_quiz_id')]
+    private ?Quiz $finalQuiz = null;
 
     public function __construct()
     {
@@ -193,5 +196,15 @@ class Course
         return $this->likes->exists(function ($key, $like) use ($user) {
             return $like->getUser() === $user;
         });
+    }
+    public function getFinalQuiz(): ?Quiz
+    {
+        return $this->finalQuiz;
+    }
+
+    public function setFinalQuiz(?Quiz $finalQuiz): self
+    {
+        $this->finalQuiz = $finalQuiz;
+        return $this;
     }
 }

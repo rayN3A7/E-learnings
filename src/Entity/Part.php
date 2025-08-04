@@ -31,7 +31,7 @@ class Part
     #[ORM\Column(type: 'text', nullable: true, name: 'tutorialContent')]
     private ?string $tutorialContent = null;
 
-    #[ORM\ManyToOne(targetEntity: Course::class, inversedBy: 'parts')]
+    #[ORM\ManyToOne(targetEntity: Course::class, inversedBy: 'parts', cascade: ['persist'])]
     #[ORM\JoinColumn(name: 'courseId', referencedColumnName: 'id')]
     private ?Course $course = null;
 
@@ -157,5 +157,10 @@ class Part
     {
         $this->quiz = $quiz;
         return $this;
+    }
+
+    public function __toString(): string
+    {
+        return $this->title ?? 'Part #' . ($this->id ?? 'unsaved');
     }
 }

@@ -1,13 +1,15 @@
 <?php
-
 namespace App\Form;
 
 use App\Entity\Part;
+use App\Entity\Quiz;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
+use Symfony\Component\Form\Extension\Core\Type\CollectionType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Validator\Constraints\File;
@@ -70,6 +72,22 @@ class PartType extends AbstractType
                 'required' => false,
                 'attr' => ['class' => 'form-control', 'rows' => 4],
                 'help' => 'Provide instructions for using the GeoGebra applet.'
+            ])
+            ->add('quiz', ManualQuizType::class, [
+                'label' => 'Part Quiz',
+                'required' => false,
+                'mapped' => true,
+                'data_class' => Quiz::class,
+            ])
+            ->add('quizMode', ChoiceType::class, [
+                'label' => 'Quiz Mode',
+                'choices' => [
+                    'Manual' => 'manual',
+                    'AI-Generated' => 'ai',
+                ],
+                'mapped' => false,
+                'attr' => ['class' => 'form-control quiz-mode'],
+                'required' => true,
             ]);
     }
 

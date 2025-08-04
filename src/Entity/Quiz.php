@@ -19,24 +19,27 @@ class Quiz
     #[ORM\Column(type: 'string', length: 255, nullable: true)]
     private ?string $title = null;
 
-    
-    #[ORM\Column(type: 'boolean', name: 'generatedByAI')] // Explicitly map to the database column name
+    #[ORM\Column(type: 'boolean', name: 'generatedByAI', nullable: true)]
     private ?bool $generatedByAI = null;
 
-    #[ORM\Column(type: 'datetime', nullable: true, name: 'createdAt')] // Explicitly map to the database column name
+    #[ORM\Column(type: 'datetime', name: 'createdAt')]
     private ?\DateTimeInterface $createdAt = null;
 
-    #[ORM\Column(type: 'float', nullable: true, name: 'scoreWeight')]
-    private ?float $scoreWeight = null;
+    #[ORM\Column(type: 'float', name: 'scoreWeight')]
+    private float $scoreWeight = 1.0;
 
-    #[ORM\OneToOne(targetEntity: Part::class)]
-    #[ORM\JoinColumn(name: 'partId', referencedColumnName: 'id', unique: true)]
+    #[ORM\OneToOne(targetEntity: Part::class, inversedBy: 'quiz', cascade: ['persist'])]
+    #[ORM\JoinColumn(name: 'partId', referencedColumnName: 'id', nullable: true)]
     private ?Part $part = null;
+
+    #[ORM\ManyToOne(targetEntity: Course::class, inversedBy: 'finalQuizzes')]
+    #[ORM\JoinColumn(name: 'courseId', referencedColumnName: 'id', nullable: true)]
+    private ?Course $course = null;
 
     #[ORM\OneToMany(targetEntity: Question::class, mappedBy: 'quiz', cascade: ['persist', 'remove'])]
     private Collection $questions;
 
-    #[ORM\OneToMany(targetEntity: QuizAttempt::class, mappedBy: 'quiz')]
+    #[ORM\OneToMany(targetEntity: QuizAttempt::class, mappedBy: 'quiz', cascade: ['persist', 'remove'])]
     private Collection $quizAttempts;
 
     public function __construct()
@@ -61,9 +64,9 @@ class Quiz
         return $this;
     }
 
-    public function isGeneratedByAI(): ?bool
+    public function isGeneratedByAI(): bool
     {
-        return $this->generatedByAI;
+        return $this->generatedByAI ?? false; // Default to false if NULL
     }
 
     public function setGeneratedByAI(?bool $generatedByAI): self
@@ -83,12 +86,12 @@ class Quiz
         return $this;
     }
 
-    public function getScoreWeight(): ?float
+    public function getScoreWeight(): float
     {
         return $this->scoreWeight;
     }
 
-    public function setScoreWeight(?float $scoreWeight): self
+    public function setScoreWeight(float $scoreWeight): self
     {
         $this->scoreWeight = $scoreWeight;
         return $this;
@@ -102,6 +105,17 @@ class Quiz
     public function setPart(?Part $part): self
     {
         $this->part = $part;
+        return $this;
+    }
+
+    public function getCourse(): ?Course
+    {
+        return $this->course;
+    }
+
+    public function setCourse(?Course $course): self
+    {
+        $this->course = $course;
         return $this;
     }
 
