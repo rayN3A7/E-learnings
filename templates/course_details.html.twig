@@ -1,145 +1,308 @@
-{% extends 'layout.html.twig' %}
+{% extends 'base.html.twig' %}
 
 {% block title %}{{ course.title }} - eLEARNING{% endblock %}
 
 {% block css %}
     <link rel="stylesheet" href="{{ asset('css/custom.css') }}">
     <style>
-        body { background-color: #f4f7fc; font-family: 'Inter', sans-serif; }
-        .course-header { 
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); 
-            color: #ffffff; 
-            padding: 80px 0; 
-            border-radius: 0 0 24px 24px; 
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15); 
-            position: relative; 
-            overflow: hidden;
-            pointer-events: auto !important;
+        :root {
+            --primary-color: #4a90e2;
+            --secondary-color: #f1f5f9;
+            --success-color: #2ecc71;
+            --error-color: #e74c3c;
+            --warning-color: #f39c12;
+            --text-color: #2d3748;
+            --border-radius: 8px;
+            --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
-        .course-header::before { 
-            content: ''; 
-            position: absolute; 
-            top: 0; 
-            left: 0; 
-            width: 100%; 
-            height: 100%; 
-            background: url('https://www.transparenttextures.com/patterns/subtle-dots.png'); 
-            opacity: 0.1;
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            color: var(--text-color);
+            background-color: #f8fafc;
         }
-        .course-header img { 
-            max-height: 300px; 
-            object-fit: cover; 
-            border-radius: 12px; 
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2); 
-        }
-        .course-header h1 { 
-            font-size: 2.8rem; 
-            font-weight: 800; 
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); 
-        }
-        .course-header .lead { 
-            font-size: 1.3rem; 
-            opacity: 0.9; 
-        }
-        .progress { height: 16px; border-radius: 8px; background-color: #e2e8f0; margin-bottom: 20px; }
-        .progress-bar { background-color: #2a5298; transition: width 0.5s ease-in-out; }
-        .course-content { padding: 80px 0; }
-        .part-card { background: #ffffff; border-radius: 12px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1); transition: all 0.3s ease; }
-        .part-card:hover { transform: translateY(-4px); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15); }
-        .part-card.locked { background: #f1f3f5; opacity: 0.7; }
-        .part-card .btn-view-part { background-color: #28a745; color: #ffffff; border-radius: 50px; padding: 0.5rem 1.5rem; transition: all 0.3s ease; }
-        .part-card .btn-view-part:hover { background-color: #218838; transform: translateY(-2px); }
-        .part-card .btn-view-part:disabled { background-color: #6c757d; cursor: not-allowed; }
-        .content-section { background: #ffffff; border-radius: 12px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1); padding: 2rem; }
-        .content-section h3 { font-size: 2rem; font-weight: 700; color: #2a5298; }
-        .content-section video, .content-section img { border-radius: 12px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1); max-width: 400px; }
-        .written-content { background: #f9fafb; padding: 1.5rem; border-radius: 12px; line-height: 1.8; }
-        .media-urls-container { margin-top: 1rem; }
-        .media-urls-container img, .media-urls-container video { max-width: 100%; margin-bottom: 1rem; }
-        .geogebra-container { background: #ffffff; border-radius: 12px; padding: 1.5rem; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1); }
-        .quiz-section { background: #f9fafb; padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1); }
-        .final-quiz-section { background: linear-gradient(135deg, #e6f3ff, #d0e7ff); padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1); }
-        .enroll-button {
-            display: inline-block;
-            padding: 12px 24px;
-            background: linear-gradient(90deg, #28a745, #218838);
-            color: #ffffff;
-            border: none;
-            border-radius: 50px;
-            font-size: 1.2rem;
-            font-weight: 600;
-            text-align: center;
-            text-decoration: none;
-            transition: transform 0.3s ease, background 0.3s ease;
-            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+
+        .course-header {
+            background: linear-gradient(135deg, var(--primary-color), #6ab0ff);
+            color: white;
+            padding: 3rem 0;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
             position: relative;
-            top: 10px;
-            z-index: 10;
+            margin-bottom: 2rem;
         }
-        .enroll-button:hover {
-            transform: scale(1.1);
-            background: linear-gradient(90deg, #218838, #1e7e34);
+
+        .course-header h1 {
+            font-size: 2.25rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
         }
-        .enroll-button:disabled {
-            background: #6c757d;
+
+        .course-header .lead {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            line-height: 1.6;
+        }
+
+        .course-header img {
+            max-height: 250px;
+            object-fit: cover;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+        }
+
+        .progress {
+            height: 0.75rem;
+            background-color: #e2e8f0;
+            border-radius: 9999px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+
+        .progress-bar {
+            background-color: var(--primary-color);
+            transition: width 0.5s ease;
+        }
+
+        .course-content {
+            padding: 2rem 0;
+        }
+
+        .part-card {
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            margin-bottom: 1.5rem;
+        }
+
+        .part-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .part-card.locked {
+            background: #f7fafc;
+            opacity: 0.7;
+        }
+
+        .part-card .btn-view-part {
+            background-color: var(--primary-color);
+            color: white;
+            border-radius: 9999px;
+            padding: 0.5rem 1.5rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .part-card .btn-view-part:hover {
+            background-color: #3b82f6;
+            transform: translateY(-2px);
+        }
+
+        .part-card .btn-view-part:disabled, .part-card .btn-secondary:disabled {
+            background-color: #6b7280;
             cursor: not-allowed;
             opacity: 0.6;
         }
+
+        .content-section {
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            padding: 1.5rem;
+        }
+
+        .content-section h3 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--text-color);
+            margin-bottom: 1rem;
+        }
+
+        .tutorial, .video-section, .written-section, .geogebra-container, .quiz-section, .final-quiz-section {
+            background: var(--secondary-color);
+            padding: 1.5rem;
+            border-radius: var(--border-radius);
+            margin-bottom: 1.5rem;
+        }
+
+        .geogebra-container {
+            min-height: 400px;
+            position: relative;
+        }
+
+        .geogebra-container #ggb-element-{{ current_part.id }} {
+            width: 100% !important;
+            height: 100% !important;
+            min-height: 400px;
+        }
+
+        .written-content {
+            line-height: 1.8;
+        }
+
+        .media-urls-container img, .media-urls-container video {
+            max-width: 100%;
+            border-radius: var(--border-radius);
+            margin-bottom: 1rem;
+        }
+
+        .quiz-section, .final-quiz-section {
+            position: relative;
+        }
+
+        .quiz-question {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-check {
+            margin-bottom: 0.75rem;
+            padding-left: 2rem;
+        }
+
+        .form-check-input {
+            cursor: pointer;
+        }
+
+        .form-check-label {
+            font-size: 1rem;
+            color: var(--text-color);
+        }
+
+        .enroll-button {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 9999px;
+            font-size: 1rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow);
+        }
+
+        .enroll-button:hover {
+            background: #3b82f6;
+            transform: scale(1.05);
+        }
+
+        .enroll-button:disabled {
+            background: #6b7280;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .loading-spinner {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+
+        .ai-quiz .quiz-question {
+            opacity: 0;
+            transform: translateY(20px);
+            animation: slideIn 0.5s ease forwards;
+            animation-delay: calc(0.1s * var(--question-index));
+        }
+
+        @keyframes slideIn {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .manual-quiz .quiz-question {
+            margin-bottom: 1rem;
+        }
+
+        .correct-answer {
+            background-color: rgba(46, 204, 113, 0.1);
+            border-left: 4px solid var(--success-color);
+            padding: 0.5rem;
+        }
+
+        .incorrect-answer {
+            background-color: rgba(231, 76, 60, 0.1);
+            border-left: 4px solid var(--error-color);
+            padding: 0.5rem;
+        }
+
+        .highlight-previous {
+            background-color: rgba(243, 156, 18, 0.1);
+            border-left: 4px solid var(--warning-color);
+            padding: 0.5rem;
+        }
+
         @media (max-width: 768px) {
-            .course-header { padding: 40px 0; }
-            .course-header h1 { font-size: 2rem; }
+            .course-header { padding: 2rem 0; }
+            .course-header h1 { font-size: 1.75rem; }
             .course-header img { max-height: 200px; }
-            .course-content { padding: 40px 0; }
-            .content-section video, .content-section img { max-width: 100%; }
-            .enroll-button { padding: 10px 20px; font-size: 1rem; }
+            .course-content { padding: 1.5rem 0; }
+            .content-section, .tutorial, .video-section, .written-section, .quiz-section, .geogebra-container, .final-quiz-section { padding: 1rem; }
+            .enroll-button { padding: 0.5rem 1rem; font-size: 0.9rem; }
         }
     </style>
 {% endblock %}
 
 {% block body %}
-    <section class="course-header animate__animated animate__fadeIn">
+    <section class="course-header">
         <div class="container">
             <div class="row align-items-center">
                 <div class="col-lg-4 col-md-12 mb-4 mb-lg-0">
-                    <img src="{{ course.image ? asset('uploads/images/' ~ course.image) : 'https://via.placeholder.com/600x400' }}" alt="{{ course.title }}" class="img-fluid">
+                    <img src="{{ course.image ? asset('uploads/images/' ~ course.image) : 'https://via.placeholder.com/600x400' }}" alt="{{ course.title }}" class="img-fluid" loading="lazy">
                 </div>
                 <div class="col-lg-8 col-md-12">
                     <h1 class="fw-bold">{{ course.title }}</h1>
                     <p class="lead">{{ course.description|u.truncate(200, '...') }}</p>
                     <p><strong>Created by:</strong> {{ course.createdBy.username }} | <strong>Created on:</strong> {{ course.createdAt|date('F j, Y') }}</p>
                     <p><strong>Progress:</strong> {{ progress_percentage|round(2) }}% Complete</p>
-                    <div class="progress mb-3">
+                    <div class="progress">
                         <div class="progress-bar" role="progressbar" style="width: {{ progress_percentage }}%" aria-valuenow="{{ progress_percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
                     </div>
                     {% if is_enrolled %}
-                        <a href="#course-content" class="enroll-button">Continue Learning</a>
+                        <a href="#course-content" class="enroll-button" aria-label="Continue learning the course">Continue Learning</a>
                     {% else %}
-                        <a href="{{ path('app_join_course', {'id': course.id}) }}" class="enroll-button" id="enroll-button">Enroll Now</a>
+                        <a href="{{ path('app_join_course', {'id': course.id}) }}" class="enroll-button" id="enroll-button" aria-label="Enroll in the course">Enroll Now</a>
                     {% endif %}
                 </div>
             </div>
         </div>
     </section>
 
-    <section class="course-content py-5" id="course-content">
+    <section class="course-content" id="course-content">
         <div class="container">
             <div class="row">
                 <div class="col-lg-4">
                     <h3 class="fw-bold mb-4">Course Content</h3>
                     {% for part in course.parts|sort((a, b) => a.partOrder <=> b.partOrder) %}
-                        <div class="part-card card shadow-sm rounded-3 mb-3 {% if not is_part_unlocked(part) %}locked{% endif %}">
+                        <div class="part-card card {% if not is_part_unlocked(part) %}locked{% endif %}">
                             <div class="p-3">
-                                <h5 class="part-title">{{ part.partOrder }}. {{ part.title }}</h5>
-                                <p>{{ part.description|u.truncate(100, '...') }}</p>
-                                <p><i class="fa fa-clock me-2"></i>{{ part.duration ? (part.duration // 60) ~ ' min' : 'N/A' }}</p>
+                                <h5 class="part-title fw-bold">{{ part.partOrder }}. {{ part.title }}</h5>
+                                <p class="text-muted">{{ part.description|u.truncate(100, '...') }}</p>
+                                <p class="text-muted"><i class="fa fa-clock me-2"></i>{{ part.duration ? (part.duration // 60) ~ ' min' : 'N/A' }}</p>
                                 {% if is_enrolled %}
                                     <a href="{{ path('app_part_details', {'id': part.id}) }}" 
                                        class="btn btn-sm btn-view-part {% if not is_part_unlocked(part) %}disabled{% endif %}"
-                                       {% if not is_part_unlocked(part) %}disabled{% endif %}>
+                                       {% if not is_part_unlocked(part) %}disabled aria-disabled="true"{% endif %}
+                                       aria-label="{{ is_part_unlocked(part) ? 'View ' ~ part.title : part.title ~ ' is locked' }}">
                                         {{ is_part_unlocked(part) ? 'View Part' : 'Locked' }}
                                     </a>
                                 {% else %}
-                                    <button class="btn btn-sm btn-secondary" disabled>Enroll to Unlock</button>
+                                    <button class="btn btn-sm btn-secondary" disabled aria-label="Enroll to unlock {{ part.title }}">Enroll to Unlock</button>
                                 {% endif %}
                             </div>
                         </div>
@@ -147,95 +310,101 @@
                 </div>
 
                 <div class="col-lg-8">
-                    <div class="content-section card shadow-sm rounded-3">
+                    <div class="content-section">
                         {% if current_part %}
                             <h3 class="fw-bold">{{ current_part.title }}</h3>
                             {% if current_part.tutorialContent %}
-                                <div class="tutorial p-3 mb-3 bg-light rounded-3 animate__animated animate__fadeIn">
+                                <div class="tutorial">
+                                    <h4 class="fw-bold mb-3">Tutorial</h4>
                                     {{ current_part.tutorialContent|raw }}
                                 </div>
                             {% endif %}
 
                             {% if current_part.video %}
-                                <div class="mb-4">
-                                    <h4>Video Content</h4>
-                                    <video controls class="w-100">
+                                <div class="video-section">
+                                    <h4 class="fw-bold mb-3">Video Content</h4>
+                                    <video controls class="w-100" loading="lazy">
                                         <source src="{{ asset('uploads/videos/' ~ current_part.video.filename) }}" type="video/mp4">
                                         Your browser does not support the video tag.
                                     </video>
                                     {% if current_part.video.description %}
-                                        <p class="mt-3">{{ current_part.video.description }}</p>
+                                        <p class="mt-3 text-muted">{{ current_part.video.description }}</p>
                                     {% endif %}
                                 </div>
                             {% endif %}
 
                             {% if current_part.writtenSection %}
-                                <div class="mb-4">
-                                    <h4>Written Content</h4>
+                                <div class="written-section">
+                                    <h4 class="fw-bold mb-3">Written Content</h4>
                                     <div class="written-content">
                                         {{ current_part.writtenSection.content|raw }}
                                     </div>
                                     {% if current_part.writtenSection.mediaUploads|length > 0 %}
-                                        <div class="media-urls-container" id="media-urls-part-{{ current_part.id }}">
+                                        <div class="media-urls-container mt-3">
                                             {% for media in current_part.writtenSection.mediaUploads %}
                                                 {% if media.type in ['jpg', 'png', 'gif'] %}
-                                                    <img src="{{ media.url }}" alt="Media" class="img-fluid mb-2 rounded-3" style="max-width: 200px;">
+                                                    <img src="{{ media.url }}" alt="Media for {{ current_part.title }}" class="img-fluid" loading="lazy">
                                                 {% elseif media.type in ['mp4', 'webm', 'ogg'] %}
-                                                    <video controls src="{{ media.url }}" class="img-fluid mb-2 rounded-3" style="max-width: 400px;"></video>
+                                                    <video controls src="{{ media.url }}" class="img-fluid" loading="lazy"></video>
                                                 {% else %}
-                                                    <a href="{{ media.url }}" target="_blank" class="btn btn-sm btn-primary mb-2">View Media</a>
+                                                    <a href="{{ media.url }}" target="_blank" class="btn btn-sm btn-primary" aria-label="View media file">View Media</a>
                                                 {% endif %}
                                             {% endfor %}
                                         </div>
                                     {% else %}
-                                        <p>No media uploads found.</p>
+                                        <p class="text-muted mt-3">No media uploads available.</p>
                                     {% endif %}
                                 </div>
                             {% else %}
-                                <p>Written section not available for this part.</p>
+                                <p class="text-muted">No written content available for this part.</p>
                             {% endif %}
 
                             {% if current_part.geogebraMaterialId %}
-                                <div class="geogebra-container card shadow-sm rounded-3 p-4 mt-4">
-                                    <h4>Interactive Graphing</h4>
+                                <div class="geogebra-container">
+                                    <h4 class="fw-bold mb-3">Interactive Graphing</h4>
+                                    <div class="loading-spinner" id="ggb-spinner-{{ current_part.id }}"></div>
                                     <div id="ggb-element-{{ current_part.id }}" style="width: 100%; height: 400px;"></div>
                                 </div>
                             {% endif %}
 
                             {% if current_part.quiz %}
-                                <div class="quiz-section card shadow-sm rounded-3 p-4 mt-4">
-                                    <h4>Quiz: Test Your Knowledge</h4>
+                                <div class="quiz-section {% if current_part.quiz.generatedByAI %}ai-quiz{% else %}manual-quiz{% endif %}">
+                                    <h4 class="fw-bold mb-3">Quiz: Test Your Knowledge</h4>
                                     {% if current_quiz_attempt %}
-                                        <p>Your last score: {{ current_quiz_attempt.score }}%</p>
+                                        <p class="mt-3">Your last score: <strong>{{ current_quiz_attempt.score }}%</strong></p>
                                         {% if current_quiz_attempt.score >= 70 %}
                                             <p class="text-success">You passed! The next part is unlocked.</p>
                                         {% else %}
-                                            <p class="text-danger">You need a score of at least 70% to unlock the next part.</p>
+                                            <p class="text-danger">Score of 70% or higher needed to unlock the next part.</p>
                                         {% endif %}
                                     {% endif %}
-                                    <form action="{{ path('app_quiz_submit', {'id': current_part.quiz.id}) }}" method="post">
+                                    <form action="{{ path('app_quiz_submit', {'id': current_part.quiz.id}) }}" method="post" id="quiz-form-{{ current_part.id }}" aria-label="Quiz for {{ current_part.title }}">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('quiz_submit' ~ current_part.quiz.id) }}">
                                         {% for question in current_part.quiz.questions %}
-                                            <div class="quiz-question mb-4">
+                                            <div class="quiz-question" {% if current_part.quiz.generatedByAI %}style="--question-index: {{ loop.index }}"{% endif %}>
                                                 <h5 class="fw-bold">{{ loop.index }}. {{ question.text }}</h5>
+                                                {% if current_quiz_attempt and feedback[question.id] is defined %}
+                                                    <p class="correct-answer-text text-success">Correct Answer: {{ feedback[question.id].correctAnswer }}</p>
+                                                {% endif %}
                                                 {% if question.type|lower == 'mcq' %}
                                                     {% for option in question.options %}
-                                                        <div class="form-check">
-                                                            <input class="form-check-input" type="radio" name="answers[{{ question.id }}]" value="{{ option }}" required>
-                                                            <label class="form-check-label">{{ option }}</label>
+                                                        <div class="form-check {% if current_quiz_attempt and feedback[question.id] is defined and feedback[question.id].userAnswer == option %} {% if feedback[question.id].isCorrect %}correct-answer{% else %}incorrect-answer{% endif %} {% endif %}">
+                                                            <input class="form-check-input" type="radio" name="answers[{{ question.id }}]" value="{{ option }}" id="option-{{ question.id }}-{{ loop.index }}" required>
+                                                            <label class="form-check-label" for="option-{{ question.id }}-{{ loop.index }}">{{ option }}</label>
                                                         </div>
                                                     {% endfor %}
                                                 {% elseif question.type|lower == 'numeric' %}
-                                                    <input type="number" name="answers[{{ question.id }}]" class="form-control mb-2" step="0.01" placeholder="Enter your answer" required>
+                                                    <input type="number" name="answers[{{ question.id }}]" class="form-control {% if current_quiz_attempt and feedback[question.id] is defined %} {% if feedback[question.id].isCorrect %}correct-answer{% else %}incorrect-answer{% endif %} {% endif %}" step="0.01" placeholder="Enter your answer" required>
                                                 {% else %}
                                                     <p class="text-danger">Unsupported question type: {{ question.type }}</p>
                                                 {% endif %}
                                             </div>
                                         {% endfor %}
-                                        <button type="submit" class="btn btn-primary">Submit Quiz</button>
+                                        <button type="submit" class="btn btn-primary" aria-label="Submit quiz answers">Submit Quiz</button>
                                     </form>
                                 </div>
                             {% else %}
-                                <p class="text-muted">No quiz available for this part yet.</p>
+                                <p class="text-muted">No quiz available for this part.</p>
                             {% endif %}
                         {% elseif is_enrolled and not current_part %}
                             <p class="text-muted">You have completed all parts!</p>
@@ -244,29 +413,30 @@
                         {% endif %}
 
                         {% if is_course_completed %}
-                            <div class="final-quiz-section card shadow-sm rounded-3 p-4 mt-4">
+                            <div class="final-quiz-section {% if final_quiz.generatedByAI %}ai-quiz{% else %}manual-quiz{% endif %}">
                                 <h3 class="fw-bold">Final Course Quiz</h3>
-                                <p>Test your understanding of the entire course with this AI-generated quiz.</p>
+                                <p class="text-muted">Test your understanding of the entire course.</p>
                                 {% if final_quiz %}
-                                    <form action="{{ path('app_quiz_submit', {'id': final_quiz.id}) }}" method="post">
+                                    <form action="{{ path('app_quiz_submit', {'id': final_quiz.id}) }}" method="post" id="final-quiz-form" aria-label="Final course quiz">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('quiz_submit' ~ final_quiz.id) }}">
                                         {% for question in final_quiz.questions %}
-                                            <div class="quiz-question mb-4">
+                                            <div class="quiz-question" {% if final_quiz.generatedByAI %}style="--question-index: {{ loop.index }}"{% endif %}>
                                                 <h5 class="fw-bold">{{ loop.index }}. {{ question.text }}</h5>
                                                 {% if question.type|lower == 'mcq' %}
                                                     {% for option in question.options %}
                                                         <div class="form-check">
-                                                            <input class="form-check-input" type="radio" name="answers[{{ question.id }}]" value="{{ option }}" required>
-                                                            <label class="form-check-label">{{ option }}</label>
+                                                            <input class="form-check-input" type="radio" name="answers[{{ question.id }}]" value="{{ option }}" id="final-option-{{ question.id }}-{{ loop.index }}" required>
+                                                            <label class="form-check-label" for="final-option-{{ question.id }}-{{ loop.index }}">{{ option }}</label>
                                                         </div>
                                                     {% endfor %}
                                                 {% elseif question.type|lower == 'numeric' %}
-                                                    <input type="number" name="answers[{{ question.id }}]" class="form-control mb-2" step="0.01" placeholder="Enter your answer" required>
+                                                    <input type="number" name="answers[{{ question.id }}]" class="form-control" step="0.01" placeholder="Enter your answer" required>
                                                 {% else %}
                                                     <p class="text-danger">Unsupported question type: {{ question.type }}</p>
                                                 {% endif %}
                                             </div>
                                         {% endfor %}
-                                        <button type="submit" class="btn btn-primary">Submit Final Quiz</button>
+                                        <button type="submit" class="btn btn-primary" aria-label="Submit final quiz answers">Submit Final Quiz</button>
                                     </form>
                                 {% else %}
                                     <p class="text-muted">Generating final quiz... Please check back soon.</p>
@@ -299,64 +469,48 @@
 
             const enrollButton = document.getElementById('enroll-button');
             if (enrollButton) {
-                const style = window.getComputedStyle(enrollButton);
-                const parentStyle = window.getComputedStyle(enrollButton.parentElement);
-                console.log('Enroll button state:', {
-                    disabled: enrollButton.hasAttribute('disabled'),
-                    pointerEvents: style.pointerEvents,
-                    parentPointerEvents: parentStyle.pointerEvents,
-                    href: enrollButton.href
+                enrollButton.addEventListener('click', function() {
+                    enrollButton.disabled = true;
+                    enrollButton.textContent = 'Enrolling...';
+                    enrollButton.classList.add('animate__animated', 'animate__pulse');
+                    setTimeout(() => {
+                        enrollButton.classList.remove('animate__animated', 'animate__pulse');
+                        enrollButton.disabled = false;
+                        enrollButton.textContent = 'Enroll Now';
+                    }, 1000);
                 });
-                enrollButton.addEventListener('click', function(e) {
-                    console.log('Button clicked, prevented:', e.defaultPrevented, 'href:', enrollButton.href);
-                    if (!e.defaultPrevented) {
-                        enrollButton.classList.add('clicked');
-                        setTimeout(() => enrollButton.classList.remove('clicked'), 300);
-                    } else {
-                        console.warn('Click prevented by another script');
-                    }
-                });
-                enrollButton.addEventListener('mouseover', function() {
-                    if (!enrollButton.hasAttribute('disabled')) {
-                        enrollButton.style.transform = 'scale(1.05)';
-                    }
-                });
-                enrollButton.addEventListener('mouseout', function() {
-                    if (!enrollButton.hasAttribute('disabled')) {
-                        enrollButton.style.transform = 'scale(1)';
-                    }
-                });
-            } else {
-                console.error('Enroll button not found');
             }
 
-            // Initialize media URLs container
-            function initializeMediaUrls(partId) {
-                const container = document.getElementById(`media-urls-part-${partId}`);
-                if (container) {
-                    console.log(`Media URLs container initialized for part ${partId}`);
-                } else {
-                    console.error(`Media URLs container not found for part ${partId}`);
-                }
-            }
+            const quizForms = document.querySelectorAll('#quiz-form-{{ current_part.id }}, #final-quiz-form');
+            quizForms.forEach(form => {
+                form.addEventListener('submit', function(e) {
+                    const submitButton = form.querySelector('button[type="submit"]');
+                    submitButton.disabled = true;
+                    submitButton.textContent = 'Submitting...';
+                    submitButton.classList.add('animate__animated', 'animate__pulse');
+                    setTimeout(() => {
+                        submitButton.classList.remove('animate__animated', 'animate__pulse');
+                        submitButton.disabled = false;
+                        submitButton.textContent = submitButton.getAttribute('aria-label').includes('final') ? 'Submit Final Quiz' : 'Submit Quiz';
+                    }, 1000);
+                });
+            });
 
-            {% if current_part %}
-                initializeMediaUrls({{ current_part.id }});
-
-                // GeoGebra initialization for current part
+            {% if current_part and current_part.geogebraMaterialId %}
                 const materialId = '{{ current_part.geogebraMaterialId|e('js') }}';
                 const partId = {{ current_part.id|e('js') }};
                 if (materialId && partId) {
+                    const ggbSpinner = document.getElementById(`ggb-spinner-${partId}`);
+                    if (ggbSpinner) ggbSpinner.style.display = 'block';
                     const ggbScript = document.createElement('script');
                     ggbScript.src = 'https://www.geogebra.org/apps/deployggb.js';
                     ggbScript.defer = true;
                     ggbScript.onload = function() {
-                        console.log('GeoGebra script loaded');
                         const ggbContainer = document.getElementById(`ggb-element-${partId}`);
                         if (ggbContainer) {
-                            let ggbApp = new GGBApplet({
+                            const ggbApp = new GGBApplet({
                                 appName: 'graphing',
-                                width: '100%',
+                                width: ggbContainer.offsetWidth,
                                 height: 400,
                                 showToolBar: true,
                                 showAlgebraInput: true,
@@ -364,40 +518,11 @@
                                 material_id: materialId
                             }, true);
                             ggbApp.inject(`ggb-element-${partId}`, function() {
-                                console.log(`GeoGebra applet initialized for part ${partId}`);
-                                const ggbInstance = window[`ggbApplet${partId.replace(/-/g, '')}`];
-                                if (ggbInstance) {
-                                    ggbInstance.registerAddListener(function(json) {
-                                        try {
-                                            let interactionData = { expression: JSON.parse(json).value };
-                                            fetch('{{ path('app_interaction_save')|e('js') }}', {
-                                                method: 'POST',
-                                                headers: { 'Content-Type': 'application/json' },
-                                                body: JSON.stringify({
-                                                    partId: partId,
-                                                    interactionData: interactionData
-                                                })
-                                            })
-                                            .then(response => response.json())
-                                            .then(data => {
-                                                if (data.status !== 'success') {
-                                                    console.error('Failed to save interaction:', data.message);
-                                                }
-                                            })
-                                            .catch(error => console.error('Error saving interaction:', error));
-                                        } catch (e) {
-                                            console.error('Error parsing GeoGebra JSON:', e);
-                                        }
-                                    });
-                                } else {
-                                    console.error(`ggbInstance not found for part ${partId}`);
-                                }
+                                if (ggbSpinner) ggbSpinner.style.display = 'none';
                             }, function(error) {
-                                console.error(`GeoGebra initialization failed for part ${partId}:`, error);
-                                ggbContainer.innerHTML = '<p>Failed to load GeoGebra applet. Please check the material ID or network connection.</p>';
+                                if (ggbSpinner) ggbSpinner.style.display = 'none';
+                                ggbContainer.innerHTML = '<p class="text-danger">Failed to load GeoGebra applet. Please try again later.</p>';
                             });
-                        } else {
-                            console.error(`GeoGebra container not found for part ${partId}`);
                         }
                     };
                     document.head.appendChild(ggbScript);

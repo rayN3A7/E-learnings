@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Entity;
 
 use App\Repository\QuizAttemptRepository;
@@ -28,8 +27,11 @@ class QuizAttempt
     #[ORM\Column(type: 'float', nullable: true)]
     private ?float $score = null;
 
-   #[ORM\Column(type: 'datetime', name: 'takenAt')]
-    private $takenAt;
+    #[ORM\Column(type: 'datetime', name: 'takenAt')]
+    private ?\DateTimeInterface $takenAt = null;
+
+    #[ORM\Column(type: 'integer', name: 'attemptNumber')]
+    private int $attemptNumber = 1; // New field for attempt tracking
 
     public function getId(): ?int
     {
@@ -88,6 +90,17 @@ class QuizAttempt
     public function setTakenAt(?\DateTimeInterface $takenAt): self
     {
         $this->takenAt = $takenAt;
+        return $this;
+    }
+
+    public function getAttemptNumber(): int
+    {
+        return $this->attemptNumber;
+    }
+
+    public function setAttemptNumber(int $attemptNumber): self
+    {
+        $this->attemptNumber = $attemptNumber;
         return $this;
     }
 }

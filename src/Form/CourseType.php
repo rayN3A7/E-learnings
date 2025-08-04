@@ -3,14 +3,17 @@
 namespace App\Form;
 
 use App\Entity\Course;
+use App\Entity\Quiz;
+use App\Form\ManualQuizType;
+use App\Form\PartType;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\CollectionType;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
-use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
+use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
-use Symfony\Component\Validator\Constraints\File;
 
 class CourseType extends AbstractType
 {
@@ -18,25 +21,19 @@ class CourseType extends AbstractType
     {
         $builder
             ->add('title', TextType::class, [
-                'attr' => ['class' => 'form-control'],
                 'label' => 'Course Title',
+                'attr' => ['class' => 'form-control', 'placeholder' => 'Enter course title'],
+                'required' => true,
             ])
             ->add('description', TextareaType::class, [
-                'required' => false,
-                'attr' => ['class' => 'form-control', 'rows' => 4],
                 'label' => 'Course Description',
+                'attr' => ['class' => 'form-control', 'placeholder' => 'Describe your course'],
+                'required' => false,
             ])
             ->add('image', FileType::class, [
-                'label' => 'Course Image (JPG, PNG, max 2MB)',
+                'label' => 'Course Image',
                 'mapped' => false,
                 'required' => false,
-                'constraints' => [
-                    new File([
-                        'maxSize' => '2M',
-                        'mimeTypes' => ['image/jpeg', 'image/png'],
-                        'mimeTypesMessage' => 'Please upload a valid JPG or PNG image',
-                    ]),
-                ],
                 'attr' => ['class' => 'form-control'],
             ])
             ->add('parts', CollectionType::class, [
@@ -46,8 +43,24 @@ class CourseType extends AbstractType
                 'allow_delete' => true,
                 'by_reference' => false,
                 'label' => 'Course Parts',
-                'help' => 'Add parts to your course, including videos, written content, quizzes, or GeoGebra interactive applets.',
-                'attr' => ['class' => 'part-collection'],
+                'required' => false,
+                'attr' => ['class' => 'parts-collection'],
+                'prototype' => true,
+            ])
+            ->add('quizMode', ChoiceType::class, [
+                'label' => 'Final Quiz Mode',
+                'choices' => [
+                    'Manual' => 'manual',
+                    'AI-Generated' => 'ai',
+                ],
+                'mapped' => false,
+                'attr' => ['class' => 'form-control quiz-mode'],
+                'required' => true,
+            ])
+            ->add('finalQuiz', ManualQuizType::class, [
+                'label' => 'Final Quiz',
+                'required' => false,
+                'data_class' => Quiz::class,
             ]);
     }
 

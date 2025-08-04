@@ -4,124 +4,344 @@
 
 {% block css %}
     <link rel="stylesheet" href="{{ asset('css/custom.css') }}">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css" crossorigin="anonymous">
     <style>
-        body { background-color: #f4f7fc; font-family: 'Inter', sans-serif; }
-        .course-content { padding: 80px 0; }
-        .content-section { background: #ffffff; border-radius: 12px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1); padding: 2rem; }
-        .content-section h1 { font-size: 2.5rem; font-weight: 800; color: #2a5298; }
-        .tutorial, .written-content, .geogebra-container, .quiz-section { background: #f9fafb; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); }
-        .content-section video, .content-section img { border-radius: 12px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1); max-width: 400px; }
-        .quiz-section .btn { border-radius: 50px; padding: 0.6rem 1.8rem; font-weight: 600; }
-        .alert { border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); }
+        :root {
+            --primary-color: #4a90e2;
+            --secondary-color: #f1f5f9;
+            --success-color: #2ecc71;
+            --error-color: #e74c3c;
+            --warning-color: #f39c12;
+            --text-color: #2d3748;
+            --border-radius: 8px;
+            --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            color: var(--text-color);
+            background-color: #f8fafc;
+        }
+
+        .course-header {
+            background: linear-gradient(135deg, var(--primary-color), #6ab0ff);
+            color: white;
+            padding: 2rem 0;
+            border-radius: var(--border-radius);
+            margin-bottom: 2rem;
+        }
+
+        .course-header h1 {
+            font-size: 2.25rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .course-header a {
+            color: #e2e8f0;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .course-header a:hover {
+            color: #ffffff;
+        }
+
+        .content-section {
+            background: white;
+            padding: 2rem;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            margin-bottom: 2rem;
+        }
+
+        .tutorial, .video-section, .written-section, .geogebra-container, .quiz-section {
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            background: var(--secondary-color);
+            border-radius: var(--border-radius);
+            transition: transform 0.3s ease;
+        }
+
+        .geogebra-container {
+            min-height: 400px; /* Ensure minimum height */
+            position: relative;
+        }
+
+        .geogebra-container #ggb-element-{{ part.id }} {
+            width: 100% !important;
+            height: 100% !important;
+            min-height: 400px; /* Match the desired height */
+        }
+
+        .quiz-section {
+            position: relative;
+        }
+
+        .quiz-question {
+            opacity: 0;
+            transform: translateY(20px);
+            animation: slideIn 0.5s ease forwards;
+            animation-delay: calc(0.1s * var(--question-index));
+            margin-bottom: 1.5rem;
+        }
+
+        @keyframes slideIn {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .form-check {
+            margin-bottom: 0.75rem;
+            padding-left: 2rem;
+        }
+
+        .form-check-input {
+            cursor: pointer;
+        }
+
+        .form-check-label {
+            font-size: 1rem;
+            color: var(--text-color);
+        }
+
+        .correct-answer {
+            background-color: rgba(46, 204, 113, 0.1);
+            border-left: 4px solid var(--success-color);
+            padding: 0.5rem;
+        }
+
+        .incorrect-answer {
+            background-color: rgba(231, 76, 60, 0.1);
+            border-left: 4px solid var(--error-color);
+            padding: 0.5rem;
+        }
+
+        .highlight-previous {
+            background-color: rgba(243, 156, 18, 0.1);
+            border-left: 4px solid var(--warning-color);
+            padding: 0.5rem;
+        }
+
+        .progress-bar-container {
+            margin-bottom: 1.5rem;
+        }
+
+        .progress {
+            height: 0.75rem;
+            background-color: #e2e8f0;
+            border-radius: 9999px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            background-color: var(--primary-color);
+            transition: width 0.5s ease;
+        }
+
+        .btn-primary, .btn-retry, .btn-next {
+            background-color: var(--primary-color);
+            border: none;
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+            border-radius: var(--border-radius);
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover, .btn-retry:hover, .btn-next:hover {
+            background-color: #3b82f6;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .congratulations-modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 2rem;
+            border-radius: var(--border-radius);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            max-width: 90%;
+            width: 400px;
+            text-align: center;
+            animation: popUp 0.5s ease;
+        }
+
+        .congratulations-modal.hidden {
+            display: none;
+        }
+
+        @keyframes popUp {
+            from { transform: translate(-50%, -60%) scale(0.9); opacity: 0; }
+            to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+
+        .media-urls-container img, .media-urls-container video {
+            max-width: 100%;
+            border-radius: var(--border-radius);
+            margin-bottom: 1rem;
+        }
+
+        .loading-spinner {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+
         @media (max-width: 768px) {
-            .course-content { padding: 40px 0; }
-            .content-section h1 { font-size: 2rem; }
-            .content-section video, .content-section img { max-width: 100%; }
+            .course-header { padding: 1.5rem 0; }
+            .course-header h1 { font-size: 1.75rem; }
+            .content-section, .tutorial, .video-section, .written-section, .quiz-section, .geogebra-container { padding: 1rem; }
+            .congratulations-modal { width: 90%; }
+            .btn-primary, .btn-retry, .btn-next { padding: 0.5rem 1rem; }
         }
     </style>
 {% endblock %}
 
 {% block body %}
+    <section class="course-header">
+        <div class="container">
+            <h1>{{ part.title }}</h1>
+            <p><a href="{{ path('app_course_details', {'id': course.id}) }}">{{ course.title }}</a></p>
+        </div>
+    </section>
+
     <section class="course-content py-5">
         <div class="container">
             <div class="content-section">
-                <h1 class="fw-bold">{{ part.title }}</h1>
-                {% if not is_granted('ROLE_ADMIN') and not is_granted('ROLE_TEACHER') and not progressService.isPartUnlocked(part, app.user) %}
-                    <div class="alert alert-warning animate__animated animate__fadeIn">This part is locked. Complete the previous part's quiz to unlock.</div>
+                {% if part.tutorialContent %}
+                    <div class="tutorial">
+                        <h4 class="fw-bold mb-3">Tutorial</h4>
+                        {{ part.tutorialContent|raw }}
+                    </div>
+                {% endif %}
+
+                {% if part.video %}
+                    <div class="video-section">
+                        <h4 class="fw-bold mb-3">Video Content</h4>
+                        <video controls class="w-100">
+                            <source src="{{ asset('uploads/videos/' ~ part.video.filename) }}" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
+                        {% if part.video.description %}
+                            <p class="mt-3 text-muted">{{ part.video.description }}</p>
+                        {% endif %}
+                    </div>
+                {% endif %}
+
+                {% if part.writtenSection %}
+                    <div class="written-section">
+                        <h4 class="fw-bold mb-3">Written Content</h4>
+                        {{ part.writtenSection.content|raw }}
+                        {% if part.writtenSection.mediaUploads|length > 0 %}
+                            <div class="media-urls-container mt-3">
+                                {% for media in part.writtenSection.mediaUploads %}
+                                    {% if media.type in ['jpg', 'png', 'gif'] %}
+                                        <img src="{{ media.url }}" alt="Media" class="img-fluid">
+                                    {% elseif media.type in ['mp4', 'webm', 'ogg'] %}
+                                        <video controls src="{{ media.url }}" class="img-fluid"></video>
+                                    {% else %}
+                                        <a href="{{ media.url }}" target="_blank" class="btn btn-sm btn-primary">View Media</a>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <p class="text-muted mt-3">No media uploads available.</p>
+                        {% endif %}
+                    </div>
                 {% else %}
-                    {% if part.tutorialContent %}
-                        <div class="tutorial animate__animated animate__fadeIn">
-                            {{ part.tutorialContent|raw }}
-                        </div>
-                    {% endif %}
+                    <p class="text-muted">No written content available for this part.</p>
+                {% endif %}
 
-                    {% if part.video %}
-                        <div class="mb-4">
-                            <h4>Video Content</h4>
-                            <video controls class="w-100">
-                                <source src="{{ asset('Uploads/videos/' ~ part.video.filename) }}" type="video/mp4">
-                                Your browser does not support the video tag.
-                            </video>
-                            {% if part.video.description %}
-                                <p class="mt-3">{{ part.video.description }}</p>
-                            {% endif %}
-                        </div>
-                    {% endif %}
+                {% if part.geogebraMaterialId %}
+                    <div class="geogebra-container">
+                        <h4 class="fw-bold mb-3">Interactive Graphing</h4>
+                        <div class="loading-spinner" id="ggb-spinner-{{ part.id }}"></div>
+                        <div id="ggb-element-{{ part.id }}" style="width: 100%; height: 400px;"></div>
+                    </div>
+                {% endif %}
 
-                    {% if part.writtenSection %}
-                        <div class="mb-4">
-                            <h4>Written Content</h4>
-                            <div class="written-content">
-                                {{ part.writtenSection.content|raw }}
-                                {% if part.writtenSection.mediaUploads|length > 0 %}
-                                    <div class="mt-3">
-                                        <h6>Additional Media</h6>
-                                        {% for media in part.writtenSection.mediaUploads %}
-                                            {% if media.type in ['jpg', 'png', 'gif'] %}
-                                                <img src="{{ media.url }}" alt="Media" class="img-fluid mb-2 rounded-3" style="max-width: 200px;">
-                                            {% elseif media.type in ['mp4', 'webm', 'ogg'] %}
-                                                <video controls src="{{ media.url }}" class="img-fluid mb-2 rounded-3" style="max-width: 400px;"></video>
-                                            {% else %}
-                                                <a href="{{ media.url }}" target="_blank" class="btn btn-sm btn-primary mb-2">View Media</a>
-                                            {% endif %}
-                                        {% endfor %}
-                                    </div>
-                                {% else %}
-                                    <p>No media uploads found.</p>
-                                {% endif %}
+                {% if quiz %}
+                    <div class="quiz-section {% if quiz.generatedByAI %}ai-quiz{% else %}manual-quiz{% endif %}">
+                        <h4 class="fw-bold mb-3">Quiz: Test Your Knowledge</h4>
+                        <div class="progress-bar-container">
+                            <p class="text-muted">Attempt {{ attempt_count + 1 }} of 3 | Question Progress</p>
+                            <div class="progress">
+                                <div class="progress-bar" role="progressbar" style="width: {{ (quiz.questions|length > 0 ? (1 / quiz.questions|length * 100) : 0) }}%" aria-valuenow="{{ quiz.questions|length > 0 ? (1 / quiz.questions|length * 100) : 0 }}" aria-valuemin="0" aria-valuemax="100"></div>
                             </div>
                         </div>
-                    {% else %}
-                        <p>Written section not available for this part.</p>
-                    {% endif %}
 
-                    {% if part.geogebraMaterialId %}
-                        <div class="geogebra-container">
-                            <h4>Interactive Graphing</h4>
-                            <div id="ggb-element-{{ part.id }}" style="width: 100%; height: 400px;"></div>
-                        </div>
-                    {% endif %}
-
-                    {% if quiz %}
-                        <div class="quiz-section">
-                            <h4>Quiz: Test Your Knowledge</h4>
-                            {% if app.user %}
-                                {% set latest_attempt = entityManager.getRepository('App\\Entity\\QuizAttempt').findOneBy(['quiz' => quiz, 'user' => app.user], ['takenAt' => 'DESC']) %}
-                                {% if latest_attempt %}
-                                    <p>Your last score: {{ latest_attempt.score }}%</p>
-                                    {% if latest_attempt.score >= 70 %}
-                                        <p class="text-success">You passed! The next part is unlocked.</p>
-                                    {% else %}
-                                        <p class="text-danger">You need a score of at least 70% to unlock the next part.</p>
-                                    {% endif %}
-                                {% endif %}
+                        {% if latest_attempt %}
+                            <p class="mt-3">Your last score: <strong>{{ latest_attempt.score }}%</strong></p>
+                            {% if latest_attempt.score >= 70 %}
+                                <p class="text-success">You passed! The next part is unlocked.</p>
+                            {% elseif attempt_count >= 3 %}
+                                <p class="text-info">All attempts completed. Correct answers shown below.</p>
+                            {% else %}
+                                <p class="text-danger">Score of 70% or higher needed to unlock the next part.</p>
                             {% endif %}
-                            <form action="{{ path('app_quiz_submit', {'id': quiz.id}) }}" method="post">
-                                <input type="hidden" name="_token" value="{{ csrf_token('quiz_submit_' ~ quiz.id) }}">
+                        {% endif %}
+
+                        {% if can_attempt %}
+                            <form action="{{ path('app_quiz_submit', {'id': quiz.id}) }}" method="post" id="quiz-form" enctype="application/x-www-form-urlencoded">
+                                <input type="hidden" name="_token" value="{{ csrf_token('quiz_submit' ~ quiz.id) }}">
                                 {% for question in quiz.questions %}
-                                    <div class="quiz-question mb-4">
+                                    <div class="quiz-question" {% if quiz.generatedByAI %}style="--question-index: {{ loop.index }}"{% endif %}>
                                         <h5 class="fw-bold">{{ loop.index }}. {{ question.text }}</h5>
+                                        {% if latest_attempt and feedback[question.id] is defined %}
+                                            <p class="correct-answer-text text-success">Correct Answer: {{ feedback[question.id].correctAnswer }}</p>
+                                        {% endif %}
                                         {% if question.type|lower == 'mcq' %}
                                             {% for option in question.options %}
-                                                <div class="form-check">
-                                                    <input class="form-check-input" type="radio" name="answers[{{ question.id }}]" value="{{ option }}" required>
-                                                    <label class="form-check-label">{{ option }}</label>
+                                                <div class="form-check {% if latest_attempt and feedback[question.id] is defined and feedback[question.id].userAnswer == option %} {% if feedback[question.id].isCorrect %}correct-answer{% else %}incorrect-answer{% endif %} {% endif %}">
+                                                    <input class="form-check-input" type="radio" name="answers[{{ question.id }}]" value="{{ option }}" id="option-{{ question.id }}-{{ loop.index }}" {% if latest_attempt and (latest_attempt.score < 70 or attempt_count >= 3) %}disabled{% endif %} required>
+                                                    <label class="form-check-label" for="option-{{ question.id }}-{{ loop.index }}">{{ option }}</label>
                                                 </div>
                                             {% endfor %}
                                         {% elseif question.type|lower == 'numeric' %}
-                                            <input type="number" name="answers[{{ question.id }}]" class="form-control mb-2" step="0.01" placeholder="Enter your answer" required>
+                                            <input type="number" name="answers[{{ question.id }}]" class="form-control {% if latest_attempt and feedback[question.id] is defined %} {% if feedback[question.id].isCorrect %}correct-answer{% else %}incorrect-answer{% endif %} {% endif %}" step="0.01" placeholder="Enter your answer" {% if latest_attempt and (latest_attempt.score < 70 or attempt_count >= 3) %}disabled value="{{ feedback[question.id].correctAnswer|default('') }}"{% endif %} required>
                                         {% else %}
                                             <p class="text-danger">Unsupported question type: {{ question.type }}</p>
                                         {% endif %}
                                     </div>
                                 {% endfor %}
-                                <button type="submit" class="btn btn-primary">Submit Quiz</button>
+                                <div class="mt-4">
+                                    {% if latest_attempt and latest_attempt.score < 70 and attempt_count < 3 %}
+                                        <button type="submit" class="btn btn-retry btn-primary">Retry Quiz</button>
+                                    {% elseif latest_attempt and attempt_count >= 3 %}
+                                        <a href="{{ path('app_course_details', {'id': course.id}) }}" class="btn btn-next btn-primary">Next</a>
+                                    {% else %}
+                                        <button type="submit" class="btn btn-primary">Submit Quiz</button>
+                                    {% endif %}
+                                </div>
                             </form>
+                        {% else %}
+                            <p class="text-muted mt-3">All attempts for this quiz have been completed.</p>
+                            <a href="{{ path('app_course_details', {'id': course.id}) }}" class="btn btn-next btn-primary">Next</a>
+                        {% endif %}
+
+                        <div class="congratulations-modal hidden" id="congratulations-modal">
+                            <h3>Congratulations!</h3>
+                            <p>You aced the quiz with a perfect score!</p>
+                            <button class="btn btn-primary" onclick="closeModal()">Close</button>
                         </div>
-                    {% else %}
-                        <p class="text-muted">No quiz available for this part yet.</p>
-                    {% endif %}
+                    </div>
+                {% else %}
+                    <p class="text-muted">No quiz available for this part.</p>
                 {% endif %}
             </div>
         </div>
@@ -131,6 +351,7 @@
 {% block js %}
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             try {
@@ -145,21 +366,21 @@
                 console.error('KaTeX rendering failed:', e);
             }
 
-            // GeoGebra initialization
             {% if part.geogebraMaterialId %}
                 const materialId = '{{ part.geogebraMaterialId|e('js') }}';
                 const partId = {{ part.id|e('js') }};
                 if (materialId && partId) {
+                    const ggbSpinner = document.getElementById(`ggb-spinner-${partId}`);
+                    if (ggbSpinner) ggbSpinner.style.display = 'block';
                     const ggbScript = document.createElement('script');
                     ggbScript.src = 'https://www.geogebra.org/apps/deployggb.js';
                     ggbScript.defer = true;
                     ggbScript.onload = function() {
-                        console.log('GeoGebra script loaded');
                         const ggbContainer = document.getElementById(`ggb-element-${partId}`);
-                        if (ggbContainer) {
-                            let ggbApp = new GGBApplet({
+                        if (gbContainer) {
+                            const ggbApp = new GGBApplet({
                                 appName: 'graphing',
-                                width: '100%',
+                                width: ggbContainer.offsetWidth,
                                 height: 400,
                                 showToolBar: true,
                                 showAlgebraInput: true,
@@ -167,45 +388,69 @@
                                 material_id: materialId
                             }, true);
                             ggbApp.inject(`ggb-element-${partId}`, function() {
-                                console.log(`GeoGebra applet initialized for part ${partId}`);
-                                const ggbInstance = window[`ggbApplet${partId.replace(/-/g, '')}`];
-                                if (ggbInstance) {
-                                    ggbInstance.registerAddListener(function(json) {
-                                        try {
-                                            let interactionData = { expression: JSON.parse(json).value };
-                                            fetch('{{ path('app_interaction_save')|e('js') }}', {
-                                                method: 'POST',
-                                                headers: { 'Content-Type': 'application/json' },
-                                                body: JSON.stringify({
-                                                    partId: partId,
-                                                    interactionData: interactionData
-                                                })
-                                            })
-                                            .then(response => response.json())
-                                            .then(data => {
-                                                if (data.status !== 'success') {
-                                                    console.error('Failed to save interaction:', data.message);
-                                                }
-                                            })
-                                            .catch(error => console.error('Error saving interaction:', error));
-                                        } catch (e) {
-                                            console.error('Error parsing GeoGebra JSON:', e);
-                                        }
-                                    });
-                                } else {
-                                    console.error(`ggbInstance not found for part ${partId}`);
-                                }
+                                if (ggbSpinner) ggbSpinner.style.display = 'none';
                             }, function(error) {
-                                console.error(`GeoGebra initialization failed for part ${partId}:`, error);
-                                ggbContainer.innerHTML = '<p>Failed to load GeoGebra applet. Please check the material ID or network connection.</p>';
+                                if (ggbSpinner) ggbSpinner.style.display = 'none';
+                                ggbContainer.innerHTML = '<p class="text-danger">Failed to load GeoGebra applet. Please try again later.</p>';
+                                console.error('GeoGebra initialization failed:', error);
                             });
-                        } else {
-                            console.error(`GeoGebra container not found for part ${partId}`);
                         }
                     };
                     document.head.appendChild(ggbScript);
                 }
             {% endif %}
+
+            const quizForm = document.getElementById('quiz-form');
+            const modal = document.getElementById('congratulations-modal');
+            const progressBar = document.querySelector('.progress-bar');
+
+            function updateProgressBar(currentQuestion, totalQuestions) {
+                const progress = (currentQuestion / totalQuestions) * 100;
+                progressBar.style.width = `${progress}%`;
+            }
+
+            function showConfetti() {
+                confetti({
+                    particleCount: 150,
+                    spread: 80,
+                    origin: { y: 0.6 },
+                    colors: ['#4a90e2', '#2ecc71', '#f39c12']
+                });
+            }
+
+            function showModal() {
+                modal.classList.remove('hidden');
+                showConfetti();
+            }
+
+            window.closeModal = function() {
+                modal.classList.add('hidden');
+            };
+
+            {% if latest_attempt and latest_attempt.score == 100 and latest_attempt.attemptNumber == 1 %}
+                showModal();
+            {% endif %}
+
+            if (quizForm) {
+                const questions = document.querySelectorAll('.quiz-question');
+                updateProgressBar(1, questions.length);
+
+                questions.forEach((question, index) => {
+                    question.style.setProperty('--question-index', index + 1);
+                });
+
+                quizForm.addEventListener('submit', function(e) {
+                    const submitButton = quizForm.querySelector('button[type="submit"]');
+                    submitButton.disabled = true;
+                    submitButton.textContent = 'Submitting...';
+                    submitButton.classList.add('animate__animated', 'animate__pulse');
+                    setTimeout(() => {
+                        submitButton.classList.remove('animate__animated', 'animate__pulse');
+                        submitButton.disabled = false;
+                        submitButton.textContent = submitButton.classList.contains('btn-retry') ? 'Retry Quiz' : 'Submit Quiz';
+                    }, 1000);
+                });
+            }
         });
     </script>
 {% endblock %}

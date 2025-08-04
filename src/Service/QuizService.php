@@ -11,7 +11,9 @@ use App\Entity\QuizAttempt;
 use App\Enum\QuestionType;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\Cache\Adapter\FilesystemAdapter;
 use Symfony\Component\HttpClient\HttpClient;
+use Symfony\Contracts\Cache\ItemInterface;
 use Symfony\Contracts\HttpClient\Exception\TransportExceptionInterface;
 
 class QuizService
@@ -20,6 +22,7 @@ class QuizService
     private LoggerInterface $logger;
     private string $geminiApiKey;
     private string $geminiApiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent';
+    private FilesystemAdapter $cache;
 
     public function __construct(
         EntityManagerInterface $entityManager,
@@ -29,228 +32,168 @@ class QuizService
         $this->entityManager = $entityManager;
         $this->logger = $logger;
         $this->geminiApiKey = $geminiApiKey;
+        $this->cache = new FilesystemAdapter();
     }
 
-    public function evaluateQuiz(Quiz $quiz, array $answers): float
+    public function evaluateQuiz(Quiz $quiz, array $answers, User $user): array
     {
         $correctAnswers = 0;
         $totalQuestions = count($quiz->getQuestions());
+        $feedback = [];
 
         foreach ($quiz->getQuestions() as $question) {
             $userAnswer = $answers[$question->getId()] ?? null;
-            if (!$userAnswer) {
+            if ($userAnswer === null) {
+                $feedback[$question->getId()] = ['isCorrect' => false, 'correctAnswer' => $question->getCorrectAnswer(), 'userAnswer' => null];
                 continue;
             }
 
-            if ($question->getType() === QuestionType::MCQ->value) {
-                if ($userAnswer === $question->getCorrectAnswer()) {
-                    $correctAnswers++;
-                }
-            } else {
-                $correctValue = (float) $question->getCorrectAnswer();
-                $userValue = (float) $userAnswer;
-                if (abs($correctValue - $userValue) <= 0.01) {
-                    $correctAnswers++;
-                }
-            }
+            $isCorrect = $question->getType() === QuestionType::MCQ->value
+                ? $userAnswer === $question->getCorrectAnswer()
+                : abs((float) $userAnswer - (float) $question->getCorrectAnswer()) <= 0.01;
+            if ($isCorrect) $correctAnswers++;
+
+            $feedback[$question->getId()] = [
+                'isCorrect' => $isCorrect,
+                'correctAnswer' => $question->getCorrectAnswer(),
+                'userAnswer' => $userAnswer
+            ];
         }
 
-        return $totalQuestions > 0 ? ($correctAnswers / $totalQuestions) * 100 : 0;
+        $score = $totalQuestions > 0 ? ($correctAnswers / $totalQuestions) * 100 : 0;
+        $attemptNumber = $this->getAttemptCount($user, $quiz) + 1;
+        $attempt = (new QuizAttempt())
+            ->setUser($user)
+            ->setQuiz($quiz)
+            ->setAnswers($feedback)
+            ->setScore($score)
+            ->setTakenAt(new \DateTime())
+            ->setAttemptNumber($attemptNumber);
+        $this->entityManager->persist($attempt);
+
+        return ['score' => $score, 'feedback' => $feedback, 'attemptNumber' => $attemptNumber];
     }
 
-    public function getOrGeneratePartQuiz(?User $user, ?Part $part): ?Quiz
+    public function getAttemptCount(User $user, Quiz $quiz): int
     {
-        if (!$part || !$part->getCourse()) {
-            $this->logger->warning('Invalid part or course for quiz generation: Part ID ' . ($part ? $part->getId() : 'NULL'));
+        return $this->entityManager->getRepository(QuizAttempt::class)->count(['user' => $user, 'quiz' => $quiz]);
+    }
+
+    public function canAttemptQuiz(User $user, Quiz $quiz): bool
+    {
+        return $this->getAttemptCount($user, $quiz) < 3;
+    }
+
+    public function getOrGeneratePartQuiz(?User $user, ?Part $part, string $quizMode = 'ai'): ?Quiz
+    {
+        if (!$part || !$part->getCourse() || $part->getTitle() === null) {
+            $this->logger->warning('Invalid part, course, or missing part title for quiz generation: Part ID ' . ($part ? $part->getId() : 'NULL'));
             return null;
         }
 
-        $quiz = $this->entityManager->getRepository(Quiz::class)->findOneBy(['part' => $part]);
-        if ($quiz) {
-            $this->logger->info('Reusing existing quiz for part ID ' . $part->getId() . ', Quiz ID: ' . $quiz->getId());
-            return $quiz;
-        }
+        $cacheKey = 'part_' . $part->getId() . '_' . $quizMode;
+        return $this->cache->get($cacheKey, function (ItemInterface $item) use ($part, $quizMode) {
+            $item->expiresAfter(3600); // Cache for 1 hour
+            $quiz = $this->entityManager->getRepository(Quiz::class)->findOneBy(['part' => $part]);
+            if ($quiz && $quiz->isGeneratedByAI() === ($quizMode === 'ai')) {
+                $this->logger->info('Reusing existing quiz for part ID ' . $part->getId() . ', Quiz ID: ' . $quiz->getId());
+                return $quiz;
+            }
 
-        $this->logger->debug('No existing quiz found for part ID ' . $part->getId() . ', proceeding to generate new quiz');
+            if ($quizMode === 'manual') {
+                $this->logger->info('Manual quiz mode selected for part ID ' . $part->getId() . ', no generation needed');
+                return null;
+            }
 
-        $content = $part->getCourse()->getTitle() . "\n" . $part->getTitle() . "\n";
-        if ($part->getDescription()) {
-            $content .= $part->getDescription() . "\n";
-        }
-        if ($part->getVideo() && $part->getVideo()->getDescription()) {
-            $content .= $part->getVideo()->getDescription() . "\n";
-        }
-        if ($part->getWrittenSection()) {
-            $content .= "Written Section: " . strip_tags($part->getWrittenSection()->getContent()) . "\n";
-        }
-
-        $quizData = $this->generateQuizFromGemini([
-            'course_title' => $part->getCourse()->getTitle(),
-            'part_title' => $part->getTitle(),
-            'content' => $content,
-            'num_questions' => 10,
-            'part' => $part
-        ]);
-
-        if (!$quizData) {
-            $this->logger->warning('First API attempt failed, retrying with adjusted parameters for part ID ' . $part->getId());
+            $this->logger->debug('Generating AI quiz for part ID ' . $part->getId());
+            $content = $this->extractRelevantContent($part->getCourse()->getTitle(), $part->getTitle(), $part);
             $quizData = $this->generateQuizFromGemini([
                 'course_title' => $part->getCourse()->getTitle(),
                 'part_title' => $part->getTitle(),
                 'content' => $content,
-                'num_questions' => 10,
-                'part' => $part,
-                'retry' => true, // Adjust parameters for retry
-            ], 3);
-        }
+                'context' => 'part'
+            ]);
 
-        if (!$quizData || !isset($quizData['questions']) || count($quizData['questions']) < 5) {
-            $this->logger->error('Invalid or insufficient quiz data after retries for part ID ' . $part->getId() . ': ' . json_encode($quizData));
-            return $this->createFallbackQuiz($part);
-        }
-
-        $quiz = new Quiz();
-        $quiz->setPart($part);
-        $quiz->setTitle('Quiz for Part: ' . $part->getTitle() . ' (Course: ' . $part->getCourse()->getTitle() . ')');
-        $quiz->setGeneratedByAI(true);
-        $quiz->setCreatedAt(new \DateTime());
-        $quiz->setScoreWeight(1.0);
-
-        foreach ($quizData['questions'] as $qData) {
-            $question = new Question();
-            $question->setQuiz($quiz);
-            $question->setType(strtolower($qData['type']) === 'mcq' ? QuestionType::MCQ->value : QuestionType::Numeric->value);
-            $question->setText($qData['text']);
-            if ($qData['type'] === 'mcq') {
-                $question->setOptions($qData['options']);
-            }
-            $question->setCorrectAnswer((string) $qData['correctAnswer']);
-            $question->setGeneratedByAI(true);
-
-            $quiz->addQuestion($question);
-            $this->entityManager->persist($question);
-        }
-
-        $this->entityManager->persist($quiz);
-        $this->entityManager->flush();
-        $this->logger->info('Generated and persisted new quiz for part ID ' . $part->getId() . ' with ' . count($quiz->getQuestions()) . ' questions');
-
-        return $quiz;
+            return $quizData ? $this->buildQuiz($part, $quizData['questions'], 'Quiz for Part: ' . $part->getTitle() . ' (Course: ' . $part->getCourse()->getTitle() . ')')
+                : $this->createFallbackQuiz($part);
+        });
     }
 
-    public function getOrGenerateFinalQuiz(?User $user, Course $course): ?Quiz
-    {
-        if (!$user || !$course) {
-            $this->logger->warning('Invalid user or course for final quiz generation');
-            return null;
-        }
+    public function getOrGenerateFinalQuiz(?User $user, Course $course, string $quizMode = 'ai'): ?Quiz
+{
+    if (!$course) {
+        $this->logger->warning('Invalid course for final quiz generation');
+        return null;
+    }
 
-        $parts = $course->getParts();
-        $allQuizzesPassed = true;
-        $totalScore = 0;
-        $quizCount = 0;
-
-        foreach ($parts as $part) {
-            $quiz = $this->entityManager->getRepository(Quiz::class)->findOneBy(['part' => $part]);
-            if ($quiz) {
-                $latestAttempt = $this->entityManager->getRepository(QuizAttempt::class)->findOneBy(
-                    ['quiz' => $quiz, 'user' => $user],
-                    ['takenAt' => 'DESC']
-                );
-                if (!$latestAttempt || $latestAttempt->getScore() < 70) {
-                    $allQuizzesPassed = false;
-                    break;
-                }
-                $totalScore += $latestAttempt->getScore();
-                $quizCount++;
-            } else {
-                $allQuizzesPassed = false;
-                break;
-            }
-        }
-
-        if (!$allQuizzesPassed) {
-            $this->logger->info('Not all part quizzes passed for user ID ' . $user->getId() . ' in course ID ' . $course->getId());
-            return null;
-        }
-
-        $averageScore = $quizCount > 0 ? $totalScore / $quizCount : 0;
-        $studentPerformance = $averageScore >= 85 ? 'high' : ($averageScore >= 70 ? 'medium' : 'low');
-
-        $quiz = $this->entityManager->getRepository(Quiz::class)->findOneBy(['part' => null, 'title' => 'Final Quiz for Course: ' . $course->getTitle()]);
-        if ($quiz) {
+    $cacheKey = 'final_' . $course->getId() . '_' . $quizMode;
+    return $this->cache->get($cacheKey, function (ItemInterface $item) use ($user, $course, $quizMode) {
+        $item->expiresAfter(3600); // Cache for 1 hour
+        $quiz = $this->entityManager->getRepository(Quiz::class)->findOneBy(['course' => $course, 'title' => 'Final Quiz for Course: ' . $course->getTitle()]);
+        if ($quiz && $quiz->isGeneratedByAI() === ($quizMode === 'ai')) {
             $this->logger->info('Reusing existing final quiz for course ID ' . $course->getId() . ', Quiz ID: ' . $quiz->getId());
             return $quiz;
         }
 
-        $content = $course->getTitle() . "\n" . ($course->getDescription() ?? '') . "\n";
-        foreach ($course->getParts() as $part) {
-            $content .= $part->getTitle() . "\n" . ($part->getDescription() ?? '') . "\n";
-            if ($part->getWrittenSection()) {
-                $content .= "Part {$part->getPartOrder()} Written Section: " . strip_tags($part->getWrittenSection()->getContent()) . "\n";
-            }
+        if ($quizMode === 'manual') {
+            $this->logger->info('Manual final quiz mode selected for course ID ' . $course->getId() . ', no generation needed');
+            return null;
         }
 
+        // Skip user-based checks if user is null (e.g., during course creation)
+        $studentPerformance = 'medium'; // Default performance for course creation
+        if ($user) {
+            $parts = $course->getParts();
+            $allQuizzesPassed = true;
+            $totalScore = $quizCount = 0;
+
+            foreach ($parts as $part) {
+                $quiz = $this->entityManager->getRepository(Quiz::class)->findOneBy(['part' => $part]);
+                if ($quiz) {
+                    $latestAttempt = $this->entityManager->getRepository(QuizAttempt::class)->findOneBy(
+                        ['quiz' => $quiz, 'user' => $user],
+                        ['takenAt' => 'DESC']
+                    );
+                    if (!$latestAttempt || $latestAttempt->getScore() < 70) {
+                        $allQuizzesPassed = false;
+                        break;
+                    }
+                    $totalScore += $latestAttempt->getScore();
+                    $quizCount++;
+                } else {
+                    $allQuizzesPassed = false;
+                    break;
+                }
+            }
+
+            if (!$allQuizzesPassed) {
+                $this->logger->info('Not all part quizzes passed for user ID ' . $user->getId() . ' in course ID ' . $course->getId());
+                return null;
+            }
+
+            $averageScore = $quizCount > 0 ? $totalScore / $quizCount : 0;
+            $studentPerformance = $averageScore >= 85 ? 'high' : ($averageScore >= 70 ? 'medium' : 'low');
+        }
+
+        $this->logger->debug('Generating AI final quiz for course ID ' . $course->getId());
+        $content = $this->extractRelevantContent($course->getTitle(), '', $course);
         $quizData = $this->generateQuizFromGemini([
             'course_title' => $course->getTitle(),
             'content' => $content,
-            'num_questions' => 10,
-            'course' => $course,
-            'student_performance' => $studentPerformance
+            'student_performance' => $studentPerformance,
+            'context' => 'final'
         ]);
 
-        if (!$quizData) {
-            $this->logger->warning('First API attempt failed, retrying with adjusted parameters for course ID ' . $course->getId());
-            $quizData = $this->generateQuizFromGemini([
-                'course_title' => $course->getTitle(),
-                'content' => $content,
-                'num_questions' => 10,
-                'course' => $course,
-                'student_performance' => $studentPerformance,
-                'retry' => true,
-            ], 3);
-        }
+        return $quizData ? $this->buildQuiz(null, $quizData['questions'], 'Final Quiz for Course: ' . $course->getTitle(), $course)
+            : $this->createFallbackFinalQuiz($course, $studentPerformance);
+    });
+}
 
-        if (!$quizData || !isset($quizData['questions']) || count($quizData['questions']) < 5) {
-            $this->logger->error('Invalid or insufficient final quiz data after retries for course ID ' . $course->getId() . ': ' . json_encode($quizData));
-            return $this->createFallbackFinalQuiz($course, $studentPerformance);
-        }
-
-        $quiz = new Quiz();
-        $quiz->setTitle('Final Quiz for Course: ' . $course->getTitle());
-        $quiz->setGeneratedByAI(true);
-        $quiz->setCreatedAt(new \DateTime());
-        $quiz->setScoreWeight(1.0);
-
-        foreach ($quizData['questions'] as $qData) {
-            $question = new Question();
-            $question->setQuiz($quiz);
-            $question->setType(strtolower($qData['type']) === 'mcq' ? QuestionType::MCQ->value : QuestionType::Numeric->value);
-            $question->setText($qData['text']);
-            if ($qData['type'] === 'mcq') {
-                $question->setOptions($qData['options']);
-            }
-            $question->setCorrectAnswer((string) $qData['correctAnswer']);
-            $question->setGeneratedByAI(true);
-
-            $quiz->addQuestion($question);
-            $this->entityManager->persist($question);
-        }
-
-        $this->entityManager->persist($quiz);
-        $this->entityManager->flush();
-        $this->logger->info('Generated and persisted new final quiz for course ID ' . $course->getId() . ' with ' . count($quiz->getQuestions()) . ' questions');
-
-        return $quiz;
-    }
-
-    private function generateQuizFromGemini(array $inputData, int $maxRetries = 3): ?array
+    private function generateQuizFromGemini(array $inputData, int $maxRetries = 1): ?array
     {
-        $client = HttpClient::create();
-        $isPartQuiz = isset($inputData['part_title']);
-        $promptFile = $isPartQuiz
-            ? __DIR__ . '/prompts/part_quiz_prompt.txt'
-            : __DIR__ . '/prompts/final_quiz_prompt.txt';
+        $client = HttpClient::create(['timeout' => 10]);
+        $isPartQuiz = $inputData['context'] === 'part';
+        $promptFile = $isPartQuiz ? __DIR__ . '/prompts/part_quiz_prompt.txt' : __DIR__ . '/prompts/final_quiz_prompt.txt';
 
         if (!file_exists($promptFile)) {
             $this->logger->error('Prompt file not found: ' . $promptFile);
@@ -258,20 +201,11 @@ class QuizService
         }
 
         $promptTemplate = file_get_contents($promptFile);
-        if ($promptTemplate === false) {
-            $this->logger->error('Failed to read prompt file: ' . $promptFile);
-            return null;
-        }
-
         $content = $inputData['content'];
-        if ($isPartQuiz && isset($inputData['part'])) {
-            $part = $inputData['part'];
-            if ($part->getWrittenSection()) {
-                $content .= "\nWritten Section: " . strip_tags($part->getWrittenSection()->getContent()) . "\n";
-            }
-        } else if (isset($inputData['course'])) {
-            $course = $inputData['course'];
-            foreach ($course->getParts() as $part) {
+        if ($isPartQuiz && isset($inputData['part']) && $inputData['part']->getWrittenSection()) {
+            $content .= "\nWritten Section: " . strip_tags($inputData['part']->getWrittenSection()->getContent()) . "\n";
+        } elseif (isset($inputData['course'])) {
+            foreach ($inputData['course']->getParts() as $part) {
                 if ($part->getWrittenSection()) {
                     $content .= "\nPart {$part->getPartOrder()} Written Section: " . strip_tags($part->getWrittenSection()->getContent()) . "\n";
                 }
@@ -284,350 +218,245 @@ class QuizService
             $promptTemplate
         );
 
-        $this->logger->debug('Gemini API prompt: ' . $prompt);
+        $this->logger->debug('Gemini API prompt: ' . substr($prompt, 0, 200) . '...');
 
-        $retryCount = 0;
-        while ($retryCount < $maxRetries) {
-            try {
-                $response = $client->request('POST', $this->geminiApiUrl, [
-                    'headers' => [
-                        'Content-Type' => 'application/json',
-                    ],
-                    'query' => [
-                        'key' => $this->geminiApiKey,
-                    ],
-                    'json' => [
-                        'contents' => [
-                            [
-                                'parts' => [
-                                    [
-                                        'text' => $prompt
-                                    ]
-                                ]
-                            ]
-                        ],
-                        'generationConfig' => [
-                            'temperature' => isset($inputData['retry']) ? 0.5 : 0.7, // Lower temperature on retry
-                            'maxOutputTokens' => isset($inputData['retry']) ? 1536 : 2048, // Reduce tokens on retry
-                            'response_mime_type' => 'application/json'
-                        ]
-                    ],
-                ]);
+        try {
+            $response = $client->request('POST', $this->geminiApiUrl, [
+                'headers' => ['Content-Type' => 'application/json'],
+                'query' => ['key' => $this->geminiApiKey],
+                'json' => [
+                    'contents' => [['parts' => [['text' => $prompt]]]],
+                    'generationConfig' => [
+                        'temperature' => 0.7,
+                        'maxOutputTokens' => 1024,
+                        'response_mime_type' => 'application/json'
+                    ]
+                ],
+            ]);
 
-                $statusCode = $response->getStatusCode();
-                $responseData = $response->toArray(false);
-                $this->logger->info("Attempt $retryCount - Gemini API response status: $statusCode, raw response: " . json_encode($responseData, JSON_PRETTY_PRINT));
-
-                if ($statusCode !== 200) {
-                    $this->logger->error("Attempt $retryCount - Gemini API returned non-200 status: $statusCode, response: " . json_encode($responseData));
-                    if ($retryCount < $maxRetries - 1) {
-                        $retryCount++;
-                        sleep(2);
-                        continue;
-                    }
-                    return null;
-                }
-
-                if (!isset($responseData['candidates'][0]['content']['parts'][0]['text'])) {
-                    $this->logger->error("Attempt $retryCount - Invalid response structure from Gemini API: " . json_encode($responseData));
-                    if ($retryCount < $maxRetries - 1) {
-                        $retryCount++;
-                        sleep(2);
-                        continue;
-                    }
-                    return null;
-                }
-
-                $quizText = $responseData['candidates'][0]['content']['parts'][0]['text'];
-                $quizText = preg_replace('/^```(?:json)?\n|\n```$/', '', trim($quizText));
-                $this->logger->debug("Attempt $retryCount - Raw quiz text from API: " . $quizText);
-
-                $quizData = json_decode($quizText, true);
-                if (json_last_error() !== JSON_ERROR_NONE) {
-                    $this->logger->error("Attempt $retryCount - Failed to decode Gemini response: " . json_last_error_msg() . ", raw text: " . $quizText);
-                    if ($retryCount < $maxRetries - 1) {
-                        $retryCount++;
-                        sleep(2);
-                        continue;
-                    }
-                    return null;
-                }
-
-                if (!isset($quizData['questions']) || !is_array($quizData['questions']) || count($quizData['questions']) < 5) {
-                    $this->logger->error("Attempt $retryCount - Invalid quiz data format: Expected at least 5 questions, got " . (count($quizData['questions'] ?? [])) . ", data: " . json_encode($quizData));
-                    if ($retryCount < $maxRetries - 1) {
-                        $retryCount++;
-                        sleep(2);
-                        continue;
-                    }
-                    return null;
-                }
-
-                $validQuestions = [];
-                foreach ($quizData['questions'] as $qData) {
-                    if (
-                        isset($qData['type'], $qData['text'], $qData['correctAnswer']) &&
-                        in_array(strtolower($qData['type']), ['mcq', 'numeric']) &&
-                        ($qData['type'] === 'numeric' || (isset($qData['options']) && is_array($qData['options']) && count($qData['options']) === 4))
-                    ) {
-                        $validQuestions[] = $qData;
-                    } else {
-                        $this->logger->warning("Attempt $retryCount - Skipping invalid question data: " . json_encode($qData));
-                    }
-                }
-
-                if (count($validQuestions) < 5) {
-                    $this->logger->error("Attempt $retryCount - Insufficient valid questions: " . count($validQuestions));
-                    if ($retryCount < $maxRetries - 1) {
-                        $retryCount++;
-                        sleep(2);
-                        continue;
-                    }
-                    return null;
-                }
-
-                $this->logger->info("Successfully generated quiz with " . count($validQuestions) . " valid questions on attempt $retryCount");
-                return ['questions' => $validQuestions];
-            } catch (TransportExceptionInterface $e) {
-                $this->logger->error("Attempt $retryCount - Gemini API request failed: " . $e->getMessage() . ", URL: " . $this->geminiApiUrl);
-                if ($retryCount < $maxRetries - 1) {
-                    $retryCount++;
-                    sleep(2);
-                    continue;
-                }
-                return null;
-            } catch (\Exception $e) {
-                $this->logger->error("Attempt $retryCount - Unexpected error during Gemini API call: " . $e->getMessage() . ", Trace: " . $e->getTraceAsString());
-                if ($retryCount < $maxRetries - 1) {
-                    $retryCount++;
-                    sleep(2);
-                    continue;
-                }
+            if ($response->getStatusCode() !== 200) {
+                $this->logger->error('Gemini API returned non-200 status: ' . $response->getStatusCode());
                 return null;
             }
+
+            $quizText = $response->toArray(false)['candidates'][0]['content']['parts'][0]['text'] ?? '';
+            $quizText = trim(preg_replace('/^```(?:json)?\n|\n```$/', '', $quizText));
+            $quizData = json_decode($quizText, true);
+
+            if (json_last_error() !== JSON_ERROR_NONE || !isset($quizData['questions']) || !is_array($quizData['questions'])) {
+                $this->logger->error('Invalid JSON or quiz data format: ' . json_last_error_msg());
+                return null;
+            }
+
+            $validQuestions = array_filter($quizData['questions'], fn($q) => isset($q['type'], $q['text'], $q['correctAnswer']) && in_array(strtolower($q['type']), ['mcq', 'numeric']));
+            if (count($validQuestions) >= 5) {
+                $this->logger->info('Successfully generated quiz with ' . count($validQuestions) . ' valid questions');
+                return ['questions' => array_values($validQuestions)];
+            }
+        } catch (TransportExceptionInterface | \Exception $e) {
+            $this->logger->error('Error during Gemini API call: ' . $e->getMessage());
         }
 
-        $this->logger->error("Failed to generate quiz after $maxRetries attempts");
         return null;
     }
 
-    private function createFallbackQuiz(Part $part): ?Quiz
+    private function buildQuiz(?Part $part, array $questions, string $title, ?Course $course = null): Quiz
     {
         $quiz = new Quiz();
         $quiz->setPart($part);
-        $quiz->setTitle('Fallback Quiz for Part: ' . $part->getTitle() . ' (Course: ' . $part->getCourse()->getTitle() . ')');
-        $quiz->setGeneratedByAI(false);
+        $quiz->setCourse($course); // Set course for final quiz
+        $quiz->setTitle($title);
+        $quiz->setGeneratedByAI(true);
         $quiz->setCreatedAt(new \DateTime());
         $quiz->setScoreWeight(1.0);
 
-        $content = $part->getCourse()->getTitle() . "\n" . $part->getTitle() . "\n";
-        if ($part->getDescription()) {
-            $content .= $part->getDescription() . "\n";
+        $mcqQuestions = array_filter($questions, fn($q) => strtolower($q['type']) === 'mcq');
+        $numericQuestions = array_filter($questions, fn($q) => strtolower($q['type']) === 'numeric');
+        $mcqCount = min(5, count($mcqQuestions));
+        $numericCount = min(5, count($numericQuestions));
+
+        for ($i = 0; $i < $mcqCount; $i++) {
+            $qData = array_values($mcqQuestions)[$i];
+            $question = (new Question())
+                ->setQuiz($quiz)
+                ->setType(QuestionType::MCQ->value)
+                ->setText($qData['text'])
+                ->setOptions($qData['options'] ?? ['Option A', 'Option B', 'Option C', 'Option D'])
+                ->setCorrectAnswer($qData['correctAnswer'])
+                ->setGeneratedByAI(true);
+            $quiz->addQuestion($question);
+            $this->entityManager->persist($question);
         }
-        if ($part->getWrittenSection()) {
-            $content .= strip_tags($part->getWrittenSection()->getContent());
-        }
-        $isLagrange = strpos(strtolower($content), 'lagrange') !== false;
-        $baseTopic = $isLagrange ? 'Lagrange Interpolation' : 'Polynomial Interpolation';
-
-        $mcqTemplates = [
-            [
-                'text' => "What is the main purpose of $baseTopic as described in the content?",
-                'options' => ['Construct polynomials through points', 'Solve differential equations', 'Optimize functions', 'Classify data'],
-                'correctAnswer' => 'Construct polynomials through points'
-            ],
-            [
-                'text' => "What does $baseTopic use to build polynomials?",
-                'options' => ['Given data points', 'Random samples', 'Derivatives', 'Integrals'],
-                'correctAnswer' => 'Given data points'
-            ],
-            [
-                'text' => "What is a key feature of $baseTopic mentioned in the content?",
-                'options' => ['Fits data exactly at points', 'Always linear', 'Uses optimization', 'Reduces dimensions'],
-                'correctAnswer' => 'Fits data exactly at points'
-            ],
-            [
-                'text' => "In $baseTopic, what are the polynomials called?",
-                'options' => ['Basis polynomials', 'Orthogonal polynomials', 'Chebyshev polynomials', 'Fourier polynomials'],
-                'correctAnswer' => 'Basis polynomials'
-            ],
-            [
-                'text' => "What is the result of $baseTopic at an interpolation point?",
-                'options' => ['Matches the data value', 'Approximates the derivative', 'Zeroes the function', 'Minimizes error'],
-                'correctAnswer' => 'Matches the data value'
-            ]
-        ];
-
-        $numericTemplates = [
-            [
-                'text' => "How many points are needed for a linear polynomial in $baseTopic?",
-                'correctAnswer' => '2'
-            ],
-            [
-                'text' => "What is the degree of a polynomial interpolating 3 points in $baseTopic?",
-                'correctAnswer' => '2'
-            ],
-            [
-                'text' => "How many basis polynomials are used for 4 points in $baseTopic?",
-                'correctAnswer' => '4'
-            ],
-            [
-                'text' => "What is the sum of Lagrange basis polynomials at an interpolation point?",
-                'correctAnswer' => '1'
-            ],
-            [
-                'text' => "How many terms are in a polynomial interpolating 5 points in $baseTopic?",
-                'correctAnswer' => '5'
-            ]
-        ];
-
-        for ($i = 0; $i < 5; $i++) {
-            $question = new Question();
-            $question->setQuiz($quiz);
-            $question->setType(QuestionType::MCQ->value);
-            $question->setText($mcqTemplates[$i]['text']);
-            $question->setOptions($mcqTemplates[$i]['options']);
-            $question->setCorrectAnswer($mcqTemplates[$i]['correctAnswer']);
-            $question->setGeneratedByAI(false);
+        for ($i = 0; $i < $numericCount; $i++) {
+            $qData = array_values($numericQuestions)[$i];
+            $question = (new Question())
+                ->setQuiz($quiz)
+                ->setType(QuestionType::Numeric->value)
+                ->setText($qData['text'])
+                ->setCorrectAnswer((string) $qData['correctAnswer'])
+                ->setGeneratedByAI(true);
             $quiz->addQuestion($question);
             $this->entityManager->persist($question);
         }
 
-        for ($i = 0; $i < 5; $i++) {
-            $question = new Question();
-            $question->setQuiz($quiz);
-            $question->setType(QuestionType::Numeric->value);
-            $question->setText($numericTemplates[$i]['text']);
-            $question->setCorrectAnswer($numericTemplates[$i]['correctAnswer']);
-            $question->setGeneratedByAI(false);
+        while ($mcqCount < 5) {
+            $question = (new Question())
+                ->setQuiz($quiz)
+                ->setType(QuestionType::MCQ->value)
+                ->setText('Default MCQ question')
+                ->setOptions(['Option A', 'Option B', 'Option C', 'Option D'])
+                ->setCorrectAnswer('Option A')
+                ->setGeneratedByAI(true);
             $quiz->addQuestion($question);
             $this->entityManager->persist($question);
+            $mcqCount++;
+        }
+        while ($numericCount < 5) {
+            $question = (new Question())
+                ->setQuiz($quiz)
+                ->setType(QuestionType::Numeric->value)
+                ->setText('Default numeric question')
+                ->setCorrectAnswer('0')
+                ->setGeneratedByAI(true);
+            $quiz->addQuestion($question);
+            $this->entityManager->persist($question);
+            $numericCount++;
         }
 
         $this->entityManager->persist($quiz);
-        $this->entityManager->flush();
-        $this->logger->info('Generated fallback quiz for part ID ' . $part->getId() . ' with content-based questions');
-
-        return $quiz;
+        return $quiz; // Let the controller handle flush
     }
 
-    private function createFallbackFinalQuiz(Course $course, string $studentPerformance): ?Quiz
+    private function createFallbackQuiz(Part $part): Quiz
     {
-        $quiz = new Quiz();
-        $quiz->setTitle('Fallback Final Quiz for Course: ' . $course->getTitle());
-        $quiz->setGeneratedByAI(false);
-        $quiz->setCreatedAt(new \DateTime());
-        $quiz->setScoreWeight(1.0);
+        $quiz = (new Quiz())
+            ->setPart($part)
+            ->setTitle('Fallback Quiz for Part: ' . ($part->getTitle() ?? 'Untitled Part') . ' (Course: ' . $part->getCourse()->getTitle() . ')')
+            ->setGeneratedByAI(false)
+            ->setCreatedAt(new \DateTime())
+            ->setScoreWeight(1.0);
+        $content = $this->extractRelevantContent($part->getCourse()->getTitle(), $part->getTitle(), $part);
+        $baseTopic = strpos(strtolower($content), 'lagrange') !== false ? 'Lagrange Interpolation' : 'Polynomial Interpolation';
 
-        $content = $course->getTitle() . "\n" . ($course->getDescription() ?? '') . "\n";
-        foreach ($course->getParts() as $part) {
-            $content .= $part->getTitle() . "\n" . ($part->getDescription() ?? '') . "\n";
-            if ($part->getWrittenSection()) {
-                $content .= strip_tags($part->getWrittenSection()->getContent()) . "\n";
-            }
-        }
-        $isLagrange = strpos(strtolower($content), 'lagrange') !== false;
-        $baseTopic = $isLagrange ? 'Lagrange Interpolation' : 'Polynomial Interpolation';
-
-        $mcqTemplates = [
-            [
-                'text' => "What is the primary goal of $baseTopic in the course?",
-                'options' => ['Fit polynomials to data points', 'Solve equations', 'Approximate derivatives', 'Optimize algorithms'],
-                'correctAnswer' => 'Fit polynomials to data points'
+        $questions = [
+            'mcq' => [
+                ['text' => "What is the main purpose of $baseTopic?", 'options' => ['Construct polynomials', 'Solve equations', 'Optimize', 'Classify'], 'correctAnswer' => 'Construct polynomials'],
+                ['text' => "What does $baseTopic use?", 'options' => ['Data points', 'Random samples', 'Derivatives', 'Integrals'], 'correctAnswer' => 'Data points'],
+                ['text' => "Key feature of $baseTopic?", 'options' => ['Exact fit', 'Linear only', 'Optimization', 'Reduction'], 'correctAnswer' => 'Exact fit'],
+                ['text' => "Polynomials in $baseTopic?", 'options' => ['Basis', 'Orthogonal', 'Chebyshev', 'Fourier'], 'correctAnswer' => 'Basis'],
+                ['text' => "Result at interpolation point?", 'options' => ['Matches data', 'Approximates derivative', 'Zero', 'Minimizes'], 'correctAnswer' => 'Matches data'],
             ],
-            [
-                'text' => "What method is used in $baseTopic to construct polynomials?",
-                'options' => ['Lagrange method', 'Gaussian elimination', 'Fourier transform', 'Least squares'],
-                'correctAnswer' => 'Lagrange method'
+            'numeric' => [
+                ['text' => "Points for linear polynomial?", 'correctAnswer' => '2'],
+                ['text' => "Degree for 3 points?", 'correctAnswer' => '2'],
+                ['text' => "Basis polynomials for 4 points?", 'correctAnswer' => '4'],
+                ['text' => "Sum of basis at point?", 'correctAnswer' => '1'],
+                ['text' => "Terms for 5 points?", 'correctAnswer' => '5'],
             ],
-            [
-                'text' => "What does $baseTopic ensure at interpolation points?",
-                'options' => ['Exact data matching', 'Minimum error', 'Linear functions', 'Constant values'],
-                'correctAnswer' => 'Exact data matching'
-            ],
-            [
-                'text' => "What are the polynomials in $baseTopic based on?",
-                'options' => ['Data points', 'Random values', 'Derivatives', 'Integrals'],
-                'correctAnswer' => 'Data points'
-            ],
-            [
-                'text' => "What is a challenge mentioned in the course for $baseTopic?",
-                'options' => ['Runge’s phenomenon', 'Overfitting', 'Underfitting', 'High variance'],
-                'correctAnswer' => 'Runge’s phenomenon'
-            ]
         ];
 
-        $numericTemplates = $studentPerformance === 'high' ? [
-            [
-                'text' => "What is the degree of a polynomial interpolating 4 points in $baseTopic?",
-                'correctAnswer' => '3'
-            ],
-            [
-                'text' => "How many points are needed for a cubic polynomial in $baseTopic?",
-                'correctAnswer' => '4'
-            ],
-            [
-                'text' => "What is the sum of Lagrange basis polynomials at an interpolation point?",
-                'correctAnswer' => '1'
-            ],
-            [
-                'text' => "How many terms are in a polynomial interpolating 6 points in $baseTopic?",
-                'correctAnswer' => '6'
-            ],
-            [
-                'text' => "What is the degree of a polynomial fitting 2 points in $baseTopic?",
-                'correctAnswer' => '1'
-            ]
-        ] : [
-            [
-                'text' => "How many points are needed for a linear polynomial in $baseTopic?",
-                'correctAnswer' => '2'
-            ],
-            [
-                'text' => "What is the degree of a polynomial interpolating 3 points in $baseTopic?",
-                'correctAnswer' => '2'
-            ],
-            [
-                'text' => "How many basis polynomials are used for 4 points in $baseTopic?",
-                'correctAnswer' => '4'
-            ],
-            [
-                'text' => "What is the sum of Lagrange basis polynomials at an interpolation point?",
-                'correctAnswer' => '1'
-            ],
-            [
-                'text' => "How many points define a quadratic polynomial in $baseTopic?",
-                'correctAnswer' => '3'
-            ]
-        ];
-
-        for ($i = 0; $i < 5; $i++) {
-            $question = new Question();
-            $question->setQuiz($quiz);
-            $question->setType(QuestionType::MCQ->value);
-            $question->setText($mcqTemplates[$i]['text']);
-            $question->setOptions($mcqTemplates[$i]['options']);
-            $question->setCorrectAnswer($mcqTemplates[$i]['correctAnswer']);
-            $question->setGeneratedByAI(false);
+        foreach ($questions['numeric'] as $qData) {
+            $question = (new Question())
+                ->setQuiz($quiz)
+                ->setType(QuestionType::Numeric->value)
+                ->setText($qData['text'])
+                ->setCorrectAnswer($qData['correctAnswer'])
+                ->setGeneratedByAI(false);
             $quiz->addQuestion($question);
             $this->entityManager->persist($question);
         }
-
-        for ($i = 0; $i < 5; $i++) {
-            $question = new Question();
-            $question->setQuiz($quiz);
-            $question->setType(QuestionType::Numeric->value);
-            $question->setText($numericTemplates[$i]['text']);
-            $question->setCorrectAnswer($numericTemplates[$i]['correctAnswer']);
-            $question->setGeneratedByAI(false);
+        foreach ($questions['mcq'] as $qData) {
+            $question = (new Question())
+                ->setQuiz($quiz)
+                ->setType(QuestionType::MCQ->value)
+                ->setText($qData['text'])
+                ->setOptions($qData['options'])
+                ->setCorrectAnswer($qData['correctAnswer'])
+                ->setGeneratedByAI(false);
             $quiz->addQuestion($question);
             $this->entityManager->persist($question);
         }
 
         $this->entityManager->persist($quiz);
-        $this->entityManager->flush();
-        $this->logger->info('Generated fallback final quiz for course ID ' . $course->getId() . ' with content-based questions');
+        $this->logger->info('Generated fallback quiz for part ID ' . $part->getId());
+        return $quiz; // Let the controller handle flush
+    }
 
-        return $quiz;
+    private function createFallbackFinalQuiz(Course $course, string $studentPerformance): Quiz
+    {
+        $quiz = (new Quiz())
+            ->setCourse($course)
+            ->setTitle('Fallback Final Quiz for Course: ' . $course->getTitle())
+            ->setGeneratedByAI(false)
+            ->setCreatedAt(new \DateTime())
+            ->setScoreWeight(1.0);
+        $content = $this->extractRelevantContent($course->getTitle(), '', $course);
+        $baseTopic = strpos(strtolower($content), 'lagrange') !== false ? 'Lagrange Interpolation' : 'Polynomial Interpolation';
+
+        $mcqQuestions = [
+            ['text' => "Primary goal of $baseTopic?", 'options' => ['Fit polynomials', 'Solve equations', 'Approximate', 'Optimize'], 'correctAnswer' => 'Fit polynomials'],
+            ['text' => "Method for $baseTopic?", 'options' => ['Lagrange', 'Gaussian', 'Fourier', 'Least squares'], 'correctAnswer' => 'Lagrange'],
+            ['text' => "Ensures at points?", 'options' => ['Exact match', 'Minimum error', 'Linear', 'Constant'], 'correctAnswer' => 'Exact match'],
+            ['text' => "Based on?", 'options' => ['Data points', 'Random', 'Derivatives', 'Integrals'], 'correctAnswer' => 'Data points'],
+            ['text' => "Challenge in $baseTopic?", 'options' => ['Runge’s phenomenon', 'Overfitting', 'Underfitting', 'Variance'], 'correctAnswer' => 'Runge’s phenomenon'],
+        ];
+
+        $numericQuestions = $studentPerformance === 'high' ? [
+            ['text' => "Degree for 4 points?", 'correctAnswer' => '3'],
+            ['text' => "Points for cubic?", 'correctAnswer' => '4'],
+            ['text' => "Basis sum at point?", 'correctAnswer' => '1'],
+            ['text' => "Terms for 6 points?", 'correctAnswer' => '6'],
+            ['text' => "Degree for 2 points?", 'correctAnswer' => '1'],
+        ] : [
+            ['text' => "Points for linear?", 'correctAnswer' => '2'],
+            ['text' => "Degree for 3 points?", 'correctAnswer' => '2'],
+            ['text' => "Basis for 4 points?", 'correctAnswer' => '4'],
+            ['text' => "Basis sum at point?", 'correctAnswer' => '1'],
+            ['text' => "Points for quadratic?", 'correctAnswer' => '3'],
+        ];
+
+        foreach ($numericQuestions as $qData) {
+            $question = (new Question())
+                ->setQuiz($quiz)
+                ->setType(QuestionType::Numeric->value)
+                ->setText($qData['text'])
+                ->setCorrectAnswer($qData['correctAnswer'])
+                ->setGeneratedByAI(false);
+            $quiz->addQuestion($question);
+            $this->entityManager->persist($question);
+        }
+        foreach ($mcqQuestions as $qData) {
+            $question = (new Question())
+                ->setQuiz($quiz)
+                ->setType(QuestionType::MCQ->value)
+                ->setText($qData['text'])
+                ->setOptions($qData['options'])
+                ->setCorrectAnswer($qData['correctAnswer'])
+                ->setGeneratedByAI(false);
+            $quiz->addQuestion($question);
+            $this->entityManager->persist($question);
+        }
+
+        $this->entityManager->persist($quiz);
+        $this->logger->info('Generated fallback final quiz for course ID ' . $course->getId());
+        return $quiz; // Let the controller handle flush
+    }
+
+    private function extractRelevantContent(string $courseTitle, ?string $partTitle, $entity): string
+    {
+        $content = $courseTitle . "\n" . ($partTitle ?? '') . "\n";
+        if ($entity instanceof Part) {
+            if ($entity->getDescription()) $content .= $entity->getDescription() . "\n";
+            if ($entity->getVideo() && $entity->getVideo()->getDescription()) $content .= $entity->getVideo()->getDescription() . "\n";
+            if ($entity->getWrittenSection()) $content .= "Written Section: " . strip_tags($entity->getWrittenSection()->getContent()) . "\n";
+        } elseif ($entity instanceof Course) {
+            if ($entity->getDescription()) $content .= $entity->getDescription() . "\n";
+            foreach ($entity->getParts() as $part) {
+                $content .= ($part->getTitle() ?? 'Untitled Part') . "\n";
+                if ($part->getDescription()) $content .= $part->getDescription() . "\n";
+                if ($part->getWrittenSection()) $content .= "Part {$part->getPartOrder()} Written Section: " . strip_tags($part->getWrittenSection()->getContent()) . "\n";
+            }
+        }
+        return trim($content);
     }
 }

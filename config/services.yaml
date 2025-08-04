@@ -1,4 +1,3 @@
-# config/services.yaml
 parameters:
     course_images_directory: '%kernel.project_dir%/public/uploads/images'
     part_videos_directory: '%kernel.project_dir%/public/uploads/videos'
@@ -36,10 +35,11 @@ services:
             $progressService: '@App\Service\CourseProgressService'
             $quizService: '@App\Service\QuizService'
             $logger: '@logger'
+            $cacheDir: '%kernel.cache_dir%' # Added cache directory parameter
 
     App\Twig\AppExtension:
         arguments:
             $tokenStorage: '@security.token_storage'
             $entityManager: '@doctrine.orm.entity_manager'
             $quizAttemptRepository: '@App\Repository\QuizAttemptRepository'
-        tags: ['twig.extension']
+        tags: ['twig.extension'] 
