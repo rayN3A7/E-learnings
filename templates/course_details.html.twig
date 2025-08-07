@@ -1,7 +1,5 @@
 {% extends 'base.html.twig' %}
-
 {% block title %}{{ course.title }} - eLEARNING{% endblock %}
-
 {% block css %}
     <link rel="stylesheet" href="{{ asset('css/custom.css') }}">
     <style>
@@ -12,252 +10,287 @@
             --error-color: #e74c3c;
             --warning-color: #f39c12;
             --text-color: #2d3748;
-            --border-radius: 8px;
-            --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            --border-radius: 16px;
+            --shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+            --transition: all 0.4s ease;
+            --gradient-bg: linear-gradient(135deg, #f0f4f8, #ffffff);
         }
-
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             color: var(--text-color);
-            background-color: #f8fafc;
+            background: var(--gradient-bg);
         }
-
         .course-header {
             background: linear-gradient(135deg, var(--primary-color), #6ab0ff);
             color: white;
-            padding: 3rem 0;
+            padding: 4.5rem 0;
             border-radius: var(--border-radius);
             box-shadow: var(--shadow);
             position: relative;
-            margin-bottom: 2rem;
+            margin-bottom: 3rem;
+            animation: fadeInHeader 1s ease-out;
         }
-
+        @keyframes fadeInHeader {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
         .course-header h1 {
-            font-size: 2.25rem;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
+            font-size: 2.75rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
         }
-
         .course-header .lead {
-            font-size: 1.1rem;
-            opacity: 0.9;
-            line-height: 1.6;
+            font-size: 1.25rem;
+            opacity: 0.95;
+            line-height: 1.8;
         }
-
         .course-header img {
-            max-height: 250px;
+            max-height: 300px;
             object-fit: cover;
             border-radius: var(--border-radius);
             box-shadow: var(--shadow);
+            transition: var(--transition);
         }
-
+        .course-header img:hover {
+            transform: scale(1.03) rotate(1deg);
+        }
         .progress {
-            height: 0.75rem;
-            background-color: #e2e8f0;
+            height: 1rem;
+            background-color: #e5e7eb;
             border-radius: 9999px;
             overflow: hidden;
-            margin-bottom: 1rem;
+            margin-bottom: 1.5rem;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
         }
-
         .progress-bar {
-            background-color: var(--primary-color);
-            transition: width 0.5s ease;
+            background: linear-gradient(90deg, var(--primary-color), #3b82f6);
+            transition: width 0.8s ease-in-out;
         }
-
         .course-content {
-            padding: 2rem 0;
+            padding: 3rem 0;
         }
-
         .part-card {
             background: white;
             border-radius: var(--border-radius);
             box-shadow: var(--shadow);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            margin-bottom: 1.5rem;
+            transition: var(--transition);
+            margin-bottom: 2rem;
+            overflow: hidden;
         }
-
         .part-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+            transform: translateY(-8px) scale(1.01);
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
         }
-
         .part-card.locked {
-            background: #f7fafc;
-            opacity: 0.7;
+            background: #f9fafb;
+            opacity: 0.8;
         }
-
         .part-card .btn-view-part {
-            background-color: var(--primary-color);
+            background: linear-gradient(135deg, var(--primary-color), #3b82f6);
             color: white;
             border-radius: 9999px;
-            padding: 0.5rem 1.5rem;
+            padding: 0.7rem 2rem;
             font-weight: 600;
-            transition: all 0.3s ease;
+            transition: var(--transition);
         }
-
         .part-card .btn-view-part:hover {
-            background-color: #3b82f6;
-            transform: translateY(-2px);
+            background: linear-gradient(135deg, #3b82f6, var(--primary-color));
+            transform: translateY(-3px);
         }
-
         .part-card .btn-view-part:disabled, .part-card .btn-secondary:disabled {
             background-color: #6b7280;
             cursor: not-allowed;
-            opacity: 0.6;
+            opacity: 0.7;
         }
-
         .content-section {
             background: white;
             border-radius: var(--border-radius);
             box-shadow: var(--shadow);
-            padding: 1.5rem;
+            padding: 2.5rem;
+            transition: var(--transition);
+            animation: fadeInContent 1.2s ease-out;
         }
-
+        @keyframes fadeInContent {
+            from { opacity: 0; transform: scale(0.98); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .content-section:hover {
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+        }
         .content-section h3 {
-            font-size: 1.75rem;
-            font-weight: 700;
+            font-size: 2rem;
+            font-weight: 800;
             color: var(--text-color);
-            margin-bottom: 1rem;
-        }
-
-        .tutorial, .video-section, .written-section, .geogebra-container, .quiz-section, .final-quiz-section {
-            background: var(--secondary-color);
-            padding: 1.5rem;
-            border-radius: var(--border-radius);
             margin-bottom: 1.5rem;
         }
-
+        .tutorial, .video-section, .written-section, .geogebra-container, .quiz-section, .final-quiz-section {
+            background: var(--secondary-color);
+            padding: 2rem;
+            border-radius: var(--border-radius);
+            margin-bottom: 2rem;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
+            transition: var(--transition);
+            opacity: 0;
+            animation: slideUpFade 0.8s forwards;
+        }
+        @keyframes slideUpFade {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .video-section { animation-delay: 0.2s; }
+        .written-section { animation-delay: 0.4s; }
+        .geogebra-container { animation-delay: 0.6s; }
+        .tutorial { animation-delay: 0.8s; }
+        .quiz-section { animation-delay: 1s; }
+        .tutorial:hover, .video-section:hover, .written-section:hover, .geogebra-container:hover, .quiz-section:hover, .final-quiz-section:hover {
+            box-shadow: inset 0 4px 8px rgba(0, 0, 0, 0.1);
+            transform: translateY(-4px);
+        }
         .geogebra-container {
-            min-height: 400px;
+            min-height: 500px;
             position: relative;
         }
-
         .geogebra-container #ggb-element-{{ current_part.id }} {
             width: 100% !important;
             height: 100% !important;
-            min-height: 400px;
+            min-height: 500px;
         }
-
         .written-content {
-            line-height: 1.8;
+            line-height: 2;
         }
-
         .media-urls-container img, .media-urls-container video {
             max-width: 100%;
             border-radius: var(--border-radius);
-            margin-bottom: 1rem;
+            margin-bottom: 1.5rem;
+            transition: var(--transition);
         }
-
+        .media-urls-container img:hover, .media-urls-container video:hover {
+            transform: scale(1.02);
+        }
         .quiz-section, .final-quiz-section {
             position: relative;
         }
-
         .quiz-question {
-            margin-bottom: 1.5rem;
+            margin-bottom: 2rem;
+            transition: var(--transition);
         }
-
+        .quiz-question:hover {
+            background: rgba(0,0,0,0.02);
+        }
         .form-check {
-            margin-bottom: 0.75rem;
-            padding-left: 2rem;
+            margin-bottom: 1.25rem;
+            padding-left: 2.5rem;
         }
-
         .form-check-input {
             cursor: pointer;
         }
-
         .form-check-label {
-            font-size: 1rem;
+            font-size: 1.1rem;
             color: var(--text-color);
         }
-
         .enroll-button {
             display: inline-block;
-            padding: 0.75rem 1.5rem;
-            background: var(--primary-color);
+            padding: 1rem 2rem;
+            background: linear-gradient(135deg, var(--primary-color), #3b82f6);
             color: white;
             border: none;
             border-radius: 9999px;
-            font-size: 1rem;
+            font-size: 1.1rem;
             font-weight: 600;
             text-decoration: none;
-            transition: all 0.3s ease;
+            transition: var(--transition);
             box-shadow: var(--shadow);
         }
-
         .enroll-button:hover {
-            background: #3b82f6;
-            transform: scale(1.05);
+            background: linear-gradient(135deg, #3b82f6, var(--primary-color));
+            transform: scale(1.04);
         }
-
         .enroll-button:disabled {
             background: #6b7280;
             cursor: not-allowed;
-            opacity: 0.6;
+            opacity: 0.7;
         }
-
         .loading-spinner {
             display: none;
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid var(--primary-color);
+            border: 6px solid #f3f3f3;
+            border-top: 6px solid var(--primary-color);
             border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
+            width: 50px;
+            height: 50px;
+            animation: spin 0.7s linear infinite;
         }
-
         @keyframes spin {
             0% { transform: translate(-50%, -50%) rotate(0deg); }
             100% { transform: translate(-50%, -50%) rotate(360deg); }
         }
-
         .ai-quiz .quiz-question {
             opacity: 0;
-            transform: translateY(20px);
-            animation: slideIn 0.5s ease forwards;
-            animation-delay: calc(0.1s * var(--question-index));
+            transform: translateY(30px);
+            animation: slideIn 0.7s ease forwards;
+            animation-delay: calc(0.2s * var(--question-index));
         }
-
         @keyframes slideIn {
             to { opacity: 1; transform: translateY(0); }
         }
-
         .manual-quiz .quiz-question {
-            margin-bottom: 1rem;
+            margin-bottom: 1.5rem;
         }
-
         .correct-answer {
-            background-color: rgba(46, 204, 113, 0.1);
-            border-left: 4px solid var(--success-color);
-            padding: 0.5rem;
+            background-color: rgba(46, 204, 113, 0.2);
+            border-left: 6px solid var(--success-color);
+            padding: 1rem;
         }
-
         .incorrect-answer {
-            background-color: rgba(231, 76, 60, 0.1);
-            border-left: 4px solid var(--error-color);
-            padding: 0.5rem;
+            background-color: rgba(231, 76, 60, 0.2);
+            border-left: 6px solid var(--error-color);
+            padding: 1rem;
         }
-
         .highlight-previous {
-            background-color: rgba(243, 156, 18, 0.1);
-            border-left: 4px solid var(--warning-color);
-            padding: 0.5rem;
+            background-color: rgba(243, 156, 18, 0.2);
+            border-left: 6px solid var(--warning-color);
+            padding: 1rem;
         }
-
+        .connector-arrow {
+            display: flex;
+            justify-content: center;
+            margin: -1rem 0;
+            opacity: 0.6;
+            transition: var(--transition);
+            position: relative;
+            z-index: 1;
+        }
+        .connector-arrow img {
+            width: 40px;
+            height: auto;
+            animation: hoverArrow 2s infinite ease-in-out;
+        }
+        @keyframes hoverArrow {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(15px); }
+        }
+        .geogebra-container:hover + .connector-arrow,
+        .connector-arrow:hover {
+            opacity: 1;
+            transform: scale(1.1);
+        }
+        .geogebra-container:hover + .connector-arrow img {
+            animation-duration: 1.5s;
+        }
         @media (max-width: 768px) {
-            .course-header { padding: 2rem 0; }
-            .course-header h1 { font-size: 1.75rem; }
-            .course-header img { max-height: 200px; }
-            .course-content { padding: 1.5rem 0; }
-            .content-section, .tutorial, .video-section, .written-section, .quiz-section, .geogebra-container, .final-quiz-section { padding: 1rem; }
-            .enroll-button { padding: 0.5rem 1rem; font-size: 0.9rem; }
+            .course-header { padding: 3rem 0; }
+            .course-header h1 { font-size: 2.25rem; }
+            .course-header img { max-height: 240px; }
+            .course-content { padding: 2.5rem 0; }
+            .content-section, .tutorial, .video-section, .written-section, .quiz-section, .geogebra-container, .final-quiz-section { padding: 1.5rem; }
+            .enroll-button { padding: 0.75rem 1.5rem; font-size: 1rem; }
+            .connector-arrow img { width: 30px; }
         }
     </style>
 {% endblock %}
-
 {% block body %}
     <section class="course-header">
         <div class="container">
@@ -282,7 +315,6 @@
             </div>
         </div>
     </section>
-
     <section class="course-content" id="course-content">
         <div class="container">
             <div class="row">
@@ -295,7 +327,7 @@
                                 <p class="text-muted">{{ part.description|u.truncate(100, '...') }}</p>
                                 <p class="text-muted"><i class="fa fa-clock me-2"></i>{{ part.duration ? (part.duration // 60) ~ ' min' : 'N/A' }}</p>
                                 {% if is_enrolled %}
-                                    <a href="{{ path('app_part_details', {'id': part.id}) }}" 
+                                    <a href="{{ path('app_part_details', {'id': part.id}) }}"
                                        class="btn btn-sm btn-view-part {% if not is_part_unlocked(part) %}disabled{% endif %}"
                                        {% if not is_part_unlocked(part) %}disabled aria-disabled="true"{% endif %}
                                        aria-label="{{ is_part_unlocked(part) ? 'View ' ~ part.title : part.title ~ ' is locked' }}">
@@ -308,18 +340,10 @@
                         </div>
                     {% endfor %}
                 </div>
-
                 <div class="col-lg-8">
                     <div class="content-section">
                         {% if current_part %}
                             <h3 class="fw-bold">{{ current_part.title }}</h3>
-                            {% if current_part.tutorialContent %}
-                                <div class="tutorial">
-                                    <h4 class="fw-bold mb-3">Tutorial</h4>
-                                    {{ current_part.tutorialContent|raw }}
-                                </div>
-                            {% endif %}
-
                             {% if current_part.video %}
                                 <div class="video-section">
                                     <h4 class="fw-bold mb-3">Video Content</h4>
@@ -332,7 +356,6 @@
                                     {% endif %}
                                 </div>
                             {% endif %}
-
                             {% if current_part.writtenSection %}
                                 <div class="written-section">
                                     <h4 class="fw-bold mb-3">Written Content</h4>
@@ -358,7 +381,6 @@
                             {% else %}
                                 <p class="text-muted">No written content available for this part.</p>
                             {% endif %}
-
                             {% if current_part.geogebraMaterialId %}
                                 <div class="geogebra-container">
                                     <h4 class="fw-bold mb-3">Interactive Graphing</h4>
@@ -366,7 +388,17 @@
                                     <div id="ggb-element-{{ current_part.id }}" style="width: 100%; height: 400px;"></div>
                                 </div>
                             {% endif %}
-
+                            {% if current_part.geogebraMaterialId and current_part.tutorialContent %}
+                                <div class="connector-arrow">
+                                    <img src="{{ asset('uploads/images/arrow.png') }}" alt="Down Arrow">
+                                </div>
+                            {% endif %}
+                            {% if current_part.tutorialContent %}
+                                <div class="tutorial">
+                                    <h4 class="fw-bold mb-3">Tutorial</h4>
+                                    {{ current_part.tutorialContent|raw }}
+                                </div>
+                            {% endif %}
                             {% if current_part.quiz %}
                                 <div class="quiz-section {% if current_part.quiz.generatedByAI %}ai-quiz{% else %}manual-quiz{% endif %}">
                                     <h4 class="fw-bold mb-3">Quiz: Test Your Knowledge</h4>
@@ -411,7 +443,6 @@
                         {% else %}
                             <p class="text-muted">Enroll or complete previous parts to access content.</p>
                         {% endif %}
-
                         {% if is_course_completed %}
                             <div class="final-quiz-section {% if final_quiz.generatedByAI %}ai-quiz{% else %}manual-quiz{% endif %}">
                                 <h3 class="fw-bold">Final Course Quiz</h3>
@@ -449,7 +480,6 @@
         </div>
     </section>
 {% endblock %}
-
 {% block js %}
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
@@ -466,7 +496,6 @@
             } catch (e) {
                 console.error('KaTeX rendering failed:', e);
             }
-
             const enrollButton = document.getElementById('enroll-button');
             if (enrollButton) {
                 enrollButton.addEventListener('click', function() {
@@ -480,7 +509,6 @@
                     }, 1000);
                 });
             }
-
             const quizForms = document.querySelectorAll('#quiz-form-{{ current_part.id }}, #final-quiz-form');
             quizForms.forEach(form => {
                 form.addEventListener('submit', function(e) {
@@ -495,7 +523,6 @@
                     }, 1000);
                 });
             });
-
             {% if current_part and current_part.geogebraMaterialId %}
                 const materialId = '{{ current_part.geogebraMaterialId|e('js') }}';
                 const partId = {{ current_part.id|e('js') }};

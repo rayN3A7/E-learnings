@@ -32,7 +32,7 @@ class Quiz
     #[ORM\JoinColumn(name: 'partId', referencedColumnName: 'id', nullable: true)]
     private ?Part $part = null;
 
-    #[ORM\ManyToOne(targetEntity: Course::class, inversedBy: 'finalQuizzes')]
+    #[ORM\ManyToOne(targetEntity: Course::class, inversedBy: 'quizzes', cascade: ['persist'])]
     #[ORM\JoinColumn(name: 'courseId', referencedColumnName: 'id', nullable: true)]
     private ?Course $course = null;
 

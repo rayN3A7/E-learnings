@@ -119,7 +119,7 @@ class QuizService
         });
     }
 
-    public function getOrGenerateFinalQuiz(?User $user, Course $course, string $quizMode = 'ai'): ?Quiz
+   public function getOrGenerateFinalQuiz(?User $user, Course $course, string $quizMode = 'ai'): ?Quiz
 {
     if (!$course) {
         $this->logger->warning('Invalid course for final quiz generation');
@@ -128,7 +128,7 @@ class QuizService
 
     $cacheKey = 'final_' . $course->getId() . '_' . $quizMode;
     return $this->cache->get($cacheKey, function (ItemInterface $item) use ($user, $course, $quizMode) {
-        $item->expiresAfter(3600); // Cache for 1 hour
+        $item->expiresAfter(3600);
         $quiz = $this->entityManager->getRepository(Quiz::class)->findOneBy(['course' => $course, 'title' => 'Final Quiz for Course: ' . $course->getTitle()]);
         if ($quiz && $quiz->isGeneratedByAI() === ($quizMode === 'ai')) {
             $this->logger->info('Reusing existing final quiz for course ID ' . $course->getId() . ', Quiz ID: ' . $quiz->getId());
@@ -140,8 +140,7 @@ class QuizService
             return null;
         }
 
-        // Skip user-based checks if user is null (e.g., during course creation)
-        $studentPerformance = 'medium'; // Default performance for course creation
+        $studentPerformance = 'medium';
         if ($user) {
             $parts = $course->getParts();
             $allQuizzesPassed = true;
@@ -167,7 +166,7 @@ class QuizService
             }
 
             if (!$allQuizzesPassed) {
-                $this->logger->info('Not all part quizzes passed for user ID ' . $user->getId() . ' in course ID ' . $course->getId());
+                $this->logger->info('Not all part quizzes passed for user ID ' . ($user ? $user->getId() : 'null') . ' in course ID ' . $course->getId());
                 return null;
             }
 
@@ -184,39 +183,52 @@ class QuizService
             'context' => 'final'
         ]);
 
-        return $quizData ? $this->buildQuiz(null, $quizData['questions'], 'Final Quiz for Course: ' . $course->getTitle(), $course)
-            : $this->createFallbackFinalQuiz($course, $studentPerformance);
+        if ($quizData) {
+            $quiz = $this->buildQuiz(null, $quizData['questions'], 'Final Quiz for Course: ' . $course->getTitle(), $course);
+            $quiz->setCourse($course); // Ensure the existing course is used
+            return $quiz;
+        }
+
+        return $this->createFallbackFinalQuiz($course, $studentPerformance);
     });
 }
 
     private function generateQuizFromGemini(array $inputData, int $maxRetries = 1): ?array
-    {
-        $client = HttpClient::create(['timeout' => 10]);
-        $isPartQuiz = $inputData['context'] === 'part';
-        $promptFile = $isPartQuiz ? __DIR__ . '/prompts/part_quiz_prompt.txt' : __DIR__ . '/prompts/final_quiz_prompt.txt';
+{
+    $client = HttpClient::create(['timeout' => 10]);
+    $isPartQuiz = $inputData['context'] === 'part';
+    $promptFile = $isPartQuiz ? __DIR__ . '/prompts/part_quiz_prompt.txt' : __DIR__ . '/prompts/final_quiz_prompt.txt';
 
-        if (!file_exists($promptFile)) {
-            $this->logger->error('Prompt file not found: ' . $promptFile);
-            return null;
-        }
+    if (!file_exists($promptFile)) {
+        $this->logger->error('Prompt file not found: ' . $promptFile);
+        return null;
+    }
 
-        $promptTemplate = file_get_contents($promptFile);
-        $content = $inputData['content'];
-        if ($isPartQuiz && isset($inputData['part']) && $inputData['part']->getWrittenSection()) {
+    $promptTemplate = file_get_contents($promptFile);
+    $content = $inputData['content'];
+    if ($isPartQuiz && isset($inputData['part'])) {
+        if ($inputData['part']->getWrittenSection()) {
             $content .= "\nWritten Section: " . strip_tags($inputData['part']->getWrittenSection()->getContent()) . "\n";
-        } elseif (isset($inputData['course'])) {
-            foreach ($inputData['course']->getParts() as $part) {
-                if ($part->getWrittenSection()) {
-                    $content .= "\nPart {$part->getPartOrder()} Written Section: " . strip_tags($part->getWrittenSection()->getContent()) . "\n";
-                }
+        }
+        if ($inputData['part']->getVideo()) {
+            $content .= "\nVideo Description: " . strip_tags($inputData['part']->getVideo()->getDescription()) . "\n";
+        }
+    } elseif (isset($inputData['course'])) {
+        foreach ($inputData['course']->getParts() as $part) {
+            if ($part->getWrittenSection()) {
+                $content .= "\nPart {$part->getPartOrder()} Written Section: " . strip_tags($part->getWrittenSection()->getContent()) . "\n";
+            }
+            if ($part->getVideo()) {
+                $content .= "\nPart {$part->getPartOrder()} Video Description: " . strip_tags($part->getVideo()->getDescription()) . "\n";
             }
         }
+    }
 
-        $prompt = str_replace(
-            ['{{course_title}}', '{{part_title}}', '{{content}}', '{{student_performance}}'],
-            [$inputData['course_title'], $inputData['part_title'] ?? '', $content, $inputData['student_performance'] ?? 'medium'],
-            $promptTemplate
-        );
+    $prompt = str_replace(
+        ['{{course_title}}', '{{part_title}}', '{{content}}', '{{student_performance}}'],
+        [$inputData['course_title'], $inputData['part_title'] ?? '', $content, $inputData['student_performance'] ?? 'medium'],
+        $promptTemplate
+    );
 
         $this->logger->debug('Gemini API prompt: ' . substr($prompt, 0, 200) . '...');
 

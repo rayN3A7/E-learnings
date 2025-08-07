@@ -61,6 +61,16 @@ class CourseController extends AbstractController
             $config->set('URI.AllowedSchemes', ['http', 'https', 'data', 'mailto']);
             $config->set('Attr.EnableID', true);
             $config->set('CSS.AllowedProperties', ['color', 'background-color', 'font-size', 'font-family', 'text-align', 'margin', 'padding']);
+            $config->set('HTML.DefinitionID', 'html5-definitions');
+            $config->set('HTML.DefinitionRev', 1);
+            if ($def = $config->maybeGetRawHTMLDefinition()) {
+                $def->addElement('video', 'Block', 'Optional: (source, Flow) | (Flow, source) | Flow', 'Common', [
+                    'src' => 'URI',
+                    'controls' => 'Bool',
+                    'width' => 'Length',
+                    'height' => 'Length',
+                ]);
+            }
             if (!is_dir($this->cacheDir) || !is_writable($this->cacheDir)) {
                 throw new \RuntimeException("Cache directory '$this->cacheDir' is not writable.");
             }
@@ -73,154 +83,439 @@ class CourseController extends AbstractController
         }
     }
 
-  #[Route('/course/create', name: 'app_course_create', methods: ['GET', 'POST'])]
-public function create(Request $request): Response
-{
-    $this->denyAccessUnlessGranted('ROLE_TEACHER');
-    $course = new Course();
-    $form = $this->createForm(CourseType::class, $course, [
-        'csrf_protection' => true,
-        'csrf_field_name' => '_token',
-        'csrf_token_id' => 'course_create',
-    ]);
-    $form->handleRequest($request);
+    #[Route('/course/create', name: 'app_course_create', methods: ['GET', 'POST'])]
+    public function create(Request $request): Response
+    {
+        $this->denyAccessUnlessGranted('ROLE_TEACHER');
+        $course = new Course();
+        $form = $this->createForm(CourseType::class, $course, [
+            'csrf_protection' => true,
+            'csrf_field_name' => '_token',
+            'csrf_token_id' => 'course_create',
+        ]);
+        $form->handleRequest($request);
 
-    $this->logger->info('Form submitted: ' . json_encode($request->request->all(), JSON_PRETTY_PRINT));
+        $this->logger->info('Form submitted: ' . json_encode($request->request->all(), JSON_PRETTY_PRINT));
 
-    if ($form->isSubmitted() && $form->isValid()) {
-        $this->logger->info('Form is valid, processing data');
-        $imageFile = $form->get('image')->getData();
-        if ($imageFile instanceof \Symfony\Component\HttpFoundation\File\UploadedFile) {
-            $newFilename = uniqid('course-') . '.' . $imageFile->guessExtension();
-            try {
-                $imageFile->move($this->getParameter('course_images_directory'), $newFilename);
-                $course->setImage($newFilename);
-            } catch (FileException $e) {
-                $this->logger->error('Course image upload failed: ' . $e->getMessage());
-                $this->addFlash('error', 'Failed to upload course image: ' . $e->getMessage());
-                return $this->render('course_create.html.twig', ['form' => $form->createView()]);
-            }
-        }
-
-        $course->setCreatedBy($this->getUser());
-        $course->setCreatedAt(new \DateTime());
-        $this->entityManager->persist($course);
-
-        foreach ($form->get('parts') as $index => $partForm) {
-            $part = $partForm->getData();
-            $quizData = $partForm->get('quiz')->getData();
-            $quizMode = $partForm->get('quizMode')->getData() ?? 'ai';
-
-            // Persist WrittenSection
-            $writtenSection = $part->getWrittenSection();
-            if ($writtenSection && !$writtenSection->getId()) {
-                $writtenSection->setPart($part); // Ensure bidirectional relationship
-                $this->entityManager->persist($writtenSection);
-            }
-
-            if ($this->purifier && $writtenSection && $writtenSection->getContent()) {
+        if ($form->isSubmitted() && $form->isValid()) {
+            $this->logger->info('Form is valid, processing data');
+            $imageFile = $form->get('image')->getData();
+            if ($imageFile instanceof \Symfony\Component\HttpFoundation\File\UploadedFile) {
+                $newFilename = uniqid('course-') . '.' . $imageFile->guessExtension();
                 try {
-                    $sanitizedContent = $this->purifier->purify($writtenSection->getContent());
-                    $writtenSection->setContent($sanitizedContent);
-                } catch (\Exception $e) {
-                    $this->logger->warning('Failed to purify written content for part ' . ($index + 1) . ': ' . $e->getMessage());
-                }
-            }
-
-            // Persist Quiz
-            if ($quizMode === 'manual' && $quizData instanceof Quiz) {
-                $questions = $quizData->getQuestions();
-                if (count($questions) !== 10) {
-                    $this->addFlash('error', 'Part ' . ($index + 1) . ' quiz must have exactly 10 questions.');
+                    $imageFile->move($this->getParameter('course_images_directory'), $newFilename);
+                    $course->setImage($newFilename);
+                } catch (FileException $e) {
+                    $this->logger->error('Course image upload failed: ' . $e->getMessage());
+                    $this->addFlash('error', 'Failed to upload course image: ' . $e->getMessage());
                     return $this->render('course_create.html.twig', ['form' => $form->createView()]);
                 }
+            }
+
+            $course->setCreatedBy($this->getUser());
+            $course->setCreatedAt(new \DateTime());
+            $this->entityManager->persist($course);
+
+            foreach ($form->get('parts') as $index => $partForm) {
+                $part = $partForm->getData();
+                $quizData = $partForm->get('quiz')->getData();
+                $quizMode = $partForm->get('quizMode')->getData() ?? 'ai';
+                $videoFile = $partForm->get('video')->get('filename')->getData();
+                $mediaUploads = $partForm->get('writtenSection')->get('mediaUploads')->getData() ?? [];
+                $mediaUrls = $partForm->get('writtenSection')->get('mediaUrls')->getData() ?? [];
+
+                // Persist WrittenSection
+                $writtenSection = $part->getWrittenSection();
+                if ($writtenSection && !$writtenSection->getId()) {
+                    $writtenSection->setPart($part);
+                    $this->entityManager->persist($writtenSection);
+                }
+
+                if ($this->purifier && $writtenSection && $writtenSection->getContent()) {
+                    try {
+                        $sanitizedContent = $this->purifier->purify($writtenSection->getContent());
+                        $writtenSection->setContent($sanitizedContent);
+                    } catch (\Exception $e) {
+                        $this->logger->warning('Failed to purify written content for part ' . ($index + 1) . ': ' . $e->getMessage() . ' Content: ' . $writtenSection->getContent());
+                    }
+                }
+
+                // Handle media URLs (append to content as <img> or <video> tags)
+                foreach ($mediaUrls as $url) {
+                    if (filter_var($url, FILTER_VALIDATE_URL)) {
+                        $ext = pathinfo(parse_url($url, PHP_URL_PATH), PATHINFO_EXTENSION);
+                        if (in_array(strtolower($ext), ['jpg', 'jpeg', 'png', 'gif'])) {
+                            $writtenSection->setContent($writtenSection->getContent() . '<img src="' . $url . '" alt="Media URL">');
+                        } elseif (in_array(strtolower($ext), ['mp4', 'webm', 'ogg'])) {
+                            $writtenSection->setContent($writtenSection->getContent() . '<video src="' . $url . '" controls></video>');
+                        }
+                    }
+                }
+
+                // Handle media uploads
+                foreach ($mediaUploads as $mediaFile) {
+                    if ($mediaFile instanceof \Symfony\Component\HttpFoundation\File\UploadedFile) {
+                        $newFilename = uniqid('media-') . '.' . $mediaFile->guessExtension();
+                        try {
+                            $mediaFile->move($this->getParameter('written_media_directory'), $newFilename);
+                            $mediaUpload = new MediaUpload();
+                            $mediaUpload->setUrl($newFilename);  // Fixed: Use setUrl instead of setFilename
+                            $mediaUpload->setType(pathinfo($newFilename, PATHINFO_EXTENSION)); // Simplified type
+                            $mediaUpload->setUploadedAt(new \DateTime());
+                            $mediaUpload->setUploadedBy($this->getUser());
+                            $mediaUpload->setWrittenSection($writtenSection);
+                            $this->entityManager->persist($mediaUpload);
+                            $writtenSection->addMediaUpload($mediaUpload);
+                        } catch (FileException $e) {
+                            $this->logger->error('Media upload failed for part ' . ($index + 1) . ': ' . $e->getMessage());
+                            $this->addFlash('error', 'Failed to upload media for part ' . ($index + 1) . ': ' . $e->getMessage());
+                            return $this->render('course_create.html.twig', ['form' => $form->createView()]);
+                        }
+                    }
+                }
+
+                // Persist Video
+                if ($videoFile instanceof \Symfony\Component\HttpFoundation\File\UploadedFile) {
+                    $newFilename = uniqid('video-') . '.' . $videoFile->guessExtension();
+                    try {
+                        $videoFile->move($this->getParameter('part_videos_directory'), $newFilename);
+                        $video = $part->getVideo() ?: new Video();
+                        $video->setFilename($newFilename);
+                        $video->setDescription($partForm->get('video')->get('description')->getData());
+                        $video->setDuration($partForm->get('video')->get('duration')->getData());
+                        $video->setPart($part);
+                        $this->entityManager->persist($video);
+                        $part->setVideo($video);
+                    } catch (FileException $e) {
+                        $this->logger->error('Video upload failed for part ' . ($index + 1) . ': ' . $e->getMessage());
+                        $this->addFlash('error', 'Failed to upload video for part ' . ($index + 1) . ': ' . $e->getMessage());
+                        return $this->render('course_create.html.twig', ['form' => $form->createView()]);
+                    }
+                }
+
+                // Persist Quiz
+                if ($quizMode === 'manual' && $quizData instanceof Quiz) {
+                    $questions = $quizData->getQuestions();
+                    foreach ($questions as $question) {
+                        $question->setQuiz($quizData);
+                        $this->entityManager->persist($question);
+                    }
+                    $quizData->setPart($part);
+                    $quizData->setGeneratedByAI(false);
+                    $this->entityManager->persist($quizData);
+                } elseif ($quizMode === 'ai') {
+                    $generatedQuiz = $this->quizService->getOrGeneratePartQuiz($this->getUser(), $part, $quizMode);
+                    if ($generatedQuiz) {
+                        if (!$this->entityManager->contains($generatedQuiz)) {
+                            $generatedQuiz->setPart($part);
+                            $this->entityManager->persist($generatedQuiz);
+                        }
+                        $part->setQuiz($generatedQuiz);
+                    }
+                }
+
+                $course->addPart($part);
+                $this->entityManager->persist($part);
+            }
+
+            $finalQuizData = $form->get('finalQuiz')->getData();
+            $finalQuizMode = $form->get('quizMode')->getData() ?? 'ai';
+            if ($finalQuizMode === 'manual' && $finalQuizData instanceof Quiz) {
+                $questions = $finalQuizData->getQuestions();
                 foreach ($questions as $question) {
-                    if ($question->getType() === 'mcq' && count($question->getOptions()) !== 4) {
-                        $this->addFlash('error', 'MCQ questions in part ' . ($index + 1) . ' quiz must have exactly 4 options.');
-                        return $this->render('course_create.html.twig', ['form' => $form->createView()]);
-                    }
-                    if ($question->getType() === 'numeric' && !is_numeric($question->getCorrectAnswer())) {
-                        $this->addFlash('error', 'Numeric questions in part ' . ($index + 1) . ' quiz must have a numeric correct answer.');
-                        return $this->render('course_create.html.twig', ['form' => $form->createView()]);
-                    }
-                    $question->setQuiz($quizData);
+                    $question->setQuiz($finalQuizData);
                     $this->entityManager->persist($question);
                 }
-                $quizData->setPart($part);
-                $quizData->setGeneratedByAI(false);
-                $this->entityManager->persist($quizData);
-            } elseif ($quizMode === 'ai') {
-                $generatedQuiz = $this->quizService->getOrGeneratePartQuiz($this->getUser(), $part, $quizMode); // Pass user
-                if ($generatedQuiz) {
-                    if (!$this->entityManager->contains($generatedQuiz)) {
-                        $generatedQuiz->setPart($part); // Ensure bidirectional relationship
-                        $this->entityManager->persist($generatedQuiz);
+                $finalQuizData->setCourse($course);
+                $finalQuizData->setGeneratedByAI(false);
+                $this->entityManager->persist($finalQuizData);
+                $course->setFinalQuiz($finalQuizData);
+            } elseif ($finalQuizMode === 'ai') {
+                $generatedFinalQuiz = $this->quizService->getOrGenerateFinalQuiz($this->getUser(), $course, $finalQuizMode);
+                if ($generatedFinalQuiz) {
+                    if (!$this->entityManager->contains($generatedFinalQuiz)) {
+                        $generatedFinalQuiz->setCourse($course);
+                        $this->entityManager->persist($generatedFinalQuiz);
                     }
-                    $part->setQuiz($generatedQuiz);
+                    $course->setFinalQuiz($generatedFinalQuiz);
                 }
             }
 
-            $course->addPart($part); // Ensure part is linked to course
-            $this->entityManager->persist($part);
-        }
+            // Log entity state before flush
+            $this->logger->info('Course: ' . json_encode([
+                'id' => $course->getId(),
+                'title' => $course->getTitle(),
+                'createdBy' => $course->getCreatedBy() ? $course->getCreatedBy()->getId() : null,
+                'parts' => array_map(fn($part) => [
+                    'id' => $part->getId(),
+                    'title' => $part->getTitle(),
+                    'writtenSection' => $part->getWrittenSection() ? $part->getWrittenSection()->getId() : null,
+                    'quiz' => $part->getQuiz() ? $part->getQuiz()->getId() : null,
+                    'video' => $part->getVideo() ? $part->getVideo()->getId() : null,
+                ], $course->getParts()->toArray()),
+                'finalQuiz' => $course->getFinalQuiz() ? $course->getFinalQuiz()->getId() : null,
+            ], JSON_PRETTY_PRINT));
 
-        $finalQuizData = $form->get('finalQuiz')->getData();
-        $finalQuizMode = $form->get('quizMode')->getData() ?? 'ai';
-        if ($finalQuizMode === 'manual' && $finalQuizData instanceof Quiz) {
-            $questions = $finalQuizData->getQuestions();
-            if (count($questions) !== 10) {
-                $this->addFlash('error', 'Final quiz must have exactly 10 questions.');
+            try {
+                $this->entityManager->flush();
+                $this->addFlash('success', 'Course created successfully!');
+                return $this->redirectToRoute('app_course_details', ['id' => $course->getId()]);
+            } catch (\Exception $e) {
+                $this->logger->error('Failed to create course: ' . $e->getMessage() . ' at ' . $e->getFile() . ':' . $e->getLine());
+                $this->addFlash('error', 'Failed to create course: ' . $e->getMessage());
                 return $this->render('course_create.html.twig', ['form' => $form->createView()]);
             }
-            foreach ($questions as $question) {
-                if ($question->getType() === 'mcq' && count($question->getOptions()) !== 4) {
-                    $this->addFlash('error', 'MCQ questions in final quiz must have exactly 4 options.');
-                    return $this->render('course_create.html.twig', ['form' => $form->createView()]);
-                }
-                if ($question->getType() === 'numeric' && !is_numeric($question->getCorrectAnswer())) {
-                    $this->addFlash('error', 'Numeric questions in final quiz must have a numeric correct answer.');
-                    return $this->render('course_create.html.twig', ['form' => $form->createView()]);
-                }
-                $question->setQuiz($finalQuizData);
-                $this->entityManager->persist($question);
+        } elseif ($form->isSubmitted()) {
+            $errors = [];
+            foreach ($form->getErrors(true, true) as $error) {
+                $errors[] = $error->getMessage();
             }
-            $finalQuizData->setCourse($course);
-            $finalQuizData->setGeneratedByAI(false);
-            $this->entityManager->persist($finalQuizData);
-            $course->setFinalQuiz($finalQuizData);
-        } elseif ($finalQuizMode === 'ai') {
-            $generatedFinalQuiz = $this->quizService->getOrGenerateFinalQuiz($this->getUser(), $course, $finalQuizMode); // Pass user
-            if ($generatedFinalQuiz) {
-                if (!$this->entityManager->contains($generatedFinalQuiz)) {
-                    $generatedFinalQuiz->setCourse($course); // Ensure bidirectional relationship
-                    $this->entityManager->persist($generatedFinalQuiz);
-                }
-                $course->setFinalQuiz($generatedFinalQuiz);
-            }
+            $this->logger->error('Form validation errors: ' . json_encode($errors));
+            $this->addFlash('error', 'Form validation failed: ' . implode(', ', $errors));
         }
 
-        try {
-            $this->entityManager->flush();
-            $this->addFlash('success', 'Course created successfully!');
-            return $this->redirectToRoute('app_course_details', ['id' => $course->getId()]);
-        } catch (\Exception $e) {
-            $this->logger->error('Failed to create course: ' . $e->getMessage() . ' at ' . $e->getFile() . ':' . $e->getLine());
-            $this->addFlash('error', 'Failed to create course: ' . $e->getMessage());
-            return $this->render('course_create.html.twig', ['form' => $form->createView()]);
-        }
-    } elseif ($form->isSubmitted()) {
-        $errors = [];
-        foreach ($form->getErrors(true, true) as $error) {
-            $errors[] = $error->getMessage();
-        }
-        $this->logger->error('Form validation errors: ' . json_encode($errors));
-        $this->addFlash('error', 'Form validation failed: ' . implode(', ', $errors));
+        return $this->render('course_create.html.twig', ['form' => $form->createView()]);
     }
 
-    return $this->render('course_create.html.twig', ['form' => $form->createView()]);
-}
+    #[Route('/course/{id}/update', name: 'app_course_update', methods: ['GET', 'POST'])]
+    public function update(int $id, Request $request, \Symfony\Component\String\Slugger\SluggerInterface $slugger): Response
+    {
+        $course = $this->entityManager->getRepository(Course::class)->find($id);
+        if (!$course) {
+            throw $this->createNotFoundException('Course not found');
+        }
 
-    #[Route('/course/{id}/join', name: 'app_join_course')]
+        if (!$this->isGranted('ROLE_ADMIN') && (!$this->isGranted('ROLE_TEACHER') || $course->getCreatedBy() !== $this->getUser())) {
+            throw $this->createAccessDeniedException('You do not have permission to update this course');
+        }
+
+        $form = $this->createForm(CourseType::class, $course, [
+            'csrf_protection' => true,
+            'csrf_field_name' => '_token',
+            'csrf_token_id' => 'course_update',
+        ]);
+        $form->handleRequest($request);
+
+        $this->logger->info('Update form submitted for course ID ' . $id . ': ' . json_encode($request->request->all(), JSON_PRETTY_PRINT));
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $this->logger->info('Form is valid, processing data for course ID ' . $id);
+            $imageFile = $form->get('image')->getData();
+            if ($imageFile instanceof \Symfony\Component\HttpFoundation\File\UploadedFile) {
+                $newFilename = uniqid('course-') . '.' . $imageFile->guessExtension();
+                try {
+                    $imageFile->move($this->getParameter('course_images_directory'), $newFilename);
+                    $course->setImage($newFilename);
+                } catch (FileException $e) {
+                    $this->logger->error('Course image upload failed for course ID ' . $id . ': ' . $e->getMessage());
+                    $this->addFlash('error', 'Failed to upload course image: ' . $e->getMessage());
+                    return $this->render('course_update.html.twig', ['form' => $form->createView(), 'course' => $course]);
+                }
+            }
+
+            // Handle parts
+            $existingParts = $course->getParts()->toArray();
+            $submittedParts = $form->get('parts')->getData()->toArray();
+            $existingPartIds = array_map(fn($part) => $part->getId(), $existingParts);
+            $submittedPartIds = array_map(fn($part) => $part->getId(), $submittedParts);
+
+            // Remove parts that are no longer in the form
+            foreach ($existingParts as $part) {
+                if (!in_array($part->getId(), $submittedPartIds)) {
+                    $course->removePart($part);
+                    $this->entityManager->remove($part);
+                }
+            }
+
+            foreach ($form->get('parts') as $index => $partForm) {
+                $part = $partForm->getData();
+                $quizData = $partForm->get('quiz')->getData();
+                $quizMode = $partForm->get('quizMode')->getData() ?? 'ai';
+                $videoFile = $partForm->get('video')->get('filename')->getData();
+                $mediaUploads = $partForm->get('writtenSection')->get('mediaUploads')->getData() ?? [];
+                $mediaUrls = $partForm->get('writtenSection')->get('mediaUrls')->getData() ?? [];
+
+                // Persist WrittenSection
+                $writtenSection = $part->getWrittenSection();
+                if ($writtenSection && !$writtenSection->getId()) {
+                    $writtenSection->setPart($part);
+                    $this->entityManager->persist($writtenSection);
+                }
+
+                if ($this->purifier && $writtenSection && $writtenSection->getContent()) {
+                    try {
+                        $sanitizedContent = $this->purifier->purify($writtenSection->getContent());
+                        $writtenSection->setContent($sanitizedContent);
+                    } catch (\Exception $e) {
+                        $this->logger->warning('Failed to purify written content for part ' . ($index + 1) . ': ' . $e->getMessage());
+                    }
+                }
+
+                // Handle media URLs (append to content as <img> or <video> tags)
+                foreach ($mediaUrls as $url) {
+                    if (filter_var($url, FILTER_VALIDATE_URL)) {
+                        $ext = pathinfo(parse_url($url, PHP_URL_PATH), PATHINFO_EXTENSION);
+                        if (in_array(strtolower($ext), ['jpg', 'jpeg', 'png', 'gif'])) {
+                            $writtenSection->setContent($writtenSection->getContent() . '<img src="' . $url . '" alt="Media URL">');
+                        } elseif (in_array(strtolower($ext), ['mp4', 'webm', 'ogg'])) {
+                            $writtenSection->setContent($writtenSection->getContent() . '<video src="' . $url . '" controls></video>');
+                        }
+                    }
+                }
+
+                // Handle media uploads
+                foreach ($mediaUploads as $mediaFile) {
+                    if ($mediaFile instanceof \Symfony\Component\HttpFoundation\File\UploadedFile) {
+                        $newFilename = uniqid('media-') . '.' . $mediaFile->guessExtension();
+                        try {
+                            $mediaFile->move($this->getParameter('written_media_directory'), $newFilename);
+                            $mediaUpload = new MediaUpload();
+                            $mediaUpload->setUrl($newFilename);  // Fixed: Use setUrl instead of setFilename
+                            $mediaUpload->setType(pathinfo($newFilename, PATHINFO_EXTENSION)); // Simplified type
+                            $mediaUpload->setUploadedAt(new \DateTime());
+                            $mediaUpload->setUploadedBy($this->getUser());
+                            $mediaUpload->setWrittenSection($writtenSection);
+                            $this->entityManager->persist($mediaUpload);
+                            $writtenSection->addMediaUpload($mediaUpload);
+                        } catch (FileException $e) {
+                            $this->logger->error('Media upload failed for part ' . ($index + 1) . ': ' . $e->getMessage());
+                            $this->addFlash('error', 'Failed to upload media for part ' . ($index + 1) . ': ' . $e->getMessage());
+                            return $this->render('course_update.html.twig', ['form' => $form->createView(), 'course' => $course]);
+                        }
+                    }
+                }
+
+                // Persist Video
+                if ($videoFile instanceof \Symfony\Component\HttpFoundation\File\UploadedFile) {
+                    $newFilename = uniqid('video-') . '.' . $videoFile->guessExtension();
+                    try {
+                        $videoFile->move($this->getParameter('part_videos_directory'), $newFilename);
+                        $video = $part->getVideo() ?: new Video();
+                        $video->setFilename($newFilename);
+                        $video->setDescription($partForm->get('video')->get('description')->getData());
+                        $video->setDuration($partForm->get('video')->get('duration')->getData());
+                        $video->setPart($part);
+                        $this->entityManager->persist($video);
+                        $part->setVideo($video);
+                    } catch (FileException $e) {
+                        $this->logger->error('Video upload failed for part ' . ($index + 1) . ': ' . $e->getMessage());
+                        $this->addFlash('error', 'Failed to upload video for part ' . ($index + 1) . ': ' . $e->getMessage());
+                        return $this->render('course_update.html.twig', ['form' => $form->createView(), 'course' => $course]);
+                    }
+                }
+
+                // Handle Quiz
+                if ($quizMode === 'manual' && $quizData instanceof Quiz) {
+                    $questions = $quizData->getQuestions();
+                    foreach ($questions as $question) {
+                        $question->setQuiz($quizData);
+                        if (!$this->entityManager->contains($question)) {
+                            $this->entityManager->persist($question);
+                        }
+                    }
+                    $quizData->setPart($part);
+                    $quizData->setGeneratedByAI(false);
+                    if (!$this->entityManager->contains($quizData)) {
+                        $this->entityManager->persist($quizData);
+                    }
+                    $part->setQuiz($quizData);
+                } elseif ($quizMode === 'ai') {
+                    $existingQuiz = $part->getQuiz();
+                    if ($existingQuiz && $existingQuiz->isGeneratedByAI()) {
+                        $part->setQuiz($existingQuiz);
+                    } else {
+                        $generatedQuiz = $this->quizService->getOrGeneratePartQuiz($this->getUser(), $part, $quizMode);
+                        if ($generatedQuiz) {
+                            if (!$this->entityManager->contains($generatedQuiz)) {
+                                $generatedQuiz->setPart($part);
+                                $this->entityManager->persist($generatedQuiz);
+                            }
+                            $part->setQuiz($generatedQuiz);
+                        }
+                    }
+                }
+
+                if (!$course->getParts()->contains($part)) {
+                    $course->addPart($part);
+                }
+                if (!$this->entityManager->contains($part)) {
+                    $this->entityManager->persist($part);
+                }
+            }
+
+            // Handle Final Quiz
+            $finalQuizData = $form->get('finalQuiz')->getData();
+            $finalQuizMode = $form->get('quizMode')->getData() ?? 'ai';
+            if ($finalQuizMode === 'manual' && $finalQuizData instanceof Quiz) {
+                $questions = $finalQuizData->getQuestions();
+                foreach ($questions as $question) {
+                    $question->setQuiz($finalQuizData);
+                    if (!$this->entityManager->contains($question)) {
+                        $this->entityManager->persist($question);
+                    }
+                }
+                $finalQuizData->setCourse($course);
+                $finalQuizData->setGeneratedByAI(false);
+                if (!$this->entityManager->contains($finalQuizData)) {
+                    $this->entityManager->persist($finalQuizData);
+                }
+                $course->setFinalQuiz($finalQuizData);
+            } elseif ($finalQuizMode === 'ai') {
+                $existingFinalQuiz = $course->getFinalQuiz();
+                if ($existingFinalQuiz && $existingFinalQuiz->isGeneratedByAI()) {
+                    $course->setFinalQuiz($existingFinalQuiz);
+                } else {
+                    $generatedFinalQuiz = $this->quizService->getOrGenerateFinalQuiz($this->getUser(), $course, $finalQuizMode);
+                    if ($generatedFinalQuiz) {
+                        if (!$this->entityManager->contains($generatedFinalQuiz)) {
+                            $generatedFinalQuiz->setCourse($course);
+                            $this->entityManager->persist($generatedFinalQuiz);
+                        }
+                        $course->setFinalQuiz($generatedFinalQuiz);
+                    }
+                }
+            }
+
+            // Log entity state before flush
+            $this->logger->info('Course update: ' . json_encode([
+                'id' => $course->getId(),
+                'title' => $course->getTitle(),
+                'createdBy' => $course->getCreatedBy() ? $course->getCreatedBy()->getId() : null,
+                'parts' => array_map(fn($part) => [
+                    'id' => $part->getId(),
+                    'title' => $part->getTitle(),
+                    'writtenSection' => $part->getWrittenSection() ? $part->getWrittenSection()->getId() : null,
+                    'quiz' => $part->getQuiz() ? $part->getQuiz()->getId() : null,
+                    'video' => $part->getVideo() ? $part->getVideo()->getId() : null,
+                ], $course->getParts()->toArray()),
+                'finalQuiz' => $course->getFinalQuiz() ? $course->getFinalQuiz()->getId() : null,
+            ], JSON_PRETTY_PRINT));
+
+            try {
+                $this->entityManager->flush();
+                $this->addFlash('success', 'Course updated successfully!');
+                return $this->redirectToRoute('app_course_details', ['id' => $course->getId()]);
+            } catch (\Exception $e) {
+                $this->logger->error('Failed to update course ID ' . $id . ': ' . $e->getMessage() . ' at ' . $e->getFile() . ':' . $e->getLine());
+                $this->addFlash('error', 'Failed to update course: ' . $e->getMessage());
+                return $this->render('course_update.html.twig', ['form' => $form->createView(), 'course' => $course]);
+            }
+        } elseif ($form->isSubmitted()) {
+            $errors = [];
+            foreach ($form->getErrors(true, true) as $error) {
+                $errors[] = $error->getMessage();
+            }
+            $this->logger->error('Form validation errors for course ID ' . $id . ': ' . json_encode($errors));
+            $this->addFlash('error', 'Form validation failed: ' . implode(', ', $errors));
+        }
+
+        return $this->render('course_update.html.twig', [
+            'form' => $form->createView(),
+            'course' => $course,
+        ]);
+    }
+
+    #[Route('/course/{id}/join', name: 'app_join_course', methods: ['GET', 'POST'])]
     public function join(int $id, Request $request): Response
     {
         $course = $this->entityManager->getRepository(Course::class)->find($id);
@@ -250,7 +545,7 @@ public function create(Request $request): Response
         }
     }
 
-    #[Route('/course/{id}', name: 'app_course_details')]
+    #[Route('/course/{id}', name: 'app_course_details', methods: ['GET'])]
     public function details(int $id): Response
     {
         $course = $this->entityManager->getRepository(Course::class)->find($id);
@@ -288,6 +583,7 @@ public function create(Request $request): Response
 
                 $part_quiz = $current_part->getQuiz() ?: $this->quizService->getOrGeneratePartQuiz($user, $current_part, $quizMode);
                 if ($part_quiz && !$part_quiz->getId()) {
+                    $part_quiz->setPart($current_part);
                     $this->entityManager->persist($part_quiz);
                     $this->entityManager->flush();
                 }
@@ -301,6 +597,7 @@ public function create(Request $request): Response
             if ($is_course_completed && !$final_quiz) {
                 $final_quiz = $course->getFinalQuiz() ?: $this->quizService->getOrGenerateFinalQuiz($user, $course, $quizMode);
                 if ($final_quiz && !$final_quiz->getId()) {
+                    $final_quiz->setCourse($course);
                     $this->entityManager->persist($final_quiz);
                     $this->entityManager->flush();
                 }
@@ -320,147 +617,7 @@ public function create(Request $request): Response
         ]);
     }
 
-    #[Route('/course/{id}/update', name: 'app_course_update', methods: ['GET', 'POST'])]
-    public function update(int $id, Request $request): Response
-    {
-        $course = $this->entityManager->getRepository(Course::class)->find($id);
-        if (!$course) {
-            throw $this->createNotFoundException('Course not found');
-        }
-
-        if (!$this->isGranted('ROLE_ADMIN') && (!$this->isGranted('ROLE_TEACHER') || $course->getCreatedBy() !== $this->getUser())) {
-            throw $this->createAccessDeniedException('You do not have permission to update this course');
-        }
-
-        $form = $this->createForm(CourseType::class, $course, [
-            'csrf_protection' => true,
-            'csrf_field_name' => '_token',
-            'csrf_token_id' => 'course_update',
-        ]);
-        $form->handleRequest($request);
-
-        $this->logger->info('Update form submitted for course ID ' . $id . ': ' . json_encode($request->request->all(), JSON_PRETTY_PRINT));
-
-        if ($form->isSubmitted() && $form->isValid()) {
-            $this->logger->info('Form is valid, processing data for course ID ' . $id);
-            $imageFile = $form->get('image')->getData();
-            if ($imageFile instanceof \Symfony\Component\HttpFoundation\File\UploadedFile) {
-                $newFilename = uniqid('course-') . '.' . $imageFile->guessExtension();
-                try {
-                    $imageFile->move($this->getParameter('course_images_directory'), $newFilename);
-                    $course->setImage($newFilename);
-                } catch (FileException $e) {
-                    $this->logger->error('Course image upload failed for course ID ' . $id . ': ' . $e->getMessage());
-                    $this->addFlash('error', 'Failed to upload course image: ' . $e->getMessage());
-                    return $this->render('course_update.html.twig', ['form' => $form->createView(), 'course' => $course]);
-                }
-            }
-
-            $this->entityManager->persist($course);
-
-            foreach ($form->get('parts') as $index => $partForm) {
-                $part = $partForm->getData();
-                $quizData = $partForm->get('quiz')->getData();
-                $quizMode = $partForm->get('quizMode')->getData() ?? 'ai';
-
-                if ($this->purifier && $part->getWrittenSection() && $part->getWrittenSection()->getContent()) {
-                    try {
-                        $sanitizedContent = $this->purifier->purify($part->getWrittenSection()->getContent());
-                        $part->getWrittenSection()->setContent($sanitizedContent);
-                        $this->entityManager->persist($part->getWrittenSection());
-                    } catch (\Exception $e) {
-                        $this->logger->warning('Failed to purify written content for part ' . ($index + 1) . ' in course ID ' . $id . ': ' . $e->getMessage());
-                    }
-                }
-
-                if ($quizMode === 'manual' && $quizData instanceof Quiz) {
-                    $questions = $quizData->getQuestions();
-                    if (count($questions) !== 10) {
-                        $this->addFlash('error', 'Part ' . ($index + 1) . ' quiz must have exactly 10 questions.');
-                        return $this->render('course_update.html.twig', ['form' => $form->createView(), 'course' => $course]);
-                    }
-                    foreach ($questions as $question) {
-                        if ($question->getType() === 'mcq' && count($question->getOptions()) !== 4) {
-                            $this->addFlash('error', 'MCQ questions in part ' . ($index + 1) . ' quiz must have exactly 4 options.');
-                            return $this->render('course_update.html.twig', ['form' => $form->createView(), 'course' => $course]);
-                        }
-                        if ($question->getType() === 'numeric' && !is_numeric($question->getCorrectAnswer())) {
-                            $this->addFlash('error', 'Numeric questions in part ' . ($index + 1) . ' quiz must have a numeric correct answer.');
-                            return $this->render('course_update.html.twig', ['form' => $form->createView(), 'course' => $course]);
-                        }
-                        $question->setQuiz($quizData);
-                        $this->entityManager->persist($question);
-                    }
-                    $quizData->setPart($part);
-                    $quizData->setGeneratedByAI(false);
-                    $this->entityManager->persist($quizData);
-                } elseif ($quizMode === 'ai') {
-                    $this->entityManager->persist($part);
-                    $generatedQuiz = $this->quizService->getOrGeneratePartQuiz(null, $part, $quizMode);
-                    if ($generatedQuiz && !$generatedQuiz->getId()) {
-                        $this->entityManager->persist($generatedQuiz);
-                    }
-                    $part->setQuiz($generatedQuiz);
-                }
-                $this->entityManager->persist($part);
-            }
-
-            $finalQuizData = $form->get('finalQuiz')->getData();
-            $finalQuizMode = $form->get('quizMode')->getData() ?? 'ai';
-            if ($finalQuizMode === 'manual' && $finalQuizData instanceof Quiz) {
-                $questions = $finalQuizData->getQuestions();
-                if (count($questions) !== 10) {
-                    $this->addFlash('error', 'Final quiz must have exactly 10 questions.');
-                    return $this->render('course_update.html.twig', ['form' => $form->createView(), 'course' => $course]);
-                }
-                foreach ($questions as $question) {
-                    if ($question->getType() === 'mcq' && count($question->getOptions()) !== 4) {
-                        $this->addFlash('error', 'MCQ questions in final quiz must have exactly 4 options.');
-                        return $this->render('course_update.html.twig', ['form' => $form->createView(), 'course' => $course]);
-                    }
-                    if ($question->getType() === 'numeric' && !is_numeric($question->getCorrectAnswer())) {
-                        $this->addFlash('error', 'Numeric questions in final quiz must have a numeric correct answer.');
-                        return $this->render('course_update.html.twig', ['form' => $form->createView(), 'course' => $course]);
-                    }
-                    $question->setQuiz($finalQuizData);
-                    $this->entityManager->persist($question);
-                }
-                $finalQuizData->setCourse($course);
-                $finalQuizData->setGeneratedByAI(false);
-                $course->setFinalQuiz($finalQuizData);
-                $this->entityManager->persist($finalQuizData);
-            } elseif ($finalQuizMode === 'ai') {
-                $generatedFinalQuiz = $this->quizService->getOrGenerateFinalQuiz(null, $course, $finalQuizMode);
-                if ($generatedFinalQuiz && !$generatedFinalQuiz->getId()) {
-                    $this->entityManager->persist($generatedFinalQuiz);
-                }
-                $course->setFinalQuiz($generatedFinalQuiz);
-            }
-
-            try {
-                $this->entityManager->flush();
-                $this->addFlash('success', 'Course updated successfully!');
-                return $this->redirectToRoute('app_course_details', ['id' => $course->getId()]);
-            } catch (\Exception $e) {
-                $this->logger->error('Failed to update course ID ' . $id . ': ' . $e->getMessage());
-                $this->addFlash('error', 'Failed to update course due to a database error: ' . $e->getMessage());
-            }
-        } elseif ($form->isSubmitted()) {
-            $errors = [];
-            foreach ($form->getErrors(true, true) as $error) {
-                $errors[] = $error->getMessage();
-            }
-            $this->logger->error('Form validation errors for course ID ' . $id . ': ' . json_encode($errors));
-            $this->addFlash('error', 'Form validation failed: ' . implode(', ', $errors));
-        }
-
-        return $this->render('course_update.html.twig', [
-            'form' => $form->createView(),
-            'course' => $course
-        ]);
-    }
-
-    #[Route('/course/{id}', name: 'app_course_delete', methods: ['POST'])]
+    #[Route('/course/{id}/delete', name: 'app_course_delete', methods: ['POST'])]
     public function delete(int $id, Request $request, EntityManagerInterface $entityManager): Response
     {
         $course = $entityManager->getRepository(Course::class)->find($id);

@@ -11,6 +11,7 @@ use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Form\FormEvent;
 use Symfony\Component\Form\FormEvents;
+use Symfony\Component\Form\FormError;
 
 class ManualQuizType extends AbstractType
 {
@@ -19,12 +20,14 @@ class ManualQuizType extends AbstractType
         $builder
             ->add('title', TextType::class, [
                 'label' => 'Quiz Title',
-                'attr' => ['class' => 'form-control', 'placeholder' => 'Enter quiz title'],
+                'attr' => [
+                    'class' => 'form-control',
+                    'placeholder' => 'Enter quiz title'
+                ],
                 'required' => true,
             ])
             ->add('generatedByAI', HiddenType::class, [
                 'mapped' => true,
-                'data' => true, // Enforce default true
                 'required' => false,
             ])
             ->add('questions', CollectionType::class, [
@@ -36,15 +39,38 @@ class ManualQuizType extends AbstractType
                 'required' => false,
                 'attr' => ['class' => 'question-collection', 'data-max-questions' => 10],
                 'entry_options' => ['label' => false],
-                'prototype_name' => '__question__',
                 'prototype' => true,
             ]);
 
+        // Initialize generatedByAI based on quiz data
+        $builder->addEventListener(FormEvents::PRE_SET_DATA, function (FormEvent $event) {
+            $form = $event->getForm();
+            $quiz = $event->getData();
+            if ($quiz instanceof Quiz) {
+                $form->get('generatedByAI')->setData($quiz->isGeneratedByAI() ? '1' : '0');
+                // Ensure questions are initialized
+                $form->get('questions')->setData($quiz->getQuestions());
+            }
+        });
+
+        // Preserve generatedByAI on submission
         $builder->addEventListener(FormEvents::PRE_SUBMIT, function (FormEvent $event) {
             $data = $event->getData();
-            if (is_array($data) && !isset($data['generatedByAI'])) {
-                $data['generatedByAI'] = true;
+            $quiz = $event->getForm()->getData();
+            if (is_array($data) && $quiz instanceof Quiz) {
+                $data['generatedByAI'] = $quiz->isGeneratedByAI() ? '1' : '0';
                 $event->setData($data);
+            }
+        });
+
+        // Validate quiz has exactly 10 questions
+        $builder->addEventListener(FormEvents::POST_SUBMIT, function (FormEvent $event) {
+            $form = $event->getForm();
+            $quiz = $form->getData();
+            if ($quiz instanceof Quiz) {
+                if (count($quiz->getQuestions()) !== 10) {
+                    $form->addError(new FormError('Quiz must have exactly 10 questions.'));
+                }
             }
         });
     }

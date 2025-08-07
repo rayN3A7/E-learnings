@@ -12,202 +12,248 @@
             --error-color: #e74c3c;
             --warning-color: #f39c12;
             --text-color: #2d3748;
-            --border-radius: 8px;
-            --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            --border-radius: 16px;
+            --shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+            --transition: all 0.4s ease;
+            --gradient-bg: linear-gradient(135deg, #f0f4f8, #ffffff);
         }
-
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             color: var(--text-color);
-            background-color: #f8fafc;
+            background: var(--gradient-bg);
         }
-
         .course-header {
             background: linear-gradient(135deg, var(--primary-color), #6ab0ff);
             color: white;
-            padding: 2rem 0;
+            padding: 4.5rem 0;
             border-radius: var(--border-radius);
-            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+            position: relative;
+            margin-bottom: 3rem;
+            animation: fadeInHeader 1s ease-out;
         }
-
+        @keyframes fadeInHeader {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
         .course-header h1 {
-            font-size: 2.25rem;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
+            font-size: 2.75rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
         }
-
         .course-header a {
             color: #e2e8f0;
             text-decoration: none;
             transition: color 0.3s ease;
         }
-
         .course-header a:hover {
             color: #ffffff;
         }
-
         .content-section {
             background: white;
-            padding: 2rem;
             border-radius: var(--border-radius);
             box-shadow: var(--shadow);
-            margin-bottom: 2rem;
+            padding: 2.5rem;
+            transition: var(--transition);
+            animation: fadeInContent 1.2s ease-out;
         }
-
+        @keyframes fadeInContent {
+            from { opacity: 0; transform: scale(0.98); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .content-section:hover {
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+        }
         .tutorial, .video-section, .written-section, .geogebra-container, .quiz-section {
-            margin-bottom: 2rem;
-            padding: 1.5rem;
             background: var(--secondary-color);
+            padding: 2rem;
             border-radius: var(--border-radius);
-            transition: transform 0.3s ease;
+            margin-bottom: 2rem;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
+            transition: var(--transition);
+            opacity: 0;
+            animation: slideUpFade 0.8s forwards;
         }
-
+        @keyframes slideUpFade {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .video-section { animation-delay: 0.2s; }
+        .written-section { animation-delay: 0.4s; }
+        .geogebra-container { animation-delay: 0.6s; }
+        .tutorial { animation-delay: 0.8s; }
+        .quiz-section { animation-delay: 1s; }
+        .tutorial:hover, .video-section:hover, .written-section:hover, .geogebra-container:hover, .quiz-section:hover {
+            box-shadow: inset 0 4px 8px rgba(0, 0, 0, 0.1);
+            transform: translateY(-4px);
+        }
         .geogebra-container {
-            min-height: 400px; /* Ensure minimum height */
+            min-height: 500px;
             position: relative;
         }
-
         .geogebra-container #ggb-element-{{ part.id }} {
             width: 100% !important;
             height: 100% !important;
-            min-height: 400px; /* Match the desired height */
+            min-height: 500px;
         }
-
         .quiz-section {
             position: relative;
         }
-
         .quiz-question {
-            opacity: 0;
-            transform: translateY(20px);
-            animation: slideIn 0.5s ease forwards;
-            animation-delay: calc(0.1s * var(--question-index));
-            margin-bottom: 1.5rem;
+            margin-bottom: 2rem;
+            transition: var(--transition);
         }
-
-        @keyframes slideIn {
-            to { opacity: 1; transform: translateY(0); }
+        .quiz-question:hover {
+            background: rgba(0,0,0,0.02);
         }
-
         .form-check {
-            margin-bottom: 0.75rem;
-            padding-left: 2rem;
+            margin-bottom: 1.25rem;
+            padding-left: 2.5rem;
         }
-
         .form-check-input {
             cursor: pointer;
         }
-
         .form-check-label {
-            font-size: 1rem;
+            font-size: 1.1rem;
             color: var(--text-color);
         }
-
         .correct-answer {
-            background-color: rgba(46, 204, 113, 0.1);
-            border-left: 4px solid var(--success-color);
-            padding: 0.5rem;
+            background-color: rgba(46, 204, 113, 0.2);
+            border-left: 6px solid var(--success-color);
+            padding: 1rem;
         }
-
         .incorrect-answer {
-            background-color: rgba(231, 76, 60, 0.1);
-            border-left: 4px solid var(--error-color);
-            padding: 0.5rem;
+            background-color: rgba(231, 76, 60, 0.2);
+            border-left: 6px solid var(--error-color);
+            padding: 1rem;
         }
-
         .highlight-previous {
-            background-color: rgba(243, 156, 18, 0.1);
-            border-left: 4px solid var(--warning-color);
-            padding: 0.5rem;
+            background-color: rgba(243, 156, 18, 0.2);
+            border-left: 6px solid var(--warning-color);
+            padding: 1rem;
         }
-
         .progress-bar-container {
             margin-bottom: 1.5rem;
         }
-
         .progress {
-            height: 0.75rem;
-            background-color: #e2e8f0;
+            height: 1rem;
+            background-color: #e5e7eb;
             border-radius: 9999px;
             overflow: hidden;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
         }
-
         .progress-bar {
-            background-color: var(--primary-color);
-            transition: width 0.5s ease;
+            background: linear-gradient(90deg, var(--primary-color), #3b82f6);
+            transition: width 0.8s ease-in-out;
         }
-
         .btn-primary, .btn-retry, .btn-next {
-            background-color: var(--primary-color);
+            background: linear-gradient(135deg, var(--primary-color), #3b82f6);
             border: none;
-            padding: 0.75rem 1.5rem;
+            padding: 1rem 2rem;
             font-weight: 600;
-            border-radius: var(--border-radius);
-            transition: all 0.3s ease;
+            border-radius: 9999px;
+            color: white;
+            transition: var(--transition);
+            box-shadow: var(--shadow);
         }
-
         .btn-primary:hover, .btn-retry:hover, .btn-next:hover {
-            background-color: #3b82f6;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            background: linear-gradient(135deg, #3b82f6, var(--primary-color));
+            transform: translateY(-3px);
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
         }
-
         .congratulations-modal {
             position: fixed;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
             background: white;
-            padding: 2rem;
+            padding: 2.5rem;
             border-radius: var(--border-radius);
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
             z-index: 1000;
             max-width: 90%;
-            width: 400px;
+            width: 450px;
             text-align: center;
-            animation: popUp 0.5s ease;
+            animation: popUp 0.6s ease;
         }
-
         .congratulations-modal.hidden {
             display: none;
         }
-
         @keyframes popUp {
             from { transform: translate(-50%, -60%) scale(0.9); opacity: 0; }
             to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
         }
-
         .media-urls-container img, .media-urls-container video {
             max-width: 100%;
             border-radius: var(--border-radius);
-            margin-bottom: 1rem;
+            margin-bottom: 1.5rem;
+            transition: var(--transition);
         }
-
+        .media-urls-container img:hover, .media-urls-container video:hover {
+            transform: scale(1.02);
+        }
         .loading-spinner {
             display: none;
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid var(--primary-color);
+            border: 6px solid #f3f3f3;
+            border-top: 6px solid var(--primary-color);
             border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
+            width: 50px;
+            height: 50px;
+            animation: spin 0.7s linear infinite;
         }
-
         @keyframes spin {
             0% { transform: translate(-50%, -50%) rotate(0deg); }
             100% { transform: translate(-50%, -50%) rotate(360deg); }
         }
-
+        .connector-arrow {
+            display: flex;
+            justify-content: center;
+            margin: -1rem 0;
+            opacity: 0.6;
+            transition: var(--transition);
+            position: relative;
+            z-index: 1;
+        }
+        .connector-arrow img {
+            width: 40px;
+            height: auto;
+            animation: hoverArrow 2s infinite ease-in-out;
+        }
+        @keyframes hoverArrow {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(15px); }
+        }
+        .geogebra-container:hover + .connector-arrow,
+        .connector-arrow:hover {
+            opacity: 1;
+            transform: scale(1.1);
+        }
+        .geogebra-container:hover + .connector-arrow img {
+            animation-duration: 1.5s;
+        }
+        .ai-quiz .quiz-question {
+            opacity: 0;
+            transform: translateY(30px);
+            animation: slideIn 0.7s ease forwards;
+            animation-delay: calc(0.2s * var(--question-index));
+        }
+        @keyframes slideIn {
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .manual-quiz .quiz-question {
+            margin-bottom: 1.5rem;
+        }
         @media (max-width: 768px) {
-            .course-header { padding: 1.5rem 0; }
-            .course-header h1 { font-size: 1.75rem; }
-            .content-section, .tutorial, .video-section, .written-section, .quiz-section, .geogebra-container { padding: 1rem; }
+            .course-header { padding: 3rem 0; }
+            .course-header h1 { font-size: 2.25rem; }
+            .content-section, .tutorial, .video-section, .written-section, .quiz-section, .geogebra-container { padding: 1.5rem; }
             .congratulations-modal { width: 90%; }
-            .btn-primary, .btn-retry, .btn-next { padding: 0.5rem 1rem; }
+            .btn-primary, .btn-retry, .btn-next { padding: 0.75rem 1.5rem; }
+            .connector-arrow img { width: 30px; }
         }
     </style>
 {% endblock %}
@@ -223,17 +269,10 @@
     <section class="course-content py-5">
         <div class="container">
             <div class="content-section">
-                {% if part.tutorialContent %}
-                    <div class="tutorial">
-                        <h4 class="fw-bold mb-3">Tutorial</h4>
-                        {{ part.tutorialContent|raw }}
-                    </div>
-                {% endif %}
-
                 {% if part.video %}
                     <div class="video-section">
                         <h4 class="fw-bold mb-3">Video Content</h4>
-                        <video controls class="w-100">
+                        <video controls class="w-100" loading="lazy">
                             <source src="{{ asset('uploads/videos/' ~ part.video.filename) }}" type="video/mp4">
                             Your browser does not support the video tag.
                         </video>
@@ -251,9 +290,9 @@
                             <div class="media-urls-container mt-3">
                                 {% for media in part.writtenSection.mediaUploads %}
                                     {% if media.type in ['jpg', 'png', 'gif'] %}
-                                        <img src="{{ media.url }}" alt="Media" class="img-fluid">
+                                        <img src="{{ media.url }}" alt="Media" class="img-fluid" loading="lazy">
                                     {% elseif media.type in ['mp4', 'webm', 'ogg'] %}
-                                        <video controls src="{{ media.url }}" class="img-fluid"></video>
+                                        <video controls src="{{ media.url }}" class="img-fluid" loading="lazy"></video>
                                     {% else %}
                                         <a href="{{ media.url }}" target="_blank" class="btn btn-sm btn-primary">View Media</a>
                                     {% endif %}
@@ -272,6 +311,19 @@
                         <h4 class="fw-bold mb-3">Interactive Graphing</h4>
                         <div class="loading-spinner" id="ggb-spinner-{{ part.id }}"></div>
                         <div id="ggb-element-{{ part.id }}" style="width: 100%; height: 400px;"></div>
+                    </div>
+                {% endif %}
+
+                {% if part.geogebraMaterialId and part.tutorialContent %}
+                    <div class="connector-arrow">
+                        <img src="{{ asset('uploads/images/arrow.png') }}" alt="Down Arrow">
+                    </div>
+                {% endif %}
+
+                {% if part.tutorialContent %}
+                    <div class="tutorial">
+                        <h4 class="fw-bold mb-3">Tutorial</h4>
+                        {{ part.tutorialContent|raw }}
                     </div>
                 {% endif %}
 
@@ -377,7 +429,7 @@
                     ggbScript.defer = true;
                     ggbScript.onload = function() {
                         const ggbContainer = document.getElementById(`ggb-element-${partId}`);
-                        if (gbContainer) {
+                        if (ggbContainer) {
                             const ggbApp = new GGBApplet({
                                 appName: 'graphing',
                                 width: ggbContainer.offsetWidth,
