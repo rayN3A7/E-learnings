@@ -1,0 +1,83 @@
+[
+  {
+    "course_title": "Numerical Analysis: Linear Systems",
+    "part_title": "Introduction to Linear Systems",
+    "content": "Learn basics of linear systems\nLinear systems form the basis of many numerical methods...",
+    "question_type": "",
+    "question": "",
+    "options": [],
+    "correct_answer": ""
+  },
+  {
+    "course_title": "Numerical Analysis: Linear Systems",
+    "part_title": "Gaussian Elimination",
+    "content": "Learn Gaussian elimination techniques\nGaussian elimination is a key algorithm...",
+    "question_type": "",
+    "question": "",
+    "options": [],
+    "correct_answer": ""
+  },
+  {
+    "course_title": "Numerical Analysis: Linear Systems",
+    "part_title": "Iterative Methods",
+    "content": "Introduction to iterative methods like Jacobi\nIterative methods provide efficient solutions...",
+    "question_type": "",
+    "question": "",
+    "options": [],
+    "correct_answer": ""
+  },
+  {
+    "course_title": "Interpolation Lin\u00e9aire",
+    "part_title": "Formule de l\u2019interpolation lin\u00e9aire et d\u00e9monstration",
+    "content": "D\u00e9rivation de la formule de l\u2019interpolation lin\u00e9aire et interpr\u00e9tation graphique avec une droite entre deux points.\n\u2705 Soient deux points \r\n(\r\n\ud835\udc65\r\n0\r\n,\r\n\ud835\udc53\r\n(\r\n\ud835\udc65\r\n0\r\n)\r\n)\r\n(x \r\n0\r\n\u200b\r\n ,f(x \r\n0\r\n\u200b\r\n )) et \r\n(\r\n\ud835\udc65\r\n1\r\n,\r\n\ud835\udc53\r\n(\r\n\ud835\udc65\r\n1\r\n)\r\n)\r\n(x \r\n1\r\n\u200b\r\n ,f(x \r\n1\r\n\u200b\r\n )).\r\n\ud83d\udd22 La formule de l\u2019interpolation lin\u00e9aire est :\r\n\r\n\ud835\udc3f\r\n(\r\n\ud835\udc65\r\n)\r\n=\r\n\ud835\udc53\r\n(\r\n\ud835\udc65\r\n0\r\n)\r\n+\r\n\ud835\udc53\r\n(\r\n\ud835\udc65\r\n1\r\n)\r\n\u2212\r\n\ud835\udc53\r\n(\r\n\ud835\udc65\r\n0\r\n)\r\n\ud835\udc65\r\n1\r\n\u2212\r\n\ud835\udc65\r\n0\r\n(\r\n\ud835\udc65\r\n\u2212\r\n\ud835\udc65\r\n0\r\n)\r\nL(x)=f(x \r\n0\r\n\u200b\r\n )+ \r\nx \r\n1\r\n\u200b\r\n \u2212x \r\n0\r\n\u200b\r\n \r\nf(x \r\n1\r\n\u200b\r\n )\u2212f(x \r\n0\r\n\u200b\r\n )\r\n\u200b\r\n (x\u2212x \r\n0\r\n\u200b\r\n )\r\n\ud83d\udcc9 Cela revient \u00e0 tracer la droite passant par ces deux points.\r\n\ud83e\udde0 Astuce : Cette droite a une pente constante \u00e9gale \u00e0 \r\n\u0394\r\n\ud835\udc66\r\n\u0394\r\n\ud835\udc65\r\n\u0394x\r\n\u0394y\r\n\u200b\r\n .",
+    "question_type": "",
+    "question": "",
+    "options": [],
+    "correct_answer": ""
+  },
+  {
+    "course_title": "Interpollation lineaire",
+    "part_title": "Introduction \u00e0 l'interpolation lin\u00e9aire",
+    "content": "Pr\u00e9sentation g\u00e9n\u00e9rale de la m\u00e9thode d\u2019interpolation lin\u00e9aire, son objectif, et son int\u00e9r\u00eat en analyse num\u00e9rique.\nL\u2019interpolation lin\u00e9aire est une m\u00e9thode simple permettant d\u2019approximer une fonction en reliant deux points connus par une droite.\r\n\ud83d\udd0d Elle est souvent utilis\u00e9e lorsqu\u2019on conna\u00eet des valeurs exp\u00e9rimentales ou num\u00e9riques, mais qu\u2019on souhaite estimer une valeur interm\u00e9diaire.\r\n\ud83d\udccc Objectif : Construire une fonction \r\n\ud835\udc3f\r\n(\r\n\ud835\udc65\r\n)\r\nL(x) telle que \r\n\ud835\udc3f\r\n(\r\n\ud835\udc65\r\n0\r\n)\r\n=\r\n\ud835\udc53\r\n(\r\n\ud835\udc65\r\n0\r\n)\r\nL(x \r\n0\r\n\u200b\r\n )=f(x \r\n0\r\n\u200b\r\n ) et \r\n\ud835\udc3f\r\n(\r\n\ud835\udc65\r\n1\r\n)\r\n=\r\n\ud835\udc53\r\n(\r\n\ud835\udc65\r\n1\r\n)\r\nL(x \r\n1\r\n\u200b\r\n )=f(x \r\n1\r\n\u200b\r\n ), pour interpoler entre \r\n\ud835\udc65\r\n0\r\nx \r\n0\r\n\u200b\r\n  et \r\n\ud835\udc65\r\n1\r\nx \r\n1\r\n\u200b\r\n .",
+    "question_type": "",
+    "question": "",
+    "options": [],
+    "correct_answer": ""
+  },
+  {
+    "course_title": "Interpollation lineaire",
+    "part_title": "Introduction \u00e0 l'interpolation lin\u00e9aire",
+    "content": ": Pr\u00e9sentation g\u00e9n\u00e9rale de la m\u00e9thode d\u2019interpolation lin\u00e9aire, son objectif, et son int\u00e9r\u00eat en analyse num\u00e9rique.",
+    "question_type": "",
+    "question": "",
+    "options": [],
+    "correct_answer": ""
+  },
+  {
+    "course_title": "Interpollation lineaire",
+    "part_title": "adzedz",
+    "content": "zdaada",
+    "question_type": "",
+    "question": "",
+    "options": [],
+    "correct_answer": ""
+  },
+  {
+    "course_title": "Introduction to Numerical Analysis",
+    "part_title": "Bisection Method",
+    "content": "The bisection method finds roots by bisecting intervals.\nThe bisection method repeatedly bisects an interval and selects the subinterval where the function changes sign.",
+    "question_type": "",
+    "question": "",
+    "options": [],
+    "correct_answer": ""
+  },
+  {
+    "course_title": "Introduction to Numerical Analysis",
+    "part_title": "Newton-Raphson Method",
+    "content": "The Newton-Raphson method uses derivatives to find roots.\nThe Newton-Raphson method uses the formula x_{n+1} = x_n - f(x_n)/f'(x_n) to find roots.",
+    "question_type": "",
+    "question": "",
+    "options": [],
+    "correct_answer": ""
+  }
+]
