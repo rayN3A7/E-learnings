@@ -3,27 +3,111 @@
 namespace App\Form;
 
 use App\Entity\Course;
-use App\Entity\Part;
+use App\Entity\Quiz;
+use App\Form\ManualQuizType;
+use App\Form\PartType;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\CollectionType;
-use Symfony\Component\Form\Extension\Core\Type\TextType;
+use Symfony\Component\Form\Extension\Core\Type\FileType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
+use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
+use Symfony\Component\Form\FormEvent;
+use Symfony\Component\Form\FormEvents;
 
 class CourseType extends AbstractType
 {
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
-            ->add('title', TextType::class)
-            ->add('description', TextareaType::class, ['required' => false])
+            ->add('title', TextType::class, [
+                'label' => 'Course Title',
+                'attr' => ['class' => 'form-control', 'placeholder' => 'Enter course title'],
+                'required' => true,
+            ])
+            ->add('description', TextareaType::class, [
+                'label' => 'Course Description',
+                'attr' => ['class' => 'form-control', 'placeholder' => 'Describe your course'],
+                'required' => false,
+            ])
+            ->add('image', FileType::class, [
+                'label' => 'Course Image',
+                'mapped' => false,
+                'required' => false,
+                'attr' => ['class' => 'form-control'],
+            ])
             ->add('parts', CollectionType::class, [
                 'entry_type' => PartType::class,
+                'entry_options' => ['label' => false],
                 'allow_add' => true,
                 'allow_delete' => true,
                 'by_reference' => false,
+                'label' => 'Course Parts',
+                'required' => false,
+                'attr' => ['class' => 'parts-collection'],
+                'prototype' => true,
+            ])
+            ->add('quizMode', ChoiceType::class, [
+                'label' => 'Final Quiz Mode',
+                'choices' => [
+                    'Manual' => 'manual',
+                    'AI-Generated' => 'ai',
+                ],
+                'mapped' => false,
+                'attr' => ['class' => 'form-control quiz-mode'],
+                'required' => true,
+            ])
+            ->add('finalQuiz', ManualQuizType::class, [
+                'label' => 'Final Quiz',
+                'required' => false,
+                'data_class' => Quiz::class,
             ]);
+
+        // Set initial quizMode and ensure quiz data is properly loaded
+        $builder->addEventListener(FormEvents::PRE_SET_DATA, function (FormEvent $event) {
+            $form = $event->getForm();
+            $course = $event->getData();
+            if ($course instanceof Course && $course->getFinalQuiz()) {
+                $quiz = $course->getFinalQuiz();
+                $form->get('quizMode')->setData($quiz->isGeneratedByAI() ? 'ai' : 'manual');
+                // Ensure questions are properly initialized
+                if ($quiz->isGeneratedByAI()) {
+                    $form->get('finalQuiz')->setData($quiz);
+                }
+            } else {
+                $form->get('quizMode')->setData('ai'); // Default to AI-generated
+            }
+        });
+
+        // Preserve AI-generated quiz data on submission or set generatedByAI to false for manual
+        $builder->addEventListener(FormEvents::PRE_SUBMIT, function (FormEvent $event) {
+            $data = $event->getData();
+            $form = $event->getForm();
+            $course = $form->getData();
+            if (is_array($data) && isset($data['quizMode'])) {
+                if ($data['quizMode'] === 'ai' && $course instanceof Course && $course->getFinalQuiz()) {
+                    $existingQuiz = $course->getFinalQuiz();
+                    $data['finalQuiz'] = [
+                        'title' => $existingQuiz->getTitle(),
+                        'generatedByAI' => $existingQuiz->isGeneratedByAI() ? '1' : '0',
+                        'questions' => array_map(function ($question) {
+                            return [
+                                'text' => $question->getText(),
+                                'type' => strtolower($question->getType()),
+                                'options' => strtolower($question->getType()) === 'mcq' ? ($question->getOptions() ?? []) : [],
+                                'correctAnswer' => $question->getCorrectAnswer(),
+                                'generatedByAI' => $question->isGeneratedByAI() ? '1' : '0',
+                            ];
+                        }, $existingQuiz->getQuestions()->toArray()),
+                    ];
+                } elseif ($data['quizMode'] === 'manual' && isset($data['finalQuiz'])) {
+                    $data['finalQuiz']['generatedByAI'] = '0';
+                }
+                $event->setData($data);
+            }
+        });
     }
 
     public function configureOptions(OptionsResolver $resolver): void

@@ -20,12 +20,16 @@ class MediaUpload
     #[ORM\Column(type: 'string', length: 50, nullable: true)]
     private ?string $type = null;
 
-    #[ORM\ManyToOne(targetEntity: User::class)]
+    #[ORM\ManyToOne(targetEntity: User::class, inversedBy: 'mediaUploads')]
     #[ORM\JoinColumn(name: 'uploadedBy', referencedColumnName: 'id')]
     private ?User $uploadedBy = null;
 
-    #[ORM\Column(type: 'datetime', nullable: true)]
+    #[ORM\Column(type: 'datetime', nullable: true, name: 'uploadedAt')]
     private ?\DateTimeInterface $uploadedAt = null;
+
+    #[ORM\ManyToOne(targetEntity: WrittenSection::class, inversedBy: 'mediaUploads')]
+    #[ORM\JoinColumn(name: 'writtenSectionId', referencedColumnName: 'id', nullable: true)]
+    private ?WrittenSection $writtenSection = null;
 
     public function getId(): ?int
     {
@@ -73,6 +77,17 @@ class MediaUpload
     public function setUploadedAt(?\DateTimeInterface $uploadedAt): self
     {
         $this->uploadedAt = $uploadedAt;
+        return $this;
+    }
+
+    public function getWrittenSection(): ?WrittenSection
+    {
+        return $this->writtenSection;
+    }
+
+    public function setWrittenSection(?WrittenSection $writtenSection): self
+    {
+        $this->writtenSection = $writtenSection;
         return $this;
     }
 }

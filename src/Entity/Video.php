@@ -13,8 +13,8 @@ class Video
     #[ORM\Column(type: 'integer')]
     private ?int $id = null;
 
-    #[ORM\Column(type: 'string', length: 500)]
-    private ?string $url = null;
+    #[ORM\Column(type: 'string', length: 255)]
+    private ?string $filename = null;
 
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $description = null;
@@ -31,14 +31,14 @@ class Video
         return $this->id;
     }
 
-    public function getUrl(): ?string
+    public function getFilename(): ?string
     {
-        return $this->url;
+        return $this->filename;
     }
 
-    public function setUrl(string $url): self
+    public function setFilename(string $filename): self
     {
-        $this->url = $url;
+        $this->filename = $filename;
         return $this;
     }
 

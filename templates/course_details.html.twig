@@ -1,250 +1,560 @@
-{% extends 'layout.html.twig' %}
-
+{% extends 'base.html.twig' %}
 {% block title %}{{ course.title }} - eLEARNING{% endblock %}
-
 {% block css %}
+    <link rel="stylesheet" href="{{ asset('css/custom.css') }}">
     <style>
+        :root {
+            --primary-color: #4a90e2;
+            --secondary-color: #f1f5f9;
+            --success-color: #2ecc71;
+            --error-color: #e74c3c;
+            --warning-color: #f39c12;
+            --text-color: #2d3748;
+            --border-radius: 16px;
+            --shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+            --transition: all 0.4s ease;
+            --gradient-bg: linear-gradient(135deg, #f0f4f8, #ffffff);
+        }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            color: var(--text-color);
+            background: var(--gradient-bg);
+        }
         .course-header {
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            background: linear-gradient(135deg, var(--primary-color), #6ab0ff);
             color: white;
-            padding: 40px 0;
+            padding: 4.5rem 0;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            position: relative;
+            margin-bottom: 3rem;
+            animation: fadeInHeader 1s ease-out;
+        }
+        @keyframes fadeInHeader {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .course-header h1 {
+            font-size: 2.75rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+        }
+        .course-header .lead {
+            font-size: 1.25rem;
+            opacity: 0.95;
+            line-height: 1.8;
         }
         .course-header img {
-            max-height: 200px;
+            max-height: 300px;
             object-fit: cover;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            transition: var(--transition);
         }
-        .part-card {
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            transition: all 0.3s;
+        .course-header img:hover {
+            transform: scale(1.03) rotate(1deg);
         }
-        .part-card:hover {
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-        .part-card.locked {
-            background-color: #f8f9fa;
-            opacity: 0.7;
-        }
-        .part-card.locked .part-title {
-            color: #6c757d;
-        }
-        .part-title {
-            font-weight: 600;
-            color: #1e3c72;
+        .progress {
+            height: 1rem;
+            background-color: #e5e7eb;
+            border-radius: 9999px;
+            overflow: hidden;
+            margin-bottom: 1.5rem;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
         }
         .progress-bar {
-            height: 10px;
-            border-radius: 5px;
+            background: linear-gradient(90deg, var(--primary-color), #3b82f6);
+            transition: width 0.8s ease-in-out;
         }
-        .desmos-container {
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-            padding: 15px;
-            margin-top: 20px;
+        .course-content {
+            padding: 3rem 0;
         }
-        .quiz-section {
-            background-color: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
+        .part-card {
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+            margin-bottom: 2rem;
+            overflow: hidden;
+        }
+        .part-card:hover {
+            transform: translateY(-8px) scale(1.01);
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+        }
+        .part-card.locked {
+            background: #f9fafb;
+            opacity: 0.8;
+        }
+        .part-card .btn-view-part {
+            background: linear-gradient(135deg, var(--primary-color), #3b82f6);
+            color: white;
+            border-radius: 9999px;
+            padding: 0.7rem 2rem;
+            font-weight: 600;
+            transition: var(--transition);
+        }
+        .part-card .btn-view-part:hover {
+            background: linear-gradient(135deg, #3b82f6, var(--primary-color));
+            transform: translateY(-3px);
+        }
+        .part-card .btn-view-part:disabled, .part-card .btn-secondary:disabled {
+            background-color: #6b7280;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+        .content-section {
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            padding: 2.5rem;
+            transition: var(--transition);
+            animation: fadeInContent 1.2s ease-out;
+        }
+        @keyframes fadeInContent {
+            from { opacity: 0; transform: scale(0.98); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .content-section:hover {
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+        }
+        .content-section h3 {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--text-color);
+            margin-bottom: 1.5rem;
+        }
+        .tutorial, .video-section, .written-section, .geogebra-container, .quiz-section, .final-quiz-section {
+            background: var(--secondary-color);
+            padding: 2rem;
+            border-radius: var(--border-radius);
+            margin-bottom: 2rem;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
+            transition: var(--transition);
+            opacity: 0;
+            animation: slideUpFade 0.8s forwards;
+        }
+        @keyframes slideUpFade {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .video-section { animation-delay: 0.2s; }
+        .written-section { animation-delay: 0.4s; }
+        .geogebra-container { animation-delay: 0.6s; }
+        .tutorial { animation-delay: 0.8s; }
+        .quiz-section { animation-delay: 1s; }
+        .tutorial:hover, .video-section:hover, .written-section:hover, .geogebra-container:hover, .quiz-section:hover, .final-quiz-section:hover {
+            box-shadow: inset 0 4px 8px rgba(0, 0, 0, 0.1);
+            transform: translateY(-4px);
+        }
+        .geogebra-container {
+            min-height: 500px;
+            position: relative;
+        }
+        .geogebra-container #ggb-element-{{ current_part.id }} {
+            width: 100% !important;
+            height: 100% !important;
+            min-height: 500px;
+        }
+        .written-content {
+            line-height: 2;
+        }
+        .media-urls-container img, .media-urls-container video {
+            max-width: 100%;
+            border-radius: var(--border-radius);
+            margin-bottom: 1.5rem;
+            transition: var(--transition);
+        }
+        .media-urls-container img:hover, .media-urls-container video:hover {
+            transform: scale(1.02);
+        }
+        .quiz-section, .final-quiz-section {
+            position: relative;
         }
         .quiz-question {
-            margin-bottom: 20px;
+            margin-bottom: 2rem;
+            transition: var(--transition);
         }
-        .quiz-question label {
-            margin-left: 10px;
+        .quiz-question:hover {
+            background: rgba(0,0,0,0.02);
         }
-        .final-quiz-section {
-            background-color: #e6f3ff;
-            padding: 20px;
-            border-radius: 8px;
-            margin-top: 30px;
+        .form-check {
+            margin-bottom: 1.25rem;
+            padding-left: 2.5rem;
+        }
+        .form-check-input {
+            cursor: pointer;
+        }
+        .form-check-label {
+            font-size: 1.1rem;
+            color: var(--text-color);
+        }
+        .enroll-button {
+            display: inline-block;
+            padding: 1rem 2rem;
+            background: linear-gradient(135deg, var(--primary-color), #3b82f6);
+            color: white;
+            border: none;
+            border-radius: 9999px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: var(--transition);
+            box-shadow: var(--shadow);
+        }
+        .enroll-button:hover {
+            background: linear-gradient(135deg, #3b82f6, var(--primary-color));
+            transform: scale(1.04);
+        }
+        .enroll-button:disabled {
+            background: #6b7280;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+        .loading-spinner {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border: 6px solid #f3f3f3;
+            border-top: 6px solid var(--primary-color);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 0.7s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+        .ai-quiz .quiz-question {
+            opacity: 0;
+            transform: translateY(30px);
+            animation: slideIn 0.7s ease forwards;
+            animation-delay: calc(0.2s * var(--question-index));
+        }
+        @keyframes slideIn {
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .manual-quiz .quiz-question {
+            margin-bottom: 1.5rem;
+        }
+        .correct-answer {
+            background-color: rgba(46, 204, 113, 0.2);
+            border-left: 6px solid var(--success-color);
+            padding: 1rem;
+        }
+        .incorrect-answer {
+            background-color: rgba(231, 76, 60, 0.2);
+            border-left: 6px solid var(--error-color);
+            padding: 1rem;
+        }
+        .highlight-previous {
+            background-color: rgba(243, 156, 18, 0.2);
+            border-left: 6px solid var(--warning-color);
+            padding: 1rem;
+        }
+        .connector-arrow {
+            display: flex;
+            justify-content: center;
+            margin: -1rem 0;
+            opacity: 0.6;
+            transition: var(--transition);
+            position: relative;
+            z-index: 1;
+        }
+        .connector-arrow img {
+            width: 40px;
+            height: auto;
+            animation: hoverArrow 2s infinite ease-in-out;
+        }
+        @keyframes hoverArrow {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(15px); }
+        }
+        .geogebra-container:hover + .connector-arrow,
+        .connector-arrow:hover {
+            opacity: 1;
+            transform: scale(1.1);
+        }
+        .geogebra-container:hover + .connector-arrow img {
+            animation-duration: 1.5s;
+        }
+        @media (max-width: 768px) {
+            .course-header { padding: 3rem 0; }
+            .course-header h1 { font-size: 2.25rem; }
+            .course-header img { max-height: 240px; }
+            .course-content { padding: 2.5rem 0; }
+            .content-section, .tutorial, .video-section, .written-section, .quiz-section, .geogebra-container, .final-quiz-section { padding: 1.5rem; }
+            .enroll-button { padding: 0.75rem 1.5rem; font-size: 1rem; }
+            .connector-arrow img { width: 30px; }
         }
     </style>
 {% endblock %}
-
 {% block body %}
-    <!-- Course Header -->
-    <div class="course-header">
+    <section class="course-header">
         <div class="container">
             <div class="row align-items-center">
-                <div class="col-lg-4">
-                    <img src="{{ asset('img/course-' ~ course.id ~ '.jpg')|default('https://via.placeholder.com/600x400') }}" alt="{{ course.title }}" class="img-fluid">
+                <div class="col-lg-4 col-md-12 mb-4 mb-lg-0">
+                    <img src="{{ course.image ? asset('uploads/images/' ~ course.image) : 'https://via.placeholder.com/600x400' }}" alt="{{ course.title }}" class="img-fluid" loading="lazy">
                 </div>
-                <div class="col-lg-8">
-                    <h1 class="display-4">{{ course.title }}</h1>
-                    <p class="lead">{{ course.description }}</p>
+                <div class="col-lg-8 col-md-12">
+                    <h1 class="fw-bold">{{ course.title }}</h1>
+                    <p class="lead">{{ course.description|u.truncate(200, '...') }}</p>
                     <p><strong>Created by:</strong> {{ course.createdBy.username }} | <strong>Created on:</strong> {{ course.createdAt|date('F j, Y') }}</p>
-                    <p><strong>Progress:</strong> {{ progress_percentage }}% Complete</p>
+                    <p><strong>Progress:</strong> {{ progress_percentage|round(2) }}% Complete</p>
                     <div class="progress">
-                        <div class="progress-bar bg-primary" role="progressbar" style="width: {{ progress_percentage }}%" aria-valuenow="{{ progress_percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+                        <div class="progress-bar" role="progressbar" style="width: {{ progress_percentage }}%" aria-valuenow="{{ progress_percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
                     </div>
                     {% if is_enrolled %}
-                        <a href="#course-content" class="btn btn-light mt-3">Continue Learning</a>
+                        <a href="#course-content" class="enroll-button" aria-label="Continue learning the course">Continue Learning</a>
                     {% else %}
-                        <a href="{{ path('app_join_course', {'id': course.id}) }}" class="btn btn-primary mt-3">Enroll Now</a>
+                        <a href="{{ path('app_join_course', {'id': course.id}) }}" class="enroll-button" id="enroll-button" aria-label="Enroll in the course">Enroll Now</a>
                     {% endif %}
                 </div>
             </div>
         </div>
-    </div>
-
-    <!-- Course Content -->
-    <div class="container-xxl py-5" id="course-content">
+    </section>
+    <section class="course-content" id="course-content">
         <div class="container">
             <div class="row">
-                <!-- Sidebar: Course Parts -->
                 <div class="col-lg-4">
-                    <h3 class="mb-4">Course Content</h3>
-                    {% for part in course.parts|sort((a, b) => a.order <=> b.order) %}
-                        <div class="part-card {% if not is_part_unlocked(part) %}locked{% endif %}">
+                    <h3 class="fw-bold mb-4">Course Content</h3>
+                    {% for part in course.parts|sort((a, b) => a.partOrder <=> b.partOrder) %}
+                        <div class="part-card card {% if not is_part_unlocked(part) %}locked{% endif %}">
                             <div class="p-3">
-                                <h5 class="part-title">{{ part.order }}. {{ part.title }}</h5>
-                                <p>{{ part.description|u.truncate(100, '...') }}</p>
-                                <p><i class="fa fa-clock me-2"></i>{{ part.duration ? (part.duration // 60) ~ ' min' : 'N/A' }}</p>
-                                {% if is_part_unlocked(part) %}
-                                    <a href="{{ path('app_part_details', {'id': part.id}) }}" class="btn btn-sm btn-primary">View Part</a>
+                                <h5 class="part-title fw-bold">{{ part.partOrder }}. {{ part.title }}</h5>
+                                <p class="text-muted">{{ part.description|u.truncate(100, '...') }}</p>
+                                <p class="text-muted"><i class="fa fa-clock me-2"></i>{{ part.duration ? (part.duration // 60) ~ ' min' : 'N/A' }}</p>
+                                {% if is_enrolled %}
+                                    <a href="{{ path('app_part_details', {'id': part.id}) }}"
+                                       class="btn btn-sm btn-view-part {% if not is_part_unlocked(part) %}disabled{% endif %}"
+                                       {% if not is_part_unlocked(part) %}disabled aria-disabled="true"{% endif %}
+                                       aria-label="{{ is_part_unlocked(part) ? 'View ' ~ part.title : part.title ~ ' is locked' }}">
+                                        {{ is_part_unlocked(part) ? 'View Part' : 'Locked' }}
+                                    </a>
                                 {% else %}
-                                    <button class="btn btn-sm btn-secondary" disabled>Locked</button>
+                                    <button class="btn btn-sm btn-secondary" disabled aria-label="Enroll to unlock {{ part.title }}">Enroll to Unlock</button>
                                 {% endif %}
                             </div>
                         </div>
                     {% endfor %}
                 </div>
-
-                <!-- Main Content: Part Details -->
                 <div class="col-lg-8">
-                    {% if current_part %}
-                        <h3>{{ current_part.title }}</h3>
-                        <!-- Video Section -->
-                        {% if current_part.video %}
-                            <div class="mb-4">
-                                <h4>Video Content</h4>
-                                <video controls class="w-100" style="max-height: 400px;">
-                                    <source src="{{ current_part.video.url }}" type="video/mp4">
-                                    Your browser does not support the video tag.
-                                </video>
-                            </div>
-                        {% endif %}
-
-                        <!-- Written Section -->
-                        {% if current_part.writtenSection %}
-                            <div class="mb-4">
-                                <h4>Written Content</h4>
-                                <div class="p-3 bg-light rounded">
-                                    {{ current_part.writtenSection.content|raw }}
-                                    {% if current_part.writtenSection.mediaUrls %}
-                                        <div class="mt-3">
-                                            <h6>Media</h6>
-                                            {% for mediaUrl in current_part.writtenSection.mediaUrls %}
-                                                {% if mediaUrl|slice(-4) in ['.jpg', '.png', '.gif'] %}
-                                                    <img src="{{ mediaUrl }}" alt="Media" class="img-fluid mb-2" style="max-width: 200px;">
+                    <div class="content-section">
+                        {% if current_part %}
+                            <h3 class="fw-bold">{{ current_part.title }}</h3>
+                            {% if current_part.video %}
+                                <div class="video-section">
+                                    <h4 class="fw-bold mb-3">Video Content</h4>
+                                    <video controls class="w-100" loading="lazy">
+                                        <source src="{{ asset('uploads/videos/' ~ current_part.video.filename) }}" type="video/mp4">
+                                        Your browser does not support the video tag.
+                                    </video>
+                                    {% if current_part.video.description %}
+                                        <p class="mt-3 text-muted">{{ current_part.video.description }}</p>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                            {% if current_part.writtenSection %}
+                                <div class="written-section">
+                                    <h4 class="fw-bold mb-3">Written Content</h4>
+                                    <div class="written-content">
+                                        {{ current_part.writtenSection.content|raw }}
+                                    </div>
+                                    {% if current_part.writtenSection.mediaUploads|length > 0 %}
+                                        <div class="media-urls-container mt-3">
+                                            {% for media in current_part.writtenSection.mediaUploads %}
+                                                {% if media.type in ['jpg', 'png', 'gif'] %}
+                                                    <img src="{{ media.url }}" alt="Media for {{ current_part.title }}" class="img-fluid" loading="lazy">
+                                                {% elseif media.type in ['mp4', 'webm', 'ogg'] %}
+                                                    <video controls src="{{ media.url }}" class="img-fluid" loading="lazy"></video>
                                                 {% else %}
-                                                    <a href="{{ mediaUrl }}" target="_blank" class="btn btn-sm btn-primary mb-2">View Media</a>
+                                                    <a href="{{ media.url }}" target="_blank" class="btn btn-sm btn-primary" aria-label="View media file">View Media</a>
                                                 {% endif %}
                                             {% endfor %}
                                         </div>
+                                    {% else %}
+                                        <p class="text-muted mt-3">No media uploads available.</p>
                                     {% endif %}
                                 </div>
-                            </div>
-                        {% endif %}
-
-                        <!-- Desmos Graphing Calculator -->
-                        <div class="desmos-container">
-                            <h4>Interactive Graphing</h4>
-                            <div id="calculator" style="width: 100%; height: 400px;"></div>
-                            <div class="mt-3">
-                                <label for="expression">Enter Mathematical Expression:</label>
-                                <input type="text" id="expression" class="form-control" placeholder="e.g., y = x^2" value="y = x^2">
-                                <button onclick="updateGraph()" class="btn btn-primary mt-2">Update Graph</button>
-                            </div>
-                        </div>
-
-                        <!-- Quiz Section -->
-                        {% if current_part.quiz %}
-                            <div class="quiz-section mt-4">
-                                <h4>Quiz: Test Your Knowledge</h4>
-                                {% if current_quiz_attempt %}
-                                    <p>Your last score: {{ current_quiz_attempt.score }}%</p>
-                                    {% if current_quiz_attempt.score >= 70 %}
-                                        <p class="text-success">You passed! The next part is unlocked.</p>
-                                    {% else %}
-                                        <p class="text-danger">You need a score of at least 70% to unlock the next part.</p>
-                                    {% endif %}
-                                {% endif %}
-                                <form action="{{ path('app_quiz_submit', {'id': current_part.quiz.id}) }}" method="post">
-                                    {% for question in current_part.quiz.questions %}
-                                        <div class="quiz-question">
-                                            <h5>{{ loop.index }}. {{ question.text }}</h5>
-                                            {% if question.type == 'MCQ' %}
-                                                {% for option in question.options %}
-                                                    <div class="form-check">
-                                                        <input class="form-check-input" type="radio" name="answers[{{ question.id }}]" value="{{ option }}" required>
-                                                        <label class="form-check-label">{{ option }}</label>
-                                                    </div>
-                                                {% endfor %}
-                                            {% else %}
-                                                <input type="text" name="answers[{{ question.id }}]" class="form-control" placeholder="Enter your answer" required>
-                                            {% endif %}
-                                        </div>
-                                    {% endfor %}
-                                    <button type="submit" class="btn btn-primary">Submit Quiz</button>
-                                </form>
-                            </div>
-                        {% endif %}
-                    {% else %}
-                        <p>Select a part from the sidebar to start learning.</p>
-                    {% endif %}
-
-                    <!-- Final Course Quiz -->
-                    {% if is_course_completed %}
-                        <div class="final-quiz-section">
-                            <h3>Final Course Quiz</h3>
-                            <p>Test your understanding of the entire course with this AI-generated quiz.</p>
-                            {% if final_quiz %}
-                                <form action="{{ path('app_quiz_submit', {'id': final_quiz.id}) }}" method="post">
-                                    {% for question in final_quiz.questions %}
-                                        <div class="quiz-question">
-                                            <h5>{{ loop.index }}. {{ question.text }}</h5>
-                                            {% if question.type == 'MCQ' %}
-                                                {% for option in question.options %}
-                                                    <div class="form-check">
-                                                        <input class="form-check-input" type="radio" name="answers[{{ question.id }}]" value="{{ option }}" required>
-                                                        <label class="form-check-label">{{ option }}</label>
-                                                    </div>
-                                                {% endfor %}
-                                            {% else %}
-                                                <input type="text" name="answers[{{ question.id }}]" class="form-control" placeholder="Enter your answer" required>
-                                            {% endif %}
-                                        </div>
-                                    {% endfor %}
-                                    <button type="submit" class="btn btn-primary">Submit Final Quiz</button>
-                                </form>
                             {% else %}
-                                <p>Generating final quiz... Please check back soon.</p>
+                                <p class="text-muted">No written content available for this part.</p>
                             {% endif %}
-                        </div>
-                    {% endif %}
+                            {% if current_part.geogebraMaterialId %}
+                                <div class="geogebra-container">
+                                    <h4 class="fw-bold mb-3">Interactive Graphing</h4>
+                                    <div class="loading-spinner" id="ggb-spinner-{{ current_part.id }}"></div>
+                                    <div id="ggb-element-{{ current_part.id }}" style="width: 100%; height: 400px;"></div>
+                                </div>
+                            {% endif %}
+                            {% if current_part.geogebraMaterialId and current_part.tutorialContent %}
+                                <div class="connector-arrow">
+                                    <img src="{{ asset('uploads/images/arrow.png') }}" alt="Down Arrow">
+                                </div>
+                            {% endif %}
+                            {% if current_part.tutorialContent %}
+                                <div class="tutorial">
+                                    <h4 class="fw-bold mb-3">Tutorial</h4>
+                                    {{ current_part.tutorialContent|raw }}
+                                </div>
+                            {% endif %}
+                            {% if current_part.quiz %}
+                                <div class="quiz-section {% if current_part.quiz.generatedByAI %}ai-quiz{% else %}manual-quiz{% endif %}">
+                                    <h4 class="fw-bold mb-3">Quiz: Test Your Knowledge</h4>
+                                    {% if current_quiz_attempt %}
+                                        <p class="mt-3">Your last score: <strong>{{ current_quiz_attempt.score }}%</strong></p>
+                                        {% if current_quiz_attempt.score >= 70 %}
+                                            <p class="text-success">You passed! The next part is unlocked.</p>
+                                        {% else %}
+                                            <p class="text-danger">Score of 70% or higher needed to unlock the next part.</p>
+                                        {% endif %}
+                                    {% endif %}
+                                    <form action="{{ path('app_quiz_submit', {'id': current_part.quiz.id}) }}" method="post" id="quiz-form-{{ current_part.id }}" aria-label="Quiz for {{ current_part.title }}">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('quiz_submit' ~ current_part.quiz.id) }}">
+                                        {% for question in current_part.quiz.questions %}
+                                            <div class="quiz-question" {% if current_part.quiz.generatedByAI %}style="--question-index: {{ loop.index }}"{% endif %}>
+                                                <h5 class="fw-bold">{{ loop.index }}. {{ question.text }}</h5>
+                                                {% if current_quiz_attempt and feedback[question.id] is defined %}
+                                                    <p class="correct-answer-text text-success">Correct Answer: {{ feedback[question.id].correctAnswer }}</p>
+                                                {% endif %}
+                                                {% if question.type|lower == 'mcq' %}
+                                                    {% for option in question.options %}
+                                                        <div class="form-check {% if current_quiz_attempt and feedback[question.id] is defined and feedback[question.id].userAnswer == option %} {% if feedback[question.id].isCorrect %}correct-answer{% else %}incorrect-answer{% endif %} {% endif %}">
+                                                            <input class="form-check-input" type="radio" name="answers[{{ question.id }}]" value="{{ option }}" id="option-{{ question.id }}-{{ loop.index }}" required>
+                                                            <label class="form-check-label" for="option-{{ question.id }}-{{ loop.index }}">{{ option }}</label>
+                                                        </div>
+                                                    {% endfor %}
+                                                {% elseif question.type|lower == 'numeric' %}
+                                                    <input type="number" name="answers[{{ question.id }}]" class="form-control {% if current_quiz_attempt and feedback[question.id] is defined %} {% if feedback[question.id].isCorrect %}correct-answer{% else %}incorrect-answer{% endif %} {% endif %}" step="0.01" placeholder="Enter your answer" required>
+                                                {% else %}
+                                                    <p class="text-danger">Unsupported question type: {{ question.type }}</p>
+                                                {% endif %}
+                                            </div>
+                                        {% endfor %}
+                                        <button type="submit" class="btn btn-primary" aria-label="Submit quiz answers">Submit Quiz</button>
+                                    </form>
+                                </div>
+                            {% else %}
+                                <p class="text-muted">No quiz available for this part.</p>
+                            {% endif %}
+                        {% elseif is_enrolled and not current_part %}
+                            <p class="text-muted">You have completed all parts!</p>
+                        {% else %}
+                            <p class="text-muted">Enroll or complete previous parts to access content.</p>
+                        {% endif %}
+                        {% if is_course_completed %}
+                            <div class="final-quiz-section {% if final_quiz.generatedByAI %}ai-quiz{% else %}manual-quiz{% endif %}">
+                                <h3 class="fw-bold">Final Course Quiz</h3>
+                                <p class="text-muted">Test your understanding of the entire course.</p>
+                                {% if final_quiz %}
+                                    <form action="{{ path('app_quiz_submit', {'id': final_quiz.id}) }}" method="post" id="final-quiz-form" aria-label="Final course quiz">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('quiz_submit' ~ final_quiz.id) }}">
+                                        {% for question in final_quiz.questions %}
+                                            <div class="quiz-question" {% if final_quiz.generatedByAI %}style="--question-index: {{ loop.index }}"{% endif %}>
+                                                <h5 class="fw-bold">{{ loop.index }}. {{ question.text }}</h5>
+                                                {% if question.type|lower == 'mcq' %}
+                                                    {% for option in question.options %}
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="radio" name="answers[{{ question.id }}]" value="{{ option }}" id="final-option-{{ question.id }}-{{ loop.index }}" required>
+                                                            <label class="form-check-label" for="final-option-{{ question.id }}-{{ loop.index }}">{{ option }}</label>
+                                                        </div>
+                                                    {% endfor %}
+                                                {% elseif question.type|lower == 'numeric' %}
+                                                    <input type="number" name="answers[{{ question.id }}]" class="form-control" step="0.01" placeholder="Enter your answer" required>
+                                                {% else %}
+                                                    <p class="text-danger">Unsupported question type: {{ question.type }}</p>
+                                                {% endif %}
+                                            </div>
+                                        {% endfor %}
+                                        <button type="submit" class="btn btn-primary" aria-label="Submit final quiz answers">Submit Final Quiz</button>
+                                    </form>
+                                {% else %}
+                                    <p class="text-muted">Generating final quiz... Please check back soon.</p>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
+    </section>
 {% endblock %}
-
 {% block js %}
-    <script src="https://www.desmos.com/api/v1.9/calculator.js?apiKey=dcb31709b452b1cf9dc26972add0fda6"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
     <script>
-        // Initialize Desmos Calculator
-        let calculator = Desmos.Calculator(document.getElementById('calculator'), {
-            keypad: true,
-            expressions: true,
-            settingsMenu: true
+        document.addEventListener('DOMContentLoaded', function() {
+            try {
+                renderMathInElement(document.body, {
+                    delimiters: [
+                        { left: "$$", right: "$$", display: true },
+                        { left: "\\(", right: "\\)", display: false }
+                    ],
+                    throwOnError: false
+                });
+            } catch (e) {
+                console.error('KaTeX rendering failed:', e);
+            }
+            const enrollButton = document.getElementById('enroll-button');
+            if (enrollButton) {
+                enrollButton.addEventListener('click', function() {
+                    enrollButton.disabled = true;
+                    enrollButton.textContent = 'Enrolling...';
+                    enrollButton.classList.add('animate__animated', 'animate__pulse');
+                    setTimeout(() => {
+                        enrollButton.classList.remove('animate__animated', 'animate__pulse');
+                        enrollButton.disabled = false;
+                        enrollButton.textContent = 'Enroll Now';
+                    }, 1000);
+                });
+            }
+            const quizForms = document.querySelectorAll('#quiz-form-{{ current_part.id }}, #final-quiz-form');
+            quizForms.forEach(form => {
+                form.addEventListener('submit', function(e) {
+                    const submitButton = form.querySelector('button[type="submit"]');
+                    submitButton.disabled = true;
+                    submitButton.textContent = 'Submitting...';
+                    submitButton.classList.add('animate__animated', 'animate__pulse');
+                    setTimeout(() => {
+                        submitButton.classList.remove('animate__animated', 'animate__pulse');
+                        submitButton.disabled = false;
+                        submitButton.textContent = submitButton.getAttribute('aria-label').includes('final') ? 'Submit Final Quiz' : 'Submit Quiz';
+                    }, 1000);
+                });
+            });
+            {% if current_part and current_part.geogebraMaterialId %}
+                const materialId = '{{ current_part.geogebraMaterialId|e('js') }}';
+                const partId = {{ current_part.id|e('js') }};
+                if (materialId && partId) {
+                    const ggbSpinner = document.getElementById(`ggb-spinner-${partId}`);
+                    if (ggbSpinner) ggbSpinner.style.display = 'block';
+                    const ggbScript = document.createElement('script');
+                    ggbScript.src = 'https://www.geogebra.org/apps/deployggb.js';
+                    ggbScript.defer = true;
+                    ggbScript.onload = function() {
+                        const ggbContainer = document.getElementById(`ggb-element-${partId}`);
+                        if (ggbContainer) {
+                            const ggbApp = new GGBApplet({
+                                appName: 'graphing',
+                                width: ggbContainer.offsetWidth,
+                                height: 400,
+                                showToolBar: true,
+                                showAlgebraInput: true,
+                                showMenuBar: true,
+                                material_id: materialId
+                            }, true);
+                            ggbApp.inject(`ggb-element-${partId}`, function() {
+                                if (ggbSpinner) ggbSpinner.style.display = 'none';
+                            }, function(error) {
+                                if (ggbSpinner) ggbSpinner.style.display = 'none';
+                                ggbContainer.innerHTML = '<p class="text-danger">Failed to load GeoGebra applet. Please try again later.</p>';
+                            });
+                        }
+                    };
+                    document.head.appendChild(ggbScript);
+                }
+            {% endif %}
         });
-        calculator.setExpression({ id: 'graph1', latex: 'y=x^2' });
-
-        function updateGraph() {
-            let expression = document.getElementById('expression').value;
-            calculator.setExpression({ id: 'graph1', latex: expression });
-        }
     </script>
 {% endblock %}

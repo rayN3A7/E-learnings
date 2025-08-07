@@ -35,7 +35,7 @@ class SeedDatabaseCommand extends Command
         $part1->setCourse($course);
         $part1->setTitle('Bisection Method');
         $part1->setDescription('The bisection method finds roots by bisecting intervals.');
-        $part1->setOrder(1);
+        $part1->setPartOrder(1);
 
         $writtenSection1 = new WrittenSection();
         $writtenSection1->setPart($part1);
@@ -45,7 +45,7 @@ class SeedDatabaseCommand extends Command
         $part2->setCourse($course);
         $part2->setTitle('Newton-Raphson Method');
         $part2->setDescription('The Newton-Raphson method uses derivatives to find roots.');
-        $part2->setOrder(2);
+        $part2->setPartOrder(2);
 
         $writtenSection2 = new WrittenSection();
         $writtenSection2->setPart($part2);

@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use App\Enum\QuestionType;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
@@ -15,37 +16,36 @@ class Quiz
     #[ORM\Column(type: 'integer')]
     private ?int $id = null;
 
-    #[ORM\ManyToOne(targetEntity: Course::class, inversedBy: 'quizzes')]
-    #[ORM\JoinColumn(nullable: true)]
-    private ?Course $course = null;
-
-    #[ORM\OneToOne(targetEntity: Part::class, inversedBy: 'quiz')]
-    #[ORM\JoinColumn(nullable: true)]
-    private ?Part $part = null;
-
-    #[ORM\Column(type: 'string', length: 255)]
+    #[ORM\Column(type: 'string', length: 255, nullable: true)]
     private ?string $title = null;
 
-    #[ORM\Column(type: 'boolean')]
-    private bool $generatedByAI = false;
+    #[ORM\Column(type: 'boolean', name: 'generatedByAI', nullable: true)]
+    private ?bool $generatedByAI = null;
 
-    #[ORM\Column(type: 'datetime')]
+    #[ORM\Column(type: 'datetime', name: 'createdAt')]
     private ?\DateTimeInterface $createdAt = null;
 
-    #[ORM\Column(type: 'float', nullable: true)]
-    private ?float $scoreWeight = null;
+    #[ORM\Column(type: 'float', name: 'scoreWeight')]
+    private float $scoreWeight = 1.0;
 
-    #[ORM\OneToMany(mappedBy: 'quiz', targetEntity: Question::class, cascade: ['persist', 'remove'])]
+    #[ORM\OneToOne(targetEntity: Part::class, inversedBy: 'quiz', cascade: ['persist'])]
+    #[ORM\JoinColumn(name: 'partId', referencedColumnName: 'id', nullable: true)]
+    private ?Part $part = null;
+
+    #[ORM\ManyToOne(targetEntity: Course::class, inversedBy: 'quizzes', cascade: ['persist'])]
+    #[ORM\JoinColumn(name: 'courseId', referencedColumnName: 'id', nullable: true)]
+    private ?Course $course = null;
+
+    #[ORM\OneToMany(targetEntity: Question::class, mappedBy: 'quiz', cascade: ['persist', 'remove'])]
     private Collection $questions;
 
-    #[ORM\OneToMany(mappedBy: 'quiz', targetEntity: QuizAttempt::class, cascade: ['persist', 'remove'])]
+    #[ORM\OneToMany(targetEntity: QuizAttempt::class, mappedBy: 'quiz', cascade: ['persist', 'remove'])]
     private Collection $quizAttempts;
 
     public function __construct()
     {
         $this->questions = new ArrayCollection();
         $this->quizAttempts = new ArrayCollection();
-        $this->createdAt = new \DateTime();
     }
 
     public function getId(): ?int
@@ -53,14 +53,47 @@ class Quiz
         return $this->id;
     }
 
-    public function getCourse(): ?Course
+    public function getTitle(): ?string
     {
-        return $this->course;
+        return $this->title;
     }
 
-    public function setCourse(?Course $course): self
+    public function setTitle(?string $title): self
     {
-        $this->course = $course;
+        $this->title = $title;
+        return $this;
+    }
+
+    public function isGeneratedByAI(): bool
+    {
+        return $this->generatedByAI ?? false; // Default to false if NULL
+    }
+
+    public function setGeneratedByAI(?bool $generatedByAI): self
+    {
+        $this->generatedByAI = $generatedByAI;
+        return $this;
+    }
+
+    public function getCreatedAt(): ?\DateTimeInterface
+    {
+        return $this->createdAt;
+    }
+
+    public function setCreatedAt(?\DateTimeInterface $createdAt): self
+    {
+        $this->createdAt = $createdAt;
+        return $this;
+    }
+
+    public function getScoreWeight(): float
+    {
+        return $this->scoreWeight;
+    }
+
+    public function setScoreWeight(float $scoreWeight): self
+    {
+        $this->scoreWeight = $scoreWeight;
         return $this;
     }
 
@@ -75,47 +108,14 @@ class Quiz
         return $this;
     }
 
-    public function getTitle(): ?string
+    public function getCourse(): ?Course
     {
-        return $this->title;
+        return $this->course;
     }
 
-    public function setTitle(string $title): self
+    public function setCourse(?Course $course): self
     {
-        $this->title = $title;
-        return $this;
-    }
-
-    public function isGeneratedByAI(): bool
-    {
-        return $this->generatedByAI;
-    }
-
-    public function setGeneratedByAI(bool $generatedByAI): self
-    {
-        $this->generatedByAI = $generatedByAI;
-        return $this;
-    }
-
-    public function getCreatedAt(): ?\DateTimeInterface
-    {
-        return $this->createdAt;
-    }
-
-    public function setCreatedAt(\DateTimeInterface $createdAt): self
-    {
-        $this->createdAt = $createdAt;
-        return $this;
-    }
-
-    public function getScoreWeight(): ?float
-    {
-        return $this->scoreWeight;
-    }
-
-    public function setScoreWeight(?float $scoreWeight): self
-    {
-        $this->scoreWeight = $scoreWeight;
+        $this->course = $course;
         return $this;
     }
 

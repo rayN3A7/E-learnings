@@ -7,6 +7,8 @@ use App\Entity\Part;
 use App\Entity\Progress;
 use App\Entity\QuizAttempt;
 use App\Entity\User;
+use App\Entity\Enrollment;
+use App\Entity\Quiz;
 use Doctrine\ORM\EntityManagerInterface;
 
 class CourseProgressService
@@ -52,31 +54,65 @@ class CourseProgressService
 
     public function isPartUnlocked(Part $part, User $user): bool
     {
-        if ($part->getOrder() === 1) {
-            return true;
+        if (!$part->getCourse()) {
+            return false;
         }
 
-        $previousPart = $this->entityManager->getRepository(Part::class)->findOneBy([
+        // Check if user is enrolled
+        $enrollment = $this->entityManager->getRepository(Enrollment::class)->findOneBy([
+            'user' => $user,
             'course' => $part->getCourse(),
-            'order' => $part->getOrder() - 1,
         ]);
 
-        if (!$previousPart || !$previousPart->getQuiz()) {
+        if (!$enrollment) {
+            return false;
+        }
+
+        // First part (partOrder = 1) is unlocked by default
+        if ($part->getPartOrder() === 1) {
             return true;
         }
 
-        $attempt = $this->entityManager->getRepository(QuizAttempt::class)->findOneBy([
+        // Find the previous part
+        $previousPart = $this->entityManager->getRepository(Part::class)->findOneBy([
+            'course' => $part->getCourse(),
+            'partOrder' => $part->getPartOrder() - 1,
+        ]);
+
+        if (!$previousPart) {
+            return true;
+        }
+
+        // Check if the previous part has a quiz
+        $quiz = $this->entityManager->getRepository(Quiz::class)->findOneBy(['part' => $previousPart]);
+        if (!$quiz) {
+            return true; // No quiz, so part is unlocked
+        }
+
+        // Check quiz attempts
+        $attempts = $this->entityManager->getRepository(QuizAttempt::class)->findBy([
             'user' => $user,
-            'quiz' => $previousPart->getQuiz(),
+            'quiz' => $quiz,
         ], ['takenAt' => 'DESC']);
 
-        return $attempt && $attempt->getScore() >= 70;
+        if (empty($attempts)) {
+            return false; // No attempts made
+        }
+
+        // Unlock if user has scored >= 70 or completed 3 attempts
+        foreach ($attempts as $attempt) {
+            if ($attempt->getScore() >= 70) {
+                return true;
+            }
+        }
+
+        return count($attempts) >= 3;
     }
 
     public function getCurrentPart(User $user, Course $course): ?Part
     {
         $parts = $course->getParts()->toArray();
-        usort($parts, fn($a, $b) => $a->getOrder() <=> $b->getOrder());
+        usort($parts, fn($a, $b) => $a->getPartOrder() <=> $b->getPartOrder());
 
         foreach ($parts as $part) {
             if ($this->isPartUnlocked($part, $user)) {
@@ -95,6 +131,10 @@ class CourseProgressService
 
     public function markPartCompleted(User $user, Part $part): void
     {
+        if (!$part->getCourse()) {
+            return;
+        }
+
         $progress = $this->entityManager->getRepository(Progress::class)->findOneBy([
             'user' => $user,
             'part' => $part,
@@ -108,6 +148,7 @@ class CourseProgressService
         }
 
         $progress->setCompleted(true);
+        $progress->setCompletedAt(new \DateTime());
         $this->entityManager->flush();
     }
 }

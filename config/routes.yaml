@@ -5,7 +5,7 @@ controllers:
     type: attribute
 app_course_details:
     path: /course/{id}
-    controller: App\Controller\CourseController::show
+    controller: App\Controller\CourseController::details
     methods: [GET]
 
 app_join_course:

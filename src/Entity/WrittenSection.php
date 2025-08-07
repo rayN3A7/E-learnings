@@ -2,27 +2,33 @@
 
 namespace App\Entity;
 
-use App\Repository\WrittenSectionRepository;
 use Doctrine\ORM\Mapping as ORM;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 
-#[ORM\Entity(repositoryClass: WrittenSectionRepository::class)]
+#[ORM\Entity]
 #[ORM\Table(name: 'writtensection')]
 class WrittenSection
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
-    #[ORM\Column]
+    #[ORM\Column(type: 'integer')]
     private ?int $id = null;
 
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $content = null;
 
-    #[ORM\Column(type: 'json', nullable: true, name: 'mediaUrls')] // Explicitly set column name
-    private ?array $mediaUrls = null;
+    #[ORM\OneToMany(targetEntity: MediaUpload::class, mappedBy: 'writtenSection', cascade: ['persist', 'remove'])]
+    private Collection $mediaUploads;
 
-    #[ORM\OneToOne(inversedBy: 'writtenSection', targetEntity: Part::class)]
-    #[ORM\JoinColumn(name: 'partId', nullable: false)]
+    #[ORM\OneToOne(targetEntity: Part::class, inversedBy: 'writtenSection', cascade: ['persist'])]
+    #[ORM\JoinColumn(name: 'partId', referencedColumnName: 'id')]
     private ?Part $part = null;
+
+    public function __construct()
+    {
+        $this->mediaUploads = new ArrayCollection();
+    }
 
     public function getId(): ?int
     {
@@ -40,14 +46,25 @@ class WrittenSection
         return $this;
     }
 
-    public function getMediaUrls(): ?array
+    public function getMediaUploads(): Collection
     {
-        return $this->mediaUrls;
+        return $this->mediaUploads;
     }
 
-    public function setMediaUrls(?array $mediaUrls): self
+    public function addMediaUpload(MediaUpload $mediaUpload): self
     {
-        $this->mediaUrls = $mediaUrls;
+        if (!$this->mediaUploads->contains($mediaUpload)) {
+            $mediaUpload->setWrittenSection($this);
+            $this->mediaUploads->add($mediaUpload);
+        }
+        return $this;
+    }
+
+    public function removeMediaUpload(MediaUpload $mediaUpload): self
+    {
+        if ($this->mediaUploads->removeElement($mediaUpload)) {
+            $mediaUpload->setWrittenSection(null);
+        }
         return $this;
     }
 
@@ -60,5 +77,10 @@ class WrittenSection
     {
         $this->part = $part;
         return $this;
+    }
+
+    public function __toString(): string
+    {
+        return 'WrittenSection #' . ($this->id ?? 'unsaved');
     }
 }

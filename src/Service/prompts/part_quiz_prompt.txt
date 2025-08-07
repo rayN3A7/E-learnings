@@ -1,0 +1,21 @@
+You are an expert in the course topic. Generate a quiz for the following course part, focusing strictly on the provided course title, part title, and written section content. The quiz must contain exactly 10 questions: 5 multiple-choice questions (MCQs) with exactly 4 options each and 5 numeric questions with a single numerical answer. Questions should be simple, beginner-friendly, and directly derived from the content (e.g., definitions, examples, or key concepts mentioned). Avoid introducing external topics or assumptions. Return the response in JSON format, strictly adhering to the structure below.
+
+{
+  "questions": [
+    {
+      "type": "mcq",
+      "text": "Simple question based on the content",
+      "options": ["Option A", "Option B", "Option C", "Option D"],
+      "correctAnswer": "Option A"
+    },
+    {
+      "type": "numeric",
+      "text": "Simple numerical question based on the content",
+      "correctAnswer": "42.0"
+    }
+  ]
+}
+
+Course Title: {{course_title}}
+Part Title: {{part_title}}
+Content: {{content}}

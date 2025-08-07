@@ -3,158 +3,907 @@
 {% block title %}Create Course - eLEARNING{% endblock %}
 
 {% block css %}
+    <link rel="stylesheet" href="{{ asset('css/custom.css') }}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" crossorigin="anonymous">
     <style>
+        body { background-color: #f4f7fc; font-family: 'Inter', sans-serif; }
         .course-create-header {
             background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-            color: white;
-            padding: 40px 0;
+            color: #ffffff; padding: 80px 0; border-radius: 0 0 24px 24px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15); position: relative; overflow: hidden;
         }
-        .form-section {
-            background-color: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
+        .error-message { color: #dc3545; font-size: 0.9rem; margin-top: 0.25rem; }
+        .quiz-form { margin-top: 20px; background: #f9fafb; border-radius: 12px; padding: 1.5rem; }
+        .manual-quiz-section { margin-top: 10px; }
+        .question-form { padding: 10px; margin-bottom: 10px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; }
+        .course-create-header::before {
+            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: url('https://www.transparenttextures.com/patterns/subtle-dots.png'); opacity: 0.1;
         }
-        .part-form {
-            border: 1px solid #e0e0e0;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 15px;
+        .course-create-header h1 { font-size: 2.8rem; font-weight: 800; text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); }
+        .course-create-header .lead { font-size: 1.3rem; max-width: 700px; margin: 0 auto; opacity: 0.9; }
+        .form-section .card { background: #ffffff; border: none; border-radius: 16px; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.1); padding: 2rem; }
+        .form-section .form-control { border-radius: 10px; border: 1px solid #e2e8f0; padding: 12px; }
+        .form-section .form-control:focus { border-color: #2a5298; box-shadow: 0 0 0 3px rgba(42, 82, 152, 0.2); }
+        .part-form, .quiz-form { background: #f9fafb; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; }
+        .mce-content-body { min-height: 150px !important; border-radius: 8px; border: 1px solid #e2e8f0; }
+        .add-part-btn, .add-media-btn, .add-question-btn, .add-option-btn, .add-media-upload-btn {
+            border-radius: 50px; padding: 0.6rem 1.8rem; font-weight: 600; background-color: #2a5298; color: #ffffff;
         }
-        .add-part-btn, .add-media-btn, .remove-part-btn, .remove-media-btn {
-            margin-top: 10px;
+        .remove-part-btn, .remove-media-btn, .remove-question-btn, .remove-option-btn, .remove-media-upload-btn {
+            border-radius: 50px; padding: 0.6rem 1.8rem; font-weight: 600; background-color: #dc3545; color: #ffffff;
+        }
+        .media-url-container, .question-container, .option-container, .media-upload-container { margin-bottom: 1rem; }
+        h1, h2, h3, h4, h5, h6 { color: #2a5298; }
+        .quiz-toggle { margin-bottom: 1rem; }
+        .geogebra-container {
+            min-height: 400px;
+            position: relative;
+        }
+        .geogebra-container [id^="geogebra-element-"] {
+            width: 100% !important;
+            height: 400px !important;
+        }
+        .loading-spinner { display: none; text-align: center; padding: 20px; }
+        .loading-spinner::before { content: 'Loading GeoGebra...'; color: #2a5298; }
+        .video-upload-error { display: none; background: #fff3cd; border: 1px solid #ffeeba; padding: 15px; border-radius: 8px; margin-bottom: 1rem; }
+        .debug-video-upload { border: 2px solid #2a5298; background-color: #e6f3ff; }
+        @media (max-width: 768px) {
+            .course-create-header { padding: 40px 0; }
+            .course-create-header h1 { font-size: 2rem; }
+            .form-section .card { padding: 1.5rem; }
         }
     </style>
 {% endblock %}
 
 {% block body %}
-    <!-- Course Creation Header -->
-    <div class="course-create-header">
-        <div class="container">
-            <h1 class="display-4">Create a New Course</h1>
-            <p class="lead">Build your numerical analysis course with multiple parts, videos, and written content.</p>
+    <section class="course-create-header animate__animated animate__fadeIn">
+        <div class="container text-center">
+            <h1 class="display-4 fw-bold">Create a New Course</h1>
+            <p class="lead">Craft an engaging numerical analysis course with rich, interactive content.</p>
         </div>
-    </div>
+    </section>
 
-    <!-- Course Creation Form -->
-    <div class="container-xxl py-5">
+    <section class="form-section py-5">
         <div class="container">
-            <div class="form-section">
-                {{ form_start(form) }}
-                    <div class="mb-3">
-                        {{ form_row(form.title, {'attr': {'class': 'form-control'}}) }}
+            <div class="card shadow-sm rounded-3">
+                <div class="video-upload-error" id="video-upload-error">
+                    Unable to load the video upload field. Please check your form configuration or contact support.
+                </div>
+                {{ form_start(form, {'attr': {'enctype': 'multipart/form-data', 'id': 'course-create-form'}}) }}
+                    {{ form_widget(form._token) }}
+                    <div class="mb-4">
+                        {{ form_row(form.title, {'attr': {'class': 'form-control form-control-lg', 'placeholder': 'Enter course title'}}) }}
                     </div>
-                    <div class="mb-3">
-                        {{ form_row(form.description, {'attr': {'class': 'form-control'}}) }}
+                    <div class="mb-4">
+                        {{ form_row(form.description, {'attr': {'class': 'form-control', 'placeholder': 'Describe your course'}}) }}
+                    </div>
+                    <div class="mb-4">
+                        {{ form_row(form.image, {'attr': {'class': 'form-control'}}) }}
                     </div>
 
-                    <h3>Course Parts</h3>
-                    <div id="parts-container" data-prototype="{{ form_widget(form.parts.vars.prototype)|e('html_attr') }}">
+                    <h3 class="fw-bold mb-4">Course Parts</h3>
+                    <div id="parts-container" data-prototype="{{ form_widget(form.parts.vars.prototype)|e('html_attr')|replace({'__name__': '0'})|raw }}">
                         {% for partForm in form.parts %}
-                            <div class="part-form">
-                                <h4>Part {{ loop.index }}</h4>
+                            <div class="part-form card shadow-sm rounded-3 animate__animated animate__fadeIn" data-part-index="{{ loop.index0 }}">
+                                <h4 class="fw-bold">Part {{ loop.index }}</h4>
                                 <div class="row mb-3">
                                     <div class="col-md-6">
-                                        {{ form_row(partForm.title, {'attr': {'class': 'form-control'}}) }}
+                                        {{ form_row(partForm.title, {'attr': {'class': 'form-control', 'placeholder': 'Part title'}}) }}
                                     </div>
                                     <div class="col-md-3">
-                                        {{ form_row(partForm.order, {'attr': {'class': 'form-control'}}) }}
+                                        {{ form_row(partForm.partOrder, {'attr': {'class': 'form-control'}}) }}
                                     </div>
                                     <div class="col-md-3">
                                         {{ form_row(partForm.duration, {'attr': {'class': 'form-control'}}) }}
                                     </div>
                                 </div>
                                 <div class="mb-3">
-                                    {{ form_row(partForm.description, {'attr': {'class': 'form-control'}}) }}
+                                    {{ form_row(partForm.description, {'label': 'Part Description', 'attr': {'class': 'form-control', 'placeholder': 'Enter a brief part description'}}) }}
                                 </div>
-                                <h5>Video Content</h5>
+                                <h5 class="fw-bold">Video Content</h5>
                                 <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        {{ form_row(partForm.video.url, {'attr': {'class': 'form-control'}}) }}
-                                    </div>
-                                    <div class="col-md-6">
-                                        {{ form_row(partForm.video.duration, {'attr': {'class': 'form-control'}}) }}
+                                    <div class="col-md-12">
+                                        {{ form_row(partForm.video.filename, {'attr': {'class': 'form-control debug-video-upload', 'accept': 'video/mp4'}}) }}
                                     </div>
                                 </div>
                                 <div class="mb-3">
-                                    {{ form_row(partForm.video.description, {'attr': {'class': 'form-control'}}) }}
+                                    {{ form_row(partForm.video.description, {'attr': {'class': 'form-control', 'placeholder': 'Video description'}}) }}
                                 </div>
-                                <h5>Written Content</h5>
                                 <div class="mb-3">
-                                    {{ form_row(partForm.writtenSection.content, {'attr': {'class': 'form-control'}}) }}
+                                    {{ form_row(partForm.video.duration, {'attr': {'class': 'form-control', 'placeholder': 'Video duration in minutes'}}) }}
                                 </div>
-                                <div class="media-urls-container" data-prototype="{{ form_widget(partForm.writtenSection.mediaUrls.vars.prototype)|e('html_attr') }}">
-                                    {% for mediaUrlField in partForm.writtenSection.mediaUrls %}
-                                        <div class="media-url-field mb-2">
-                                            {{ form_row(mediaUrlField, {'attr': {'class': 'form-control'}}) }}
-                                            <button type="button" class="btn btn-sm btn-danger remove-media-btn">Remove Media URL</button>
+                                <h5 class="fw-bold">GeoGebra Content</h5>
+                                <div class="mb-3">
+                                    {{ form_row(partForm.geogebraMaterialId, {'attr': {'class': 'form-control', 'placeholder': 'GeoGebra material ID (e.g., g3n8k2m4)'}}) }}
+                                </div>
+                                <div class="geogebra-container">
+                                    <div class="loading-spinner" id="ggb-spinner-{{ loop.index0 }}"></div>
+                                    <div id="geogebra-element-{{ loop.index0 }}" style="width: 100%; height: 400px;"></div>
+                                    <div class="geogebra-error text-danger" id="geogebra-error-{{ loop.index0 }}" style="display: none;">
+                                        Failed to load GeoGebra applet. Please check the material ID or try again later.
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    {{ form_row(partForm.tutorialContent, {'label': 'Tutorial Content', 'attr': {'class': 'form-control', 'placeholder': 'Enter tutorial content'}}) }}
+                                </div>
+                                <h5 class="fw-bold">Written Content</h5>
+                                <div class="mb-3">
+                                    {{ form_row(partForm.writtenSection.content, {
+                                        'id': 'written_section_' ~ loop.index0 ~ '_content',
+                                        'attr': {'class': 'form-control rich-text-editor', 'placeholder': 'Enter content with LaTeX (e.g., \\(x^2\\))'}
+                                    }) }}
+                                    <div class="help-text">Use headings, images, videos, and LaTeX (e.g., \( x^2 \)) for mathematical expressions.</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="fw-bold">Media URLs</label>
+                                    <div class="media-urls-container" data-part-index="{{ loop.index0 }}">
+                                        {% for mediaUrlField in partForm.writtenSection.mediaUrls %}
+                                            <div class="media-url-container row mb-2">
+                                                <div class="col-md-10">
+                                                    {{ form_widget(mediaUrlField, {'attr': {'class': 'form-control media-url', 'placeholder': 'e.g., https://example.com/image.jpg'}}) }}
+                                                </div>
+                                                <div class="col-md-2">
+                                                    <button type="button" class="btn remove-media-btn mt-1">Remove</button>
+                                                </div>
+                                            </div>
+                                        {% endfor %}
+                                        <button type="button" class="btn add-media-btn mt-2" data-part-index="{{ loop.index0 }}">Add Media URL</button>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    {{ form_row(partForm.writtenSection.mediaUploads, {'attr': {'class': 'form-control'}}) }}
+                                    <button type="button" class="btn add-media-upload-btn mt-2" data-part-index="{{ loop.index0 }}">Add Media Upload</button>
+                                </div>
+                                <h5 class="fw-bold">Part Quiz</h5>
+                                <div class="quiz-form" id="quiz-form-part-{{ loop.index0 }}">
+                                    <div class="quiz-toggle mb-3">
+                                        {{ form_row(partForm.quizMode, {
+                                            'attr': {
+                                                'class': 'form-control quiz-mode',
+                                                'data-part-index': loop.index0,
+                                                'id': 'course_parts_' ~ loop.index0 ~ '_quizMode'
+                                            }
+                                        }) }}
+                                    </div>
+                                    <div class="manual-quiz-section" id="manual-quiz-part-{{ loop.index0 }}" style="display: none;">
+                                        <div class="mb-3">
+                                            {{ form_label(partForm.quiz.title, 'Quiz Title') }}
+                                            {{ form_widget(partForm.quiz.title, {
+                                                'attr': {
+                                                    'class': 'form-control',
+                                                    'placeholder': 'Enter quiz title',
+                                                    'id': 'course_parts_' ~ loop.index0 ~ '_quiz_title'
+                                                }
+                                            }) }}
+                                            {{ form_errors(partForm.quiz.title) }}
                                         </div>
-                                    {% endfor %}
-                                    <button type="button" class="btn btn-sm btn-primary add-media-btn">Add Media URL</button>
+                                        <div class="questions-container" id="questions-part-{{ loop.index0 }}"
+                                             data-part-index="{{ loop.index0 }}"
+                                             data-prototype="{{ form_widget(partForm.quiz.questions.vars.prototype)|e('html_attr')|replace({'__name__': '0'})|raw }}">
+                                            {% for questionForm in partForm.quiz.questions %}
+                                                <div class="question-form card shadow-sm rounded-3 mb-2 animate__animated animate__fadeIn" data-question-index="{{ loop.index0 }}">
+                                                    <div class="mb-3">
+                                                        {{ form_label(questionForm.text, 'Question Text') }}
+                                                        {{ form_widget(questionForm.text, {
+                                                            'id': 'course_parts_' ~ loop.parent.loop.index0 ~ '_quiz_questions_' ~ loop.index0 ~ '_text',
+                                                            'attr': {'class': 'form-control rich-text-editor', 'placeholder': 'Enter question with LaTeX (e.g., \\(x^2\\))'}
+                                                        }) }}
+                                                        {{ form_errors(questionForm.text) }}
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        {{ form_label(questionForm.type, 'Question Type') }}
+                                                        {{ form_widget(questionForm.type, {
+                                                            'attr': {
+                                                                'class': 'form-control question-type',
+                                                                'data-question-index': loop.index0,
+                                                                'id': 'course_parts_' ~ loop.parent.loop.index0 ~ '_quiz_questions_' ~ loop.index0 ~ '_type'
+                                                            }
+                                                        }) }}
+                                                        {{ form_errors(questionForm.type) }}
+                                                    </div>
+                                                    <div class="options-container" id="options-part-{{ loop.parent.loop.index0 }}-{{ loop.index0 }}" data-dependent="mcq" style="display: none;">
+                                                        {% for option in questionForm.options %}
+                                                            <div class="option-container row mb-2">
+                                                                <div class="col-md-10">
+                                                                    {{ form_widget(option, {
+                                                                        'attr': {
+                                                                            'class': 'form-control',
+                                                                            'placeholder': 'Enter option'
+                                                                        }
+                                                                    }) }}
+                                                                    {{ form_errors(option) }}
+                                                                </div>
+                                                                <div class="col-md-2">
+                                                                    <button type="button" class="btn remove-option-btn mt-1">Remove Option</button>
+                                                                </div>
+                                                            </div>
+                                                        {% endfor %}
+                                                        <button type="button" class="btn add-option-btn mt-2" data-question-index="{{ loop.index0 }}" data-part-index="{{ loop.parent.loop.index0 }}">Add Option</button>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        {{ form_label(questionForm.correctAnswer, 'Correct Answer') }}
+                                                        {{ form_widget(questionForm.correctAnswer, {
+                                                            'attr': {
+                                                                'class': 'form-control',
+                                                                'placeholder': 'e.g., A or 42',
+                                                                'id': 'course_parts_' ~ loop.parent.loop.index0 ~ '_quiz_questions_' ~ loop.index0 ~ '_correctAnswer'
+                                                            }
+                                                        }) }}
+                                                        {{ form_errors(questionForm.correctAnswer) }}
+                                                    </div>
+                                                    {{ form_widget(questionForm.generatedByAI, {'attr': {'type': 'hidden'}}) }}
+                                                    <button type="button" class="btn remove-question-btn mt-2">Remove Question</button>
+                                                </div>
+                                            {% endfor %}
+                                            <button type="button" class="btn add-question-btn mt-2" data-part-index="{{ loop.index0 }}">Add Question</button>
+                                        </div>
+                                        <div class="help-text">Add exactly 10 questions for this quiz.</div>
+                                    </div>
                                 </div>
-                                <button type="button" class="btn btn-sm btn-danger remove-part-btn">Remove Part</button>
+                                <button type="button" class="btn remove-part-btn mt-3">Remove Part</button>
                             </div>
                         {% endfor %}
                     </div>
-                    <button type="button" class="btn btn-sm btn-primary add-part-btn">Add Part</button>
-                    <div class="mt-3">
-                        <button type="submit" class="btn btn-primary">Create Course</button>
+                    <button type="button" class="btn add-part-btn mt-3">Add Part</button>
+
+                    <h3 class="fw-bold mb-4">Final Course Quiz</h3>
+                    <div class="quiz-form card shadow-sm rounded-3 animate__animated animate__fadeIn" id="quiz-form-final">
+                        <div class="quiz-toggle mb-3">
+                            {{ form_row(form.quizMode, {
+                                'attr': {
+                                    'class': 'form-control quiz-mode',
+                                    'id': 'course_quizMode',
+                                    'data-part-index': 'final'
+                                }
+                            }) }}
+                        </div>
+                        <div class="manual-quiz-section" id="manual-quiz-final" style="display: none;">
+                            <div class="mb-3">
+                                {{ form_label(form.finalQuiz.title, 'Final Quiz Title') }}
+                                {{ form_widget(form.finalQuiz.title, {
+                                    'attr': {
+                                        'class': 'form-control',
+                                        'placeholder': 'Enter final quiz title',
+                                        'id': 'course_finalQuiz_title'
+                                    }
+                                }) }}
+                                {{ form_errors(form.finalQuiz.title) }}
+                            </div>
+                            <div class="questions-container final-quiz-questions" id="questions-final"
+                                 data-part-index="final"
+                                 data-prototype="{{ form_widget(form.finalQuiz.questions.vars.prototype)|e('html_attr')|replace({'__name__': '0'})|raw }}">
+                                {% for questionForm in form.finalQuiz.questions %}
+                                    <div class="question-form card shadow-sm rounded-3 mb-2 animate__animated animate__fadeIn" data-question-index="{{ loop.index0 }}">
+                                        <div class="mb-3">
+                                            {{ form_label(questionForm.text, 'Question Text') }}
+                                            {{ form_widget(questionForm.text, {
+                                                'id': 'course_finalQuiz_questions_' ~ loop.index0 ~ '_text',
+                                                'attr': {'class': 'form-control rich-text-editor', 'placeholder': 'Enter question with LaTeX (e.g., \\(x^2\\))'}
+                                            }) }}
+                                            {{ form_errors(questionForm.text) }}
+                                        </div>
+                                        <div class="mb-3">
+                                            {{ form_label(questionForm.type, 'Question Type') }}
+                                            {{ form_widget(questionForm.type, {
+                                                'attr': {
+                                                    'class': 'form-control question-type',
+                                                    'data-question-index': loop.index0,
+                                                    'id': 'course_finalQuiz_questions_' ~ loop.index0 ~ '_type'
+                                                }
+                                            }) }}
+                                            {{ form_errors(questionForm.type) }}
+                                        </div>
+                                        <div class="options-container" id="options-final-{{ loop.index0 }}" data-dependent="mcq" style="display: none;">
+                                            {% for option in questionForm.options %}
+                                                <div class="option-container row mb-2">
+                                                    <div class="col-md-10">
+                                                        {{ form_widget(option, {
+                                                            'attr': {
+                                                                'class': 'form-control',
+                                                                'placeholder': 'Enter option'
+                                                            }
+                                                        }) }}
+                                                        {{ form_errors(option) }}
+                                                    </div>
+                                                    <div class="col-md-2">
+                                                        <button type="button" class="btn remove-option-btn mt-1">Remove Option</button>
+                                                    </div>
+                                                </div>
+                                            {% endfor %}
+                                            <button type="button" class="btn add-option-btn mt-2" data-question-index="{{ loop.index0 }}" data-part-index="final">Add Option</button>
+                                        </div>
+                                        <div class="mb-3">
+                                            {{ form_label(questionForm.correctAnswer, 'Correct Answer') }}
+                                            {{ form_widget(questionForm.correctAnswer, {
+                                                'attr': {
+                                                    'class': 'form-control',
+                                                    'placeholder': 'e.g., A or 42',
+                                                    'id': 'course_finalQuiz_questions_' ~ loop.index0 ~ '_correctAnswer'
+                                                }
+                                            }) }}
+                                            {{ form_errors(questionForm.correctAnswer) }}
+                                        </div>
+                                        {{ form_widget(questionForm.generatedByAI, {'attr': {'type': 'hidden'}}) }}
+                                        <button type="button" class="btn remove-question-btn mt-2">Remove Question</button>
+                                    </div>
+                                {% endfor %}
+                                <button type="button" class="btn add-question-btn mt-2" data-part-index="final">Add Question</button>
+                            </div>
+                            <div class="help-text">Add exactly 10 questions for the final quiz.</div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-primary btn-lg">Create Course</button>
                     </div>
                 {{ form_end(form) }}
             </div>
         </div>
-    </div>
+    </section>
 {% endblock %}
 
 {% block js %}
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.tiny.cloud/1/ifeinrsntzv3r5s66j2ixgo39jv7rz9otzj2xzg2nirgaloc/tinymce/8/tinymce.min.js" referrerpolicy="origin" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/wow/1.1.2/wow.min.js" crossorigin="anonymous"></script>
+    <script src="https://www.geogebra.org/apps/deployggb.js" defer></script>
     <script>
-        // Dynamic addition/removal of parts
         document.addEventListener('DOMContentLoaded', function () {
-            const partsContainer = document.getElementById('parts-container');
-            const addPartButton = document.querySelector('.add-part-btn');
+            // Initialize WOW.js for animations
+            new WOW().init();
 
-            let partIndex = partsContainer.children.length;
-
-            addPartButton.addEventListener('click', function () {
-                const prototype = partsContainer.dataset.prototype;
-                const newForm = prototype.replace(/__name__/g, partIndex);
-                const newPartDiv = document.createElement('div');
-                newPartDiv.classList.add('part-form');
-                newPartDiv.innerHTML = `<h4>Part ${partIndex + 1}</h4>` + newForm;
-                partsContainer.appendChild(newPartDiv);
-                initializeMediaUrlHandlers(newPartDiv);
-                partIndex++;
-            });
-
-            partsContainer.addEventListener('click', function (e) {
-                if (e.target.classList.contains('remove-part-btn')) {
-                    e.target.closest('.part-form').remove();
+            // Debug video upload fields
+            function debugVideoUploads() {
+                const videoInputs = document.querySelectorAll('input[name$="[video][filename]"]');
+                if (videoInputs.length === 0) {
+                    console.error('No video upload inputs found. Check PartType and VideoType form definitions.');
+                    document.getElementById('video-upload-error').style.display = 'block';
+                } else {
+                    videoInputs.forEach((input, index) => {
+                        console.log(`Video upload input ${index}:`, {
+                            id: input.id,
+                            name: input.name,
+                            visible: input.offsetParent !== null,
+                            style: window.getComputedStyle(input).display
+                        });
+                        if (window.getComputedStyle(input).display === 'none') {
+                            console.warn(`Video upload input ${index} is hidden. Check CSS rules.`);
+                            document.getElementById('video-upload-error').style.display = 'block';
+                        }
+                    });
                 }
-            });
+            }
 
-            function initializeMediaUrlHandlers(partDiv) {
-                const mediaUrlsContainer = partDiv.querySelector('.media-urls-container');
-                const addMediaButton = partDiv.querySelector('.add-media-btn');
-                let mediaIndex = mediaUrlsContainer.children.length;
+            // Initialize TinyMCE
+            function initializeTinyMCE(element, id) {
+                if (!element || element.hasAttribute('data-tinymce-initialized')) {
+                    console.debug(`TinyMCE already initialized or element missing for ID: ${id}`);
+                    return;
+                }
+                tinymce.init({
+                    selector: `#${id}`,
+                    plugins: ['image', 'media', 'link', 'lists', 'table', 'emoticons', 'code'],
+                    toolbar: 'undo redo | bold italic | link image media | bullist numlist | emoticons',
+                    content_css: 'https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css',
+                    images_upload_url: '/upload/image',
+                    images_upload_handler: async function (blobInfo, success, failure) {
+                        try {
+                            const formData = new FormData();
+                            formData.append('file', blobInfo.blob(), blobInfo.filename());
+                            const response = await fetch('/upload/image', {
+                                method: 'POST',
+                                body: formData,
+                                headers: { 'X-CSRF-TOKEN': document.querySelector('input[name="course[_token]"]').value }
+                            });
+                            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+                            const result = await response.json();
+                            if (result.location) success(result.location);
+                            else failure('Upload failed: No location returned');
+                        } catch (error) {
+                            failure('Upload error: ' + error.message);
+                        }
+                    },
+                    setup: function (editor) {
+                        editor.on('init', function () {
+                            renderMathInElement(editor.getContentAreaContainer(), {
+                                delimiters: [
+                                    { left: "$$", right: "$$", display: true },
+                                    { left: "\\(", right: "\\)", display: false }
+                                ]
+                            });
+                        });
+                        editor.on('change', function () {
+                            editor.save();
+                        });
+                    },
+                    placeholder: 'Enter content with LaTeX support (e.g., \\(x^2 + y^2 = z^2\\))'
+                }).then(function () {
+                    element.setAttribute('data-tinymce-initialized', 'true');
+                    console.debug(`TinyMCE initialized for ID: ${id}`);
+                }).catch(function (error) {
+                    console.error(`TinyMCE initialization failed for ID: ${id}`, error);
+                });
+            }
 
-                addMediaButton.addEventListener('click', function () {
-                    const prototype = mediaUrlsContainer.dataset.prototype;
-                    const newMediaForm = prototype.replace(/__name__/g, mediaIndex);
-                    const newMediaDiv = document.createElement('div');
-                    newMediaDiv.classList.add('media-url-field', 'mb-2');
-                    newMediaDiv.innerHTML = newMediaForm + '<button type="button" class="btn btn-sm btn-danger remove-media-btn">Remove Media URL</button>';
-                    mediaUrlsContainer.insertBefore(newMediaDiv, addMediaButton);
-                    mediaIndex++;
+            // Initialize quiz section
+            function initializeQuiz(quizForm, partIndex, isFinal = false) {
+                const prefix = isFinal ? 'course_finalQuiz' : `course_parts_${partIndex}_quiz`;
+                const quizModeId = isFinal ? 'course_quizMode' : `course_parts_${partIndex}_quizMode`;
+                const manualQuizId = isFinal ? 'manual-quiz-final' : `manual-quiz-part-${partIndex}`;
+                const questionsId = isFinal ? 'questions-final' : `questions-part-${partIndex}`;
+
+                const quizModeSelect = document.querySelector(`#${quizModeId}`);
+                const manualQuizSection = document.querySelector(`#${manualQuizId}`);
+                const questionsContainer = document.querySelector(`#${questionsId}`);
+
+                if (!quizModeSelect || !manualQuizSection || !questionsContainer) {
+                    console.error(`Quiz initialization failed: missing elements for ${isFinal ? 'final quiz' : 'part ' + partIndex}`);
+                    return;
+                }
+
+                let questionIndex = questionsContainer.querySelectorAll('.question-form').length;
+
+                function toggleManualQuizSection() {
+                    manualQuizSection.style.display = quizModeSelect.value === 'manual' ? 'block' : 'none';
+                    if (quizModeSelect.value === 'manual') {
+                        questionsContainer.querySelectorAll('.question-form').forEach((questionDiv, qIndex) => {
+                            const textInput = questionDiv.querySelector(`#${prefix}_questions_${qIndex}_text`);
+                            if (textInput && !textInput.hasAttribute('data-tinymce-initialized')) {
+                                initializeTinyMCE(textInput, `${prefix}_questions_${qIndex}_text`);
+                            }
+                            initializeQuestion(questionDiv, partIndex, qIndex, isFinal);
+                        });
+                    }
+                }
+
+                quizModeSelect.addEventListener('change', toggleManualQuizSection);
+                toggleManualQuizSection();
+
+                const prototype = questionsContainer.dataset.prototype;
+                if (!prototype) {
+                    console.error(`Questions prototype not found for ${isFinal ? 'final quiz' : 'part ' + partIndex}`);
+                    return;
+                }
+
+                // Event delegation for add/remove question buttons
+                questionsContainer.addEventListener('click', function (e) {
+                    if (e.target.classList.contains('add-question-btn')) {
+                        console.log(`Adding question for part ${partIndex}, question ${questionIndex}`);
+                        const newQuestionDiv = document.createElement('div');
+                        newQuestionDiv.classList.add('question-form', 'card', 'shadow-sm', 'rounded-3', 'mb-2', 'animate__animated', 'animate__fadeIn');
+                        newQuestionDiv.setAttribute('data-question-index', questionIndex);
+                        const optionsContainerId = isFinal ? `options-final-${questionIndex}` : `options-part-${partIndex}-${questionIndex}`;
+                        newQuestionDiv.innerHTML = prototype
+                            .replace(/__name__/g, questionIndex)
+                            .replace(/<div class="options-container"[^>]*>([\s\S]*?)<\/div>/, '') // Remove existing options
+                            + `<div class="options-container" id="${optionsContainerId}" data-dependent="mcq" style="display: none;">
+                                <button type="button" class="btn add-option-btn mt-2" data-question-index="${questionIndex}" data-part-index="${partIndex}">Add Option</button>
+                            </div>`
+                            + `<button type="button" class="btn remove-question-btn mt-2">Remove Question</button>`;
+                        questionsContainer.insertBefore(newQuestionDiv, e.target);
+                        const textInput = newQuestionDiv.querySelector(`[id$="_text"]`);
+                        if (textInput) {
+                            initializeTinyMCE(textInput, textInput.id);
+                        }
+                        initializeQuestion(newQuestionDiv, partIndex, questionIndex, isFinal);
+                        questionIndex++;
+                    } else if (e.target.classList.contains('remove-question-btn')) {
+                        const questionDiv = e.target.closest('.question-form');
+                        const qIndex = questionDiv.getAttribute('data-question-index');
+                        console.log(`Removing question ${qIndex} for part ${partIndex}`);
+                        const textInput = questionDiv.querySelector(`[id$="_text"]`);
+                        if (textInput && tinymce.get(textInput.id)) {
+                            tinymce.get(textInput.id).remove();
+                        }
+                        questionDiv.remove();
+                    }
                 });
 
-                mediaUrlsContainer.addEventListener('click', function (e) {
-                    if (e.target.classList.contains('remove-media-btn')) {
-                        e.target.closest('.media-url-field').remove();
+                // Initialize existing questions
+                questionsContainer.querySelectorAll('.question-form').forEach((questionDiv, qIndex) => {
+                    const textInput = questionDiv.querySelector(`[id$="_text"]`);
+                    if (textInput && !textInput.hasAttribute('data-tinymce-initialized')) {
+                        initializeTinyMCE(textInput, textInput.id);
+                    }
+                    initializeQuestion(questionDiv, partIndex, qIndex, isFinal);
+                });
+            }
+
+            // Initialize question
+            function initializeQuestion(questionDiv, partIndex, questionIndex, isFinal = false) {
+                const prefix = isFinal ? 'course_finalQuiz' : `course_parts_${partIndex}_quiz`;
+                const optionsContainerId = isFinal ? `options-final-${questionIndex}` : `options-part-${partIndex}-${questionIndex}`;
+                const typeSelect = questionDiv.querySelector('.question-type');
+                let optionsContainer = questionDiv.querySelector(`#${optionsContainerId}`);
+
+                console.log(`Initializing question for part ${partIndex}, question ${questionIndex}, optionsContainerId: ${optionsContainerId}`);
+
+                if (!typeSelect) {
+                    console.error(`Question initialization failed: missing type select for question ${questionIndex} in part ${partIndex}`);
+                    return;
+                }
+
+                // Ensure options container exists
+                if (!optionsContainer) {
+                    console.log(`Creating options container for part ${partIndex}, question ${questionIndex}`);
+                    optionsContainer = document.createElement('div');
+                    optionsContainer.classList.add('options-container');
+                    optionsContainer.id = optionsContainerId;
+                    optionsContainer.setAttribute('data-dependent', 'mcq');
+                    optionsContainer.style.display = 'none';
+                    optionsContainer.innerHTML = `<button type="button" class="btn add-option-btn mt-2" data-question-index="${questionIndex}" data-part-index="${partIndex}">Add Option</button>`;
+                    const correctAnswerDiv = questionDiv.querySelector('.mb-3:last-child');
+                    if (correctAnswerDiv) {
+                        questionDiv.insertBefore(optionsContainer, correctAnswerDiv);
+                    } else {
+                        questionDiv.appendChild(optionsContainer);
+                    }
+                }
+
+                function createOptionElement() {
+                    const optionContainer = document.createElement('div');
+                    optionContainer.classList.add('option-container', 'row', 'mb-2');
+
+                    const col10 = document.createElement('div');
+                    col10.classList.add('col-md-10');
+
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.name = `${prefix}[questions][${questionIndex}][options][]`;
+                    input.classList.add('form-control');
+                    input.placeholder = 'Enter option';
+
+                    col10.appendChild(input);
+
+                    const col2 = document.createElement('div');
+                    col2.classList.add('col-md-2');
+
+                    const removeBtn = document.createElement('button');
+                    removeBtn.type = 'button';
+                    removeBtn.classList.add('btn', 'remove-option-btn', 'mt-1');
+                    removeBtn.textContent = 'Remove Option';
+
+                    col2.appendChild(removeBtn);
+
+                    optionContainer.appendChild(col10);
+                    optionContainer.appendChild(col2);
+
+                    return optionContainer;
+                }
+
+                function toggleOptions() {
+                    const currentType = typeSelect.value;
+                    console.log(`Toggling options for part ${partIndex}, question ${questionIndex}, type: ${currentType}`);
+                    optionsContainer.style.display = currentType === 'mcq' ? 'block' : 'none';
+                    const addOptionButton = optionsContainer.querySelector('.add-option-btn');
+                    if (!addOptionButton) {
+                        console.error(`Add Option button missing for part ${partIndex}, question ${questionIndex}`);
+                        return;
+                    }
+                    if (currentType === 'mcq') {
+                        let existingOptions = optionsContainer.querySelectorAll('.option-container').length;
+                        if (existingOptions === 0) {
+                            for (let i = 0; i < 2; i++) {
+                                const newOption = createOptionElement();
+                                optionsContainer.insertBefore(newOption, addOptionButton);
+                                existingOptions++;
+                            }
+                        }
+                        addOptionButton.disabled = existingOptions >= 4;
+                        console.log(`Options container visible with ${existingOptions} options for part ${partIndex}, question ${questionIndex}`);
+                    } else {
+                        optionsContainer.querySelectorAll('.option-container').forEach(container => container.remove());
+                        addOptionButton.disabled = false;
+                        console.log(`Options container hidden for part ${partIndex}, question ${questionIndex}`);
+                    }
+                }
+
+                // Attach change listener if not already attached
+                if (!typeSelect.dataset.changeListener) {
+                    typeSelect.addEventListener('change', toggleOptions);
+                    typeSelect.dataset.changeListener = 'true';
+                }
+
+                toggleOptions();
+
+                // Event delegation for add/remove option buttons
+                optionsContainer.addEventListener('click', function (e) {
+                    if (e.target.classList.contains('add-option-btn')) {
+                        console.log(`Add Option button clicked for part ${partIndex}, question ${questionIndex}`);
+                        const existingOptions = optionsContainer.querySelectorAll('.option-container').length;
+                        if (existingOptions < 4) {
+                            const newOption = createOptionElement();
+                            optionsContainer.insertBefore(newOption, e.target);
+                            console.log(`Added option ${existingOptions + 1} for part ${partIndex}, question ${questionIndex}`);
+                            toggleOptions();
+                        } else {
+                            console.log(`Maximum options (4) reached for part ${partIndex}, question ${questionIndex}`);
+                        }
+                    } else if (e.target.classList.contains('remove-option-btn')) {
+                        console.log(`Remove Option button clicked for part ${partIndex}, question ${questionIndex}`);
+                        const optionContainer = e.target.closest('.option-container');
+                        if (optionContainer) {
+                            optionContainer.remove();
+                            toggleOptions();
+                        }
                     }
                 });
             }
 
-            document.querySelectorAll('.part-form').forEach(initializeMediaUrlHandlers);
+            // Initialize media URLs
+            function initializeMediaUrls(partDiv, index) {
+                const mediaUrlsContainer = partDiv.querySelector(`.media-urls-container[data-part-index="${index}"]`);
+                if (!mediaUrlsContainer) return;
+                const addMediaButton = mediaUrlsContainer.querySelector('.add-media-btn');
+                const prototype = `
+                    <div class="media-url-container row mb-2">
+                        <div class="col-md-10">
+                            <input type="url" name="course[parts][${index}][writtenSection][mediaUrls][]" class="form-control media-url" placeholder="e.g., https://example.com/image.jpg">
+                        </div>
+                        <div class="col-md-2">
+                            <button type="button" class="btn remove-media-btn mt-1">Remove</button>
+                        </div>
+                    </div>
+                `;
+                addMediaButton.addEventListener('click', function () {
+                    const newMediaDiv = document.createElement('div');
+                    newMediaDiv.innerHTML = prototype;
+                    mediaUrlsContainer.insertBefore(newMediaDiv.firstChild, addMediaButton);
+                });
+                mediaUrlsContainer.addEventListener('click', function (e) {
+                    if (e.target.classList.contains('remove-media-btn')) {
+                        e.target.closest('.media-url-container').remove();
+                    }
+                });
+            }
+
+            // Initialize media uploads
+            function initializeMediaUploads(partDiv, index) {
+                const mediaUploadsContainer = partDiv.querySelector(`[id^="course_parts_${index}_writtenSection_mediaUploads"]`)?.parentNode;
+                if (!mediaUploadsContainer) return;
+                const addMediaUploadButton = partDiv.querySelector(`.add-media-upload-btn[data-part-index="${index}"]`);
+                const prototype = `
+                    <div class="media-upload-container row mb-2">
+                        <div class="col-md-10">
+                            <input type="file" name="course[parts][${index}][writtenSection][mediaUploads][]" class="form-control" accept="image/*,video/*">
+                        </div>
+                        <div class="col-md-2">
+                            <button type="button" class="btn remove-media-upload-btn mt-1">Remove</button>
+                        </div>
+                    </div>
+                `;
+                addMediaUploadButton.addEventListener('click', function () {
+                    const newMediaDiv = document.createElement('div');
+                    newMediaDiv.innerHTML = prototype;
+                    mediaUploadsContainer.appendChild(newMediaDiv.firstChild);
+                });
+                mediaUploadsContainer.addEventListener('click', function (e) {
+                    if (e.target.classList.contains('remove-media-upload-btn')) {
+                        e.target.closest('.media-upload-container').remove();
+                    }
+                });
+            }
+
+            // Initialize GeoGebra
+            function initializeGeoGebra(partDiv, index) {
+                const ggbContainer = partDiv.querySelector(`#geogebra-element-${index}`);
+                const ggbSpinner = partDiv.querySelector(`#ggb-spinner-${index}`);
+                const ggbError = partDiv.querySelector(`#geogebra-error-${index}`);
+                if (!ggbContainer || !ggbSpinner || !ggbError) {
+                    console.error(`GeoGebra initialization failed: missing elements for part ${index}`);
+                    return;
+                }
+
+                const materialId = partDiv.querySelector(`[name="course[parts][${index}][geogebraMaterialId]"]`).value || '';
+                if (!materialId) {
+                    ggbSpinner.style.display = 'none';
+                    ggbError.style.display = 'block';
+                    return;
+                }
+
+                ggbSpinner.style.display = 'block';
+                const ggbApp = new GGBApplet({
+                    appName: 'graphing',
+                    width: ggbContainer.offsetWidth,
+                    height: 400,
+                    showToolBar: true,
+                    showAlgebraInput: true,
+                    showMenuBar: true,
+                    material_id: materialId
+                }, true);
+                ggbApp.inject(`geogebra-element-${index}`, function() {
+                    ggbSpinner.style.display = 'none';
+                    const ggbInstance = window[`ggbApplet${index.replace(/-/g, '')}`];
+                    if (ggbInstance) {
+                        ggbInstance.registerAddListener(function(json) {
+                            console.log(`GeoGebra interaction detected for part ${index}:`, json);
+                        });
+                    }
+                }, function(error) {
+                    ggbSpinner.style.display = 'none';
+                    ggbError.style.display = 'block';
+                });
+            }
+
+            // Initialize parts
+            function initializePart(partDiv, index) {
+                const textInput = partDiv.querySelector(`#written_section_${index}_content`);
+                if (textInput && !textInput.hasAttribute('data-tinymce-initialized')) {
+                    initializeTinyMCE(textInput, `written_section_${index}_content`);
+                }
+                initializeMediaUrls(partDiv, index);
+                initializeMediaUploads(partDiv, index);
+                initializeGeoGebra(partDiv, index);
+                const quizForm = partDiv.querySelector(`#quiz-form-part-${index}`);
+                if (quizForm) {
+                    initializeQuiz(quizForm, index);
+                }
+                debugVideoUploads();
+            }
+
+            const partsContainer = document.getElementById('parts-container');
+            const addPartButton = document.querySelector('.add-part-btn');
+            let partIndex = document.querySelectorAll('.part-form').length;
+
+            if (!partsContainer || !addPartButton) {
+                console.error('Parts container or add part button not found');
+                return;
+            }
+
+            document.querySelectorAll('.part-form').forEach((partDiv, index) => {
+                initializePart(partDiv, index);
+            });
+
+            const finalQuizForm = document.querySelector('#quiz-form-final');
+            if (finalQuizForm) {
+                initializeQuiz(finalQuizForm, 'final', true);
+            }
+
+            addPartButton.addEventListener('click', function () {
+                const prototype = partsContainer.dataset.prototype.replace(/__name__/g, partIndex);
+                const newPartDiv = document.createElement('div');
+                newPartDiv.classList.add('part-form', 'card', 'shadow-sm', 'rounded-3', 'animate__animated', 'animate__fadeIn');
+                newPartDiv.setAttribute('data-part-index', partIndex);
+
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(prototype, 'text/html');
+                let titleDiv = '', descriptionDiv = '', durationDiv = '', orderDiv = '', videoFilenameDiv = '', videoDescDiv = '', videoDurationDiv = '', geoDiv = '', tutorialDiv = '', writtenDiv = '', mediaUrlsDiv = '', mediaUploadsDiv = '', quizDiv = '', quizModeDiv = '', questionsPrototype = '';
+
+                for (let div of doc.getElementsByTagName('div')) {
+                    if (div.querySelector('input[name$="[title]"]')) titleDiv = div.outerHTML;
+                    else if (div.querySelector('textarea[name$="[description]"]')) descriptionDiv = div.outerHTML;
+                    else if (div.querySelector('input[name$="[duration]"]')) durationDiv = div.outerHTML;
+                    else if (div.querySelector('input[name$="[partOrder]"]')) orderDiv = div.outerHTML;
+                    else if (div.querySelector('input[name$="[video][filename]"]')) videoFilenameDiv = div.outerHTML;
+                    else if (div.querySelector('textarea[name$="[video][description]"]')) videoDescDiv = div.outerHTML;
+                    else if (div.querySelector('input[name$="[video][duration]"]')) videoDurationDiv = div.outerHTML;
+                    else if (div.querySelector('input[name$="[geogebraMaterialId]"]')) geoDiv = div.outerHTML;
+                    else if (div.querySelector('textarea[name$="[tutorialContent]"]')) tutorialDiv = div.outerHTML;
+                    else if (div.querySelector('textarea[name$="[writtenSection][content]"]')) writtenDiv = div.outerHTML;
+                    else if (div.querySelector('input[name$="[writtenSection][mediaUrls][]"]')) mediaUrlsDiv = div.outerHTML;
+                    else if (div.querySelector('input[name$="[writtenSection][mediaUploads][]"]')) mediaUploadsDiv = div.outerHTML;
+                    else if (div.querySelector('input[name$="[quiz][title]"]')) quizDiv = div.outerHTML;
+                    else if (div.querySelector('select[name$="[quizMode]"]')) quizModeDiv = div.outerHTML;
+                    else if (div.querySelector('div[id$="_quiz_questions"]')) questionsPrototype = div.outerHTML;
+                }
+
+                newPartDiv.innerHTML = `
+                    <h4 class="fw-bold">Part ${partIndex + 1}</h4>
+                    <div class="row mb-3">
+                        <div class="col-md-6">${titleDiv}</div>
+                        <div class="col-md-3">${orderDiv}</div>
+                        <div class="col-md-3">${durationDiv}</div>
+                    </div>
+                    <div class="mb-3">${descriptionDiv}</div>
+                    <h5 class="fw-bold">Video Content</h5>
+                    <div class="row mb-3">
+                        <div class="col-md-12">${videoFilenameDiv}</div>
+                    </div>
+                    <div class="mb-3">${videoDescDiv}</div>
+                    <div class="mb-3">${videoDurationDiv}</div>
+                    <h5 class="fw-bold">GeoGebra Content</h5>
+                    <div class="mb-3">${geoDiv}</div>
+                    <div class="geogebra-container">
+                        <div class="loading-spinner" id="ggb-spinner-${partIndex}"></div>
+                        <div id="geogebra-element-${partIndex}" style="width: 100%; height: 400px;"></div>
+                        <div class="geogebra-error text-danger" id="geogebra-error-${partIndex}" style="display: none;">
+                            Failed to load GeoGebra applet. Please check the material ID or try again later.
+                        </div>
+                    </div>
+                    <div class="mb-3">${tutorialDiv}</div>
+                    <h5 class="fw-bold">Written Content</h5>
+                    <div class="mb-3">${writtenDiv}</div>
+                    <div class="mb-3">
+                        <label class="fw-bold">Media URLs</label>
+                        <div class="media-urls-container" data-part-index="${partIndex}">
+                            ${mediaUrlsDiv}
+                            <button type="button" class="btn add-media-btn mt-2" data-part-index="${partIndex}">Add Media URL</button>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        ${mediaUploadsDiv}
+                        <button type="button" class="btn add-media-upload-btn mt-2" data-part-index="${partIndex}">Add Media Upload</button>
+                    </div>
+                    <h5 class="fw-bold">Part Quiz</h5>
+                    <div class="quiz-form" id="quiz-form-part-${partIndex}">
+                        <div class="quiz-toggle mb-3">${quizModeDiv}</div>
+                        <div class="manual-quiz-section" id="manual-quiz-part-${partIndex}" style="display: none;">
+                            ${quizDiv}
+                            <div class="questions-container" id="questions-part-${partIndex}" data-part-index="${partIndex}" data-prototype='${questionsPrototype.replace(/__name__/g, '0')}'>
+                                <button type="button" class="btn add-question-btn mt-2" data-part-index="${partIndex}">Add Question</button>
+                            </div>
+                            <div class="help-text">Add exactly 10 questions for this quiz.</div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn remove-part-btn mt-3">Remove Part</button>
+                `;
+
+                partsContainer.appendChild(newPartDiv);
+                initializePart(newPartDiv, partIndex);
+                debugVideoUploads();
+                partIndex++;
+            });
+
+            // Remove part
+            partsContainer.addEventListener('click', function (e) {
+                if (e.target.classList.contains('remove-part-btn')) {
+                    const partDiv = e.target.closest('.part-form');
+                    const index = partDiv.getAttribute('data-part-index');
+                    const textInput = partDiv.querySelector(`#written_section_${index}_content`);
+                    if (textInput && tinymce.get(`written_section_${index}_content`)) {
+                        tinymce.get(`written_section_${index}_content`).remove();
+                    }
+                    const quizQuestions = partDiv.querySelectorAll(`#questions-part-${index} .question-form`);
+                    quizQuestions.forEach((questionDiv, qIndex) => {
+                        const textInput = questionDiv.querySelector(`[id$="_text"]`);
+                        if (textInput && tinymce.get(textInput.id)) {
+                            tinymce.get(textInput.id).remove();
+                        }
+                    });
+                    partDiv.remove();
+                    debugVideoUploads();
+                }
+            });
+
+            // Form submission validation
+            document.getElementById('course-create-form').addEventListener('submit', function (e) {
+                let isValid = true;
+                const finalQuizMode = document.querySelector('#course_quizMode');
+                const finalQuizQuestions = document.querySelectorAll('#questions-final .question-form').length;
+
+                if (finalQuizMode && finalQuizMode.value === 'manual' && finalQuizQuestions !== 10) {
+                    alert('Final quiz must have exactly 10 questions.');
+                    isValid = false;
+                }
+
+                document.querySelectorAll('.part-form').forEach((partDiv, index) => {
+                    const quizMode = partDiv.querySelector(`#course_parts_${index}_quizMode`);
+                    const questions = partDiv.querySelectorAll(`#questions-part-${index} .question-form`).length;
+                    if (quizMode && quizMode.value === 'manual' && questions !== 10) {
+                        alert(`Part ${index + 1} quiz must have exactly 10 questions.`);
+                        isValid = false;
+                    }
+                });
+
+                if (!isValid) {
+                    e.preventDefault();
+                }
+            });
+
+            // Render LaTeX
+            renderMathInElement(document.body, {
+                delimiters: [
+                    { left: "$$", right: "$$", display: true },
+                    { left: "\\(", right: "\\)", display: false }
+                ]
+            });
+
+            // Initial debug of video upload fields
+            setTimeout(debugVideoUploads, 100);
         });
     </script>
 {% endblock %}

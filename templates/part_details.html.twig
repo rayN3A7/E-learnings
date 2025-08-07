@@ -1,0 +1,508 @@
+{% extends 'layout.html.twig' %}
+
+{% block title %}{{ part.title }} - {{ course.title }} - eLEARNING{% endblock %}
+
+{% block css %}
+    <link rel="stylesheet" href="{{ asset('css/custom.css') }}">
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --secondary-color: #f1f5f9;
+            --success-color: #2ecc71;
+            --error-color: #e74c3c;
+            --warning-color: #f39c12;
+            --text-color: #2d3748;
+            --border-radius: 16px;
+            --shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+            --transition: all 0.4s ease;
+            --gradient-bg: linear-gradient(135deg, #f0f4f8, #ffffff);
+        }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            color: var(--text-color);
+            background: var(--gradient-bg);
+        }
+        .course-header {
+            background: linear-gradient(135deg, var(--primary-color), #6ab0ff);
+            color: white;
+            padding: 4.5rem 0;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            position: relative;
+            margin-bottom: 3rem;
+            animation: fadeInHeader 1s ease-out;
+        }
+        @keyframes fadeInHeader {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .course-header h1 {
+            font-size: 2.75rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+        }
+        .course-header a {
+            color: #e2e8f0;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+        .course-header a:hover {
+            color: #ffffff;
+        }
+        .content-section {
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            padding: 2.5rem;
+            transition: var(--transition);
+            animation: fadeInContent 1.2s ease-out;
+        }
+        @keyframes fadeInContent {
+            from { opacity: 0; transform: scale(0.98); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .content-section:hover {
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+        }
+        .tutorial, .video-section, .written-section, .geogebra-container, .quiz-section {
+            background: var(--secondary-color);
+            padding: 2rem;
+            border-radius: var(--border-radius);
+            margin-bottom: 2rem;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
+            transition: var(--transition);
+            opacity: 0;
+            animation: slideUpFade 0.8s forwards;
+        }
+        @keyframes slideUpFade {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .video-section { animation-delay: 0.2s; }
+        .written-section { animation-delay: 0.4s; }
+        .geogebra-container { animation-delay: 0.6s; }
+        .tutorial { animation-delay: 0.8s; }
+        .quiz-section { animation-delay: 1s; }
+        .tutorial:hover, .video-section:hover, .written-section:hover, .geogebra-container:hover, .quiz-section:hover {
+            box-shadow: inset 0 4px 8px rgba(0, 0, 0, 0.1);
+            transform: translateY(-4px);
+        }
+        .geogebra-container {
+            min-height: 500px;
+            position: relative;
+        }
+        .geogebra-container #ggb-element-{{ part.id }} {
+            width: 100% !important;
+            height: 100% !important;
+            min-height: 500px;
+        }
+        .quiz-section {
+            position: relative;
+        }
+        .quiz-question {
+            margin-bottom: 2rem;
+            transition: var(--transition);
+        }
+        .quiz-question:hover {
+            background: rgba(0,0,0,0.02);
+        }
+        .form-check {
+            margin-bottom: 1.25rem;
+            padding-left: 2.5rem;
+        }
+        .form-check-input {
+            cursor: pointer;
+        }
+        .form-check-label {
+            font-size: 1.1rem;
+            color: var(--text-color);
+        }
+        .correct-answer {
+            background-color: rgba(46, 204, 113, 0.2);
+            border-left: 6px solid var(--success-color);
+            padding: 1rem;
+        }
+        .incorrect-answer {
+            background-color: rgba(231, 76, 60, 0.2);
+            border-left: 6px solid var(--error-color);
+            padding: 1rem;
+        }
+        .highlight-previous {
+            background-color: rgba(243, 156, 18, 0.2);
+            border-left: 6px solid var(--warning-color);
+            padding: 1rem;
+        }
+        .progress-bar-container {
+            margin-bottom: 1.5rem;
+        }
+        .progress {
+            height: 1rem;
+            background-color: #e5e7eb;
+            border-radius: 9999px;
+            overflow: hidden;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .progress-bar {
+            background: linear-gradient(90deg, var(--primary-color), #3b82f6);
+            transition: width 0.8s ease-in-out;
+        }
+        .btn-primary, .btn-retry, .btn-next {
+            background: linear-gradient(135deg, var(--primary-color), #3b82f6);
+            border: none;
+            padding: 1rem 2rem;
+            font-weight: 600;
+            border-radius: 9999px;
+            color: white;
+            transition: var(--transition);
+            box-shadow: var(--shadow);
+        }
+        .btn-primary:hover, .btn-retry:hover, .btn-next:hover {
+            background: linear-gradient(135deg, #3b82f6, var(--primary-color));
+            transform: translateY(-3px);
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+        }
+        .congratulations-modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 2.5rem;
+            border-radius: var(--border-radius);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            max-width: 90%;
+            width: 450px;
+            text-align: center;
+            animation: popUp 0.6s ease;
+        }
+        .congratulations-modal.hidden {
+            display: none;
+        }
+        @keyframes popUp {
+            from { transform: translate(-50%, -60%) scale(0.9); opacity: 0; }
+            to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+        .media-urls-container img, .media-urls-container video {
+            max-width: 100%;
+            border-radius: var(--border-radius);
+            margin-bottom: 1.5rem;
+            transition: var(--transition);
+        }
+        .media-urls-container img:hover, .media-urls-container video:hover {
+            transform: scale(1.02);
+        }
+        .loading-spinner {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border: 6px solid #f3f3f3;
+            border-top: 6px solid var(--primary-color);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 0.7s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+        .connector-arrow {
+            display: flex;
+            justify-content: center;
+            margin: -1rem 0;
+            opacity: 0.6;
+            transition: var(--transition);
+            position: relative;
+            z-index: 1;
+        }
+        .connector-arrow img {
+            width: 40px;
+            height: auto;
+            animation: hoverArrow 2s infinite ease-in-out;
+        }
+        @keyframes hoverArrow {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(15px); }
+        }
+        .geogebra-container:hover + .connector-arrow,
+        .connector-arrow:hover {
+            opacity: 1;
+            transform: scale(1.1);
+        }
+        .geogebra-container:hover + .connector-arrow img {
+            animation-duration: 1.5s;
+        }
+        .ai-quiz .quiz-question {
+            opacity: 0;
+            transform: translateY(30px);
+            animation: slideIn 0.7s ease forwards;
+            animation-delay: calc(0.2s * var(--question-index));
+        }
+        @keyframes slideIn {
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .manual-quiz .quiz-question {
+            margin-bottom: 1.5rem;
+        }
+        @media (max-width: 768px) {
+            .course-header { padding: 3rem 0; }
+            .course-header h1 { font-size: 2.25rem; }
+            .content-section, .tutorial, .video-section, .written-section, .quiz-section, .geogebra-container { padding: 1.5rem; }
+            .congratulations-modal { width: 90%; }
+            .btn-primary, .btn-retry, .btn-next { padding: 0.75rem 1.5rem; }
+            .connector-arrow img { width: 30px; }
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+    <section class="course-header">
+        <div class="container">
+            <h1>{{ part.title }}</h1>
+            <p><a href="{{ path('app_course_details', {'id': course.id}) }}">{{ course.title }}</a></p>
+        </div>
+    </section>
+
+    <section class="course-content py-5">
+        <div class="container">
+            <div class="content-section">
+                {% if part.video %}
+                    <div class="video-section">
+                        <h4 class="fw-bold mb-3">Video Content</h4>
+                        <video controls class="w-100" loading="lazy">
+                            <source src="{{ asset('uploads/videos/' ~ part.video.filename) }}" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
+                        {% if part.video.description %}
+                            <p class="mt-3 text-muted">{{ part.video.description }}</p>
+                        {% endif %}
+                    </div>
+                {% endif %}
+
+                {% if part.writtenSection %}
+                    <div class="written-section">
+                        <h4 class="fw-bold mb-3">Written Content</h4>
+                        {{ part.writtenSection.content|raw }}
+                        {% if part.writtenSection.mediaUploads|length > 0 %}
+                            <div class="media-urls-container mt-3">
+                                {% for media in part.writtenSection.mediaUploads %}
+                                    {% if media.type in ['jpg', 'png', 'gif'] %}
+                                        <img src="{{ media.url }}" alt="Media" class="img-fluid" loading="lazy">
+                                    {% elseif media.type in ['mp4', 'webm', 'ogg'] %}
+                                        <video controls src="{{ media.url }}" class="img-fluid" loading="lazy"></video>
+                                    {% else %}
+                                        <a href="{{ media.url }}" target="_blank" class="btn btn-sm btn-primary">View Media</a>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <p class="text-muted mt-3">No media uploads available.</p>
+                        {% endif %}
+                    </div>
+                {% else %}
+                    <p class="text-muted">No written content available for this part.</p>
+                {% endif %}
+
+                {% if part.geogebraMaterialId %}
+                    <div class="geogebra-container">
+                        <h4 class="fw-bold mb-3">Interactive Graphing</h4>
+                        <div class="loading-spinner" id="ggb-spinner-{{ part.id }}"></div>
+                        <div id="ggb-element-{{ part.id }}" style="width: 100%; height: 400px;"></div>
+                    </div>
+                {% endif %}
+
+                {% if part.geogebraMaterialId and part.tutorialContent %}
+                    <div class="connector-arrow">
+                        <img src="{{ asset('uploads/images/arrow.png') }}" alt="Down Arrow">
+                    </div>
+                {% endif %}
+
+                {% if part.tutorialContent %}
+                    <div class="tutorial">
+                        <h4 class="fw-bold mb-3">Tutorial</h4>
+                        {{ part.tutorialContent|raw }}
+                    </div>
+                {% endif %}
+
+                {% if quiz %}
+                    <div class="quiz-section {% if quiz.generatedByAI %}ai-quiz{% else %}manual-quiz{% endif %}">
+                        <h4 class="fw-bold mb-3">Quiz: Test Your Knowledge</h4>
+                        <div class="progress-bar-container">
+                            <p class="text-muted">Attempt {{ attempt_count + 1 }} of 3 | Question Progress</p>
+                            <div class="progress">
+                                <div class="progress-bar" role="progressbar" style="width: {{ (quiz.questions|length > 0 ? (1 / quiz.questions|length * 100) : 0) }}%" aria-valuenow="{{ quiz.questions|length > 0 ? (1 / quiz.questions|length * 100) : 0 }}" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                        </div>
+
+                        {% if latest_attempt %}
+                            <p class="mt-3">Your last score: <strong>{{ latest_attempt.score }}%</strong></p>
+                            {% if latest_attempt.score >= 70 %}
+                                <p class="text-success">You passed! The next part is unlocked.</p>
+                            {% elseif attempt_count >= 3 %}
+                                <p class="text-info">All attempts completed. Correct answers shown below.</p>
+                            {% else %}
+                                <p class="text-danger">Score of 70% or higher needed to unlock the next part.</p>
+                            {% endif %}
+                        {% endif %}
+
+                        {% if can_attempt %}
+                            <form action="{{ path('app_quiz_submit', {'id': quiz.id}) }}" method="post" id="quiz-form" enctype="application/x-www-form-urlencoded">
+                                <input type="hidden" name="_token" value="{{ csrf_token('quiz_submit' ~ quiz.id) }}">
+                                {% for question in quiz.questions %}
+                                    <div class="quiz-question" {% if quiz.generatedByAI %}style="--question-index: {{ loop.index }}"{% endif %}>
+                                        <h5 class="fw-bold">{{ loop.index }}. {{ question.text }}</h5>
+                                        {% if latest_attempt and feedback[question.id] is defined %}
+                                            <p class="correct-answer-text text-success">Correct Answer: {{ feedback[question.id].correctAnswer }}</p>
+                                        {% endif %}
+                                        {% if question.type|lower == 'mcq' %}
+                                            {% for option in question.options %}
+                                                <div class="form-check {% if latest_attempt and feedback[question.id] is defined and feedback[question.id].userAnswer == option %} {% if feedback[question.id].isCorrect %}correct-answer{% else %}incorrect-answer{% endif %} {% endif %}">
+                                                    <input class="form-check-input" type="radio" name="answers[{{ question.id }}]" value="{{ option }}" id="option-{{ question.id }}-{{ loop.index }}" {% if latest_attempt and (latest_attempt.score < 70 or attempt_count >= 3) %}disabled{% endif %} required>
+                                                    <label class="form-check-label" for="option-{{ question.id }}-{{ loop.index }}">{{ option }}</label>
+                                                </div>
+                                            {% endfor %}
+                                        {% elseif question.type|lower == 'numeric' %}
+                                            <input type="number" name="answers[{{ question.id }}]" class="form-control {% if latest_attempt and feedback[question.id] is defined %} {% if feedback[question.id].isCorrect %}correct-answer{% else %}incorrect-answer{% endif %} {% endif %}" step="0.01" placeholder="Enter your answer" {% if latest_attempt and (latest_attempt.score < 70 or attempt_count >= 3) %}disabled value="{{ feedback[question.id].correctAnswer|default('') }}"{% endif %} required>
+                                        {% else %}
+                                            <p class="text-danger">Unsupported question type: {{ question.type }}</p>
+                                        {% endif %}
+                                    </div>
+                                {% endfor %}
+                                <div class="mt-4">
+                                    {% if latest_attempt and latest_attempt.score < 70 and attempt_count < 3 %}
+                                        <button type="submit" class="btn btn-retry btn-primary">Retry Quiz</button>
+                                    {% elseif latest_attempt and attempt_count >= 3 %}
+                                        <a href="{{ path('app_course_details', {'id': course.id}) }}" class="btn btn-next btn-primary">Next</a>
+                                    {% else %}
+                                        <button type="submit" class="btn btn-primary">Submit Quiz</button>
+                                    {% endif %}
+                                </div>
+                            </form>
+                        {% else %}
+                            <p class="text-muted mt-3">All attempts for this quiz have been completed.</p>
+                            <a href="{{ path('app_course_details', {'id': course.id}) }}" class="btn btn-next btn-primary">Next</a>
+                        {% endif %}
+
+                        <div class="congratulations-modal hidden" id="congratulations-modal">
+                            <h3>Congratulations!</h3>
+                            <p>You aced the quiz with a perfect score!</p>
+                            <button class="btn btn-primary" onclick="closeModal()">Close</button>
+                        </div>
+                    </div>
+                {% else %}
+                    <p class="text-muted">No quiz available for this part.</p>
+                {% endif %}
+            </div>
+        </div>
+    </section>
+{% endblock %}
+
+{% block js %}
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            try {
+                renderMathInElement(document.body, {
+                    delimiters: [
+                        { left: "$$", right: "$$", display: true },
+                        { left: "\\(", right: "\\)", display: false }
+                    ],
+                    throwOnError: false
+                });
+            } catch (e) {
+                console.error('KaTeX rendering failed:', e);
+            }
+
+            {% if part.geogebraMaterialId %}
+                const materialId = '{{ part.geogebraMaterialId|e('js') }}';
+                const partId = {{ part.id|e('js') }};
+                if (materialId && partId) {
+                    const ggbSpinner = document.getElementById(`ggb-spinner-${partId}`);
+                    if (ggbSpinner) ggbSpinner.style.display = 'block';
+                    const ggbScript = document.createElement('script');
+                    ggbScript.src = 'https://www.geogebra.org/apps/deployggb.js';
+                    ggbScript.defer = true;
+                    ggbScript.onload = function() {
+                        const ggbContainer = document.getElementById(`ggb-element-${partId}`);
+                        if (ggbContainer) {
+                            const ggbApp = new GGBApplet({
+                                appName: 'graphing',
+                                width: ggbContainer.offsetWidth,
+                                height: 400,
+                                showToolBar: true,
+                                showAlgebraInput: true,
+                                showMenuBar: true,
+                                material_id: materialId
+                            }, true);
+                            ggbApp.inject(`ggb-element-${partId}`, function() {
+                                if (ggbSpinner) ggbSpinner.style.display = 'none';
+                            }, function(error) {
+                                if (ggbSpinner) ggbSpinner.style.display = 'none';
+                                ggbContainer.innerHTML = '<p class="text-danger">Failed to load GeoGebra applet. Please try again later.</p>';
+                                console.error('GeoGebra initialization failed:', error);
+                            });
+                        }
+                    };
+                    document.head.appendChild(ggbScript);
+                }
+            {% endif %}
+
+            const quizForm = document.getElementById('quiz-form');
+            const modal = document.getElementById('congratulations-modal');
+            const progressBar = document.querySelector('.progress-bar');
+
+            function updateProgressBar(currentQuestion, totalQuestions) {
+                const progress = (currentQuestion / totalQuestions) * 100;
+                progressBar.style.width = `${progress}%`;
+            }
+
+            function showConfetti() {
+                confetti({
+                    particleCount: 150,
+                    spread: 80,
+                    origin: { y: 0.6 },
+                    colors: ['#4a90e2', '#2ecc71', '#f39c12']
+                });
+            }
+
+            function showModal() {
+                modal.classList.remove('hidden');
+                showConfetti();
+            }
+
+            window.closeModal = function() {
+                modal.classList.add('hidden');
+            };
+
+            {% if latest_attempt and latest_attempt.score == 100 and latest_attempt.attemptNumber == 1 %}
+                showModal();
+            {% endif %}
+
+            if (quizForm) {
+                const questions = document.querySelectorAll('.quiz-question');
+                updateProgressBar(1, questions.length);
+
+                questions.forEach((question, index) => {
+                    question.style.setProperty('--question-index', index + 1);
+                });
+
+                quizForm.addEventListener('submit', function(e) {
+                    const submitButton = quizForm.querySelector('button[type="submit"]');
+                    submitButton.disabled = true;
+                    submitButton.textContent = 'Submitting...';
+                    submitButton.classList.add('animate__animated', 'animate__pulse');
+                    setTimeout(() => {
+                        submitButton.classList.remove('animate__animated', 'animate__pulse');
+                        submitButton.disabled = false;
+                        submitButton.textContent = submitButton.classList.contains('btn-retry') ? 'Retry Quiz' : 'Submit Quiz';
+                    }, 1000);
+                });
+            }
+        });
+    </script>
+{% endblock %}

@@ -22,22 +22,27 @@ class Part
     #[ORM\Column(type: 'integer', nullable: true)]
     private ?int $duration = null;
 
-    #[ORM\Column(type: 'integer', nullable: true)]
-    private ?int $order = null;
+    #[ORM\Column(type: 'integer', name: 'partOrder')]
+    private ?int $partOrder = null;
 
-    #[ORM\ManyToOne(targetEntity: Course::class, inversedBy: 'parts')]
+    #[ORM\Column(type: 'string', length: 255, nullable: true, name: 'geogebraMaterialId')]
+    private ?string $geogebraMaterialId = null;
+
+    #[ORM\Column(type: 'text', nullable: true, name: 'tutorialContent')]
+    private ?string $tutorialContent = null;
+
+    #[ORM\ManyToOne(targetEntity: Course::class, inversedBy: 'parts', cascade: ['persist'])]
     #[ORM\JoinColumn(name: 'courseId', referencedColumnName: 'id')]
     private ?Course $course = null;
 
-    #[ORM\OneToOne(targetEntity: Quiz::class, inversedBy: 'part')]
-    #[ORM\JoinColumn(name: 'quizId', referencedColumnName: 'id', nullable: true)]
-    private ?Quiz $quiz = null;
-
-    #[ORM\OneToOne(mappedBy: 'part', targetEntity: Video::class, cascade: ['persist', 'remove'])]
+    #[ORM\OneToOne(targetEntity: Video::class, mappedBy: 'part')]
     private ?Video $video = null;
 
-    #[ORM\OneToOne(mappedBy: 'part', targetEntity: WrittenSection::class, cascade: ['persist', 'remove'])]
+    #[ORM\OneToOne(targetEntity: WrittenSection::class, mappedBy: 'part')]
     private ?WrittenSection $writtenSection = null;
+
+    #[ORM\OneToOne(targetEntity: Quiz::class, mappedBy: 'part')]
+    private ?Quiz $quiz = null;
 
     public function getId(): ?int
     {
@@ -77,14 +82,36 @@ class Part
         return $this;
     }
 
-    public function getOrder(): ?int
+    public function getPartOrder(): ?int
     {
-        return $this->order;
+        return $this->partOrder;
     }
 
-    public function setOrder(?int $order): self
+    public function setPartOrder(int $partOrder): self
     {
-        $this->order = $order;
+        $this->partOrder = $partOrder;
+        return $this;
+    }
+
+    public function getGeogebraMaterialId(): ?string
+    {
+        return $this->geogebraMaterialId;
+    }
+
+    public function setGeogebraMaterialId(?string $geogebraMaterialId): self
+    {
+        $this->geogebraMaterialId = $geogebraMaterialId;
+        return $this;
+    }
+
+    public function getTutorialContent(): ?string
+    {
+        return $this->tutorialContent;
+    }
+
+    public function setTutorialContent(?string $tutorialContent): self
+    {
+        $this->tutorialContent = $tutorialContent;
         return $this;
     }
 
@@ -96,17 +123,6 @@ class Part
     public function setCourse(?Course $course): self
     {
         $this->course = $course;
-        return $this;
-    }
-
-    public function getQuiz(): ?Quiz
-    {
-        return $this->quiz;
-    }
-
-    public function setQuiz(?Quiz $quiz): self
-    {
-        $this->quiz = $quiz;
         return $this;
     }
 
@@ -130,5 +146,21 @@ class Part
     {
         $this->writtenSection = $writtenSection;
         return $this;
+    }
+
+    public function getQuiz(): ?Quiz
+    {
+        return $this->quiz;
+    }
+
+    public function setQuiz(?Quiz $quiz): self
+    {
+        $this->quiz = $quiz;
+        return $this;
+    }
+
+    public function __toString(): string
+    {
+        return $this->title ?? 'Part #' . ($this->id ?? 'unsaved');
     }
 }
