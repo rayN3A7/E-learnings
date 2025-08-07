@@ -5,6 +5,7 @@
 {% block css %}
     <link rel="stylesheet" href="{{ asset('css/custom.css') }}">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" crossorigin="anonymous">
     <style>
         body { background-color: #f4f7fc; font-family: 'Inter', sans-serif; }
         .course-create-header {
@@ -27,13 +28,13 @@
         .form-section .form-control:focus { border-color: #2a5298; box-shadow: 0 0 0 3px rgba(42, 82, 152, 0.2); }
         .part-form, .quiz-form { background: #f9fafb; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; }
         .mce-content-body { min-height: 150px !important; border-radius: 8px; border: 1px solid #e2e8f0; }
-        .add-part-btn, .add-media-btn, .add-question-btn, .add-option-btn {
+        .add-part-btn, .add-media-btn, .add-question-btn, .add-option-btn, .add-media-upload-btn {
             border-radius: 50px; padding: 0.6rem 1.8rem; font-weight: 600; background-color: #2a5298; color: #ffffff;
         }
-        .remove-part-btn, .remove-media-btn, .remove-question-btn, .remove-option-btn {
+        .remove-part-btn, .remove-media-btn, .remove-question-btn, .remove-option-btn, .remove-media-upload-btn {
             border-radius: 50px; padding: 0.6rem 1.8rem; font-weight: 600; background-color: #dc3545; color: #ffffff;
         }
-        .media-url-container, .question-container, .option-container { margin-bottom: 1rem; }
+        .media-url-container, .question-container, .option-container, .media-upload-container { margin-bottom: 1rem; }
         h1, h2, h3, h4, h5, h6 { color: #2a5298; }
         .quiz-toggle { margin-bottom: 1rem; }
         .geogebra-container {
@@ -42,9 +43,12 @@
         }
         .geogebra-container [id^="geogebra-element-"] {
             width: 100% !important;
-            height: 100% !important;
-            min-height: 400px;
+            height: 400px !important;
         }
+        .loading-spinner { display: none; text-align: center; padding: 20px; }
+        .loading-spinner::before { content: 'Loading GeoGebra...'; color: #2a5298; }
+        .video-upload-error { display: none; background: #fff3cd; border: 1px solid #ffeeba; padding: 15px; border-radius: 8px; margin-bottom: 1rem; }
+        .debug-video-upload { border: 2px solid #2a5298; background-color: #e6f3ff; }
         @media (max-width: 768px) {
             .course-create-header { padding: 40px 0; }
             .course-create-header h1 { font-size: 2rem; }
@@ -64,6 +68,9 @@
     <section class="form-section py-5">
         <div class="container">
             <div class="card shadow-sm rounded-3">
+                <div class="video-upload-error" id="video-upload-error">
+                    Unable to load the video upload field. Please check your form configuration or contact support.
+                </div>
                 {{ form_start(form, {'attr': {'enctype': 'multipart/form-data', 'id': 'course-create-form'}}) }}
                     {{ form_widget(form._token) }}
                     <div class="mb-4">
@@ -79,7 +86,7 @@
                     <h3 class="fw-bold mb-4">Course Parts</h3>
                     <div id="parts-container" data-prototype="{{ form_widget(form.parts.vars.prototype)|e('html_attr')|replace({'__name__': '0'})|raw }}">
                         {% for partForm in form.parts %}
-                            <div class="part-form card shadow-sm rounded-3" data-part-index="{{ loop.index0 }}">
+                            <div class="part-form card shadow-sm rounded-3 animate__animated animate__fadeIn" data-part-index="{{ loop.index0 }}">
                                 <h4 class="fw-bold">Part {{ loop.index }}</h4>
                                 <div class="row mb-3">
                                     <div class="col-md-6">
@@ -98,19 +105,25 @@
                                 <h5 class="fw-bold">Video Content</h5>
                                 <div class="row mb-3">
                                     <div class="col-md-12">
-                                        {{ form_row(partForm.videoFile, {'attr': {'class': 'form-control'}}) }}
+                                        {{ form_row(partForm.video.filename, {'attr': {'class': 'form-control debug-video-upload', 'accept': 'video/mp4'}}) }}
                                     </div>
                                 </div>
                                 <div class="mb-3">
-                                    {{ form_row(partForm.videoDescription, {'attr': {'class': 'form-control', 'placeholder': 'Video description'}}) }}
+                                    {{ form_row(partForm.video.description, {'attr': {'class': 'form-control', 'placeholder': 'Video description'}}) }}
+                                </div>
+                                <div class="mb-3">
+                                    {{ form_row(partForm.video.duration, {'attr': {'class': 'form-control', 'placeholder': 'Video duration in minutes'}}) }}
                                 </div>
                                 <h5 class="fw-bold">GeoGebra Content</h5>
                                 <div class="mb-3">
-                                    {{ form_row(partForm.geogebraMaterialId, {'attr': {'class': 'form-control', 'placeholder': 'GeoGebra material ID'}}) }}
+                                    {{ form_row(partForm.geogebraMaterialId, {'attr': {'class': 'form-control', 'placeholder': 'GeoGebra material ID (e.g., g3n8k2m4)'}}) }}
                                 </div>
                                 <div class="geogebra-container">
                                     <div class="loading-spinner" id="ggb-spinner-{{ loop.index0 }}"></div>
                                     <div id="geogebra-element-{{ loop.index0 }}" style="width: 100%; height: 400px;"></div>
+                                    <div class="geogebra-error text-danger" id="geogebra-error-{{ loop.index0 }}" style="display: none;">
+                                        Failed to load GeoGebra applet. Please check the material ID or try again later.
+                                    </div>
                                 </div>
                                 <div class="mb-3">
                                     {{ form_row(partForm.tutorialContent, {'label': 'Tutorial Content', 'attr': {'class': 'form-control', 'placeholder': 'Enter tutorial content'}}) }}
@@ -119,7 +132,7 @@
                                 <div class="mb-3">
                                     {{ form_row(partForm.writtenSection.content, {
                                         'id': 'written_section_' ~ loop.index0 ~ '_content',
-                                        'attr': {'class': 'form-control rich-text-editor'}
+                                        'attr': {'class': 'form-control rich-text-editor', 'placeholder': 'Enter content with LaTeX (e.g., \\(x^2\\))'}
                                     }) }}
                                     <div class="help-text">Use headings, images, videos, and LaTeX (e.g., \( x^2 \)) for mathematical expressions.</div>
                                 </div>
@@ -140,10 +153,9 @@
                                     </div>
                                 </div>
                                 <div class="mb-3">
-                                    {{ form_row(partForm.writtenSection.mediaUploads) }}
+                                    {{ form_row(partForm.writtenSection.mediaUploads, {'attr': {'class': 'form-control'}}) }}
                                     <button type="button" class="btn add-media-upload-btn mt-2" data-part-index="{{ loop.index0 }}">Add Media Upload</button>
                                 </div>
-                                <!-- Part Quiz Section -->
                                 <h5 class="fw-bold">Part Quiz</h5>
                                 <div class="quiz-form" id="quiz-form-part-{{ loop.index0 }}">
                                     <div class="quiz-toggle mb-3">
@@ -171,12 +183,12 @@
                                              data-part-index="{{ loop.index0 }}"
                                              data-prototype="{{ form_widget(partForm.quiz.questions.vars.prototype)|e('html_attr')|replace({'__name__': '0'})|raw }}">
                                             {% for questionForm in partForm.quiz.questions %}
-                                                <div class="question-form card shadow-sm rounded-3 mb-2" data-question-index="{{ loop.index0 }}">
+                                                <div class="question-form card shadow-sm rounded-3 mb-2 animate__animated animate__fadeIn" data-question-index="{{ loop.index0 }}">
                                                     <div class="mb-3">
                                                         {{ form_label(questionForm.text, 'Question Text') }}
                                                         {{ form_widget(questionForm.text, {
                                                             'id': 'course_parts_' ~ loop.parent.loop.index0 ~ '_quiz_questions_' ~ loop.index0 ~ '_text',
-                                                            'attr': {'class': 'form-control rich-text-editor'}
+                                                            'attr': {'class': 'form-control rich-text-editor', 'placeholder': 'Enter question with LaTeX (e.g., \\(x^2\\))'}
                                                         }) }}
                                                         {{ form_errors(questionForm.text) }}
                                                     </div>
@@ -236,9 +248,8 @@
                     </div>
                     <button type="button" class="btn add-part-btn mt-3">Add Part</button>
 
-                    <!-- Final Course Quiz Section -->
                     <h3 class="fw-bold mb-4">Final Course Quiz</h3>
-                    <div class="quiz-form card shadow-sm rounded-3" id="quiz-form-final">
+                    <div class="quiz-form card shadow-sm rounded-3 animate__animated animate__fadeIn" id="quiz-form-final">
                         <div class="quiz-toggle mb-3">
                             {{ form_row(form.quizMode, {
                                 'attr': {
@@ -264,12 +275,12 @@
                                  data-part-index="final"
                                  data-prototype="{{ form_widget(form.finalQuiz.questions.vars.prototype)|e('html_attr')|replace({'__name__': '0'})|raw }}">
                                 {% for questionForm in form.finalQuiz.questions %}
-                                    <div class="question-form card shadow-sm rounded-3 mb-2" data-question-index="{{ loop.index0 }}">
+                                    <div class="question-form card shadow-sm rounded-3 mb-2 animate__animated animate__fadeIn" data-question-index="{{ loop.index0 }}">
                                         <div class="mb-3">
                                             {{ form_label(questionForm.text, 'Question Text') }}
                                             {{ form_widget(questionForm.text, {
                                                 'id': 'course_finalQuiz_questions_' ~ loop.index0 ~ '_text',
-                                                'attr': {'class': 'form-control rich-text-editor'}
+                                                'attr': {'class': 'form-control rich-text-editor', 'placeholder': 'Enter question with LaTeX (e.g., \\(x^2\\))'}
                                             }) }}
                                             {{ form_errors(questionForm.text) }}
                                         </div>
@@ -338,12 +349,33 @@
     <script src="https://cdn.tiny.cloud/1/ifeinrsntzv3r5s66j2ixgo39jv7rz9otzj2xzg2nirgaloc/tinymce/8/tinymce.min.js" referrerpolicy="origin" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
-    <script src="https://www.geogebra.org/apps/deployggb.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/wow/1.1.2/wow.min.js" crossorigin="anonymous"></script>
+    <script src="https://www.geogebra.org/apps/deployggb.js" defer></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            if (typeof tinymce === 'undefined') {
-                console.error('TinyMCE script failed to load. Check the CDN URL and ensure 127.0.0.1:8000 is added to approved domains at https://www.tiny.cloud/my-account/.');
-                return;
+            // Initialize WOW.js for animations
+            new WOW().init();
+
+            // Debug video upload fields
+            function debugVideoUploads() {
+                const videoInputs = document.querySelectorAll('input[name$="[video][filename]"]');
+                if (videoInputs.length === 0) {
+                    console.error('No video upload inputs found. Check PartType and VideoType form definitions.');
+                    document.getElementById('video-upload-error').style.display = 'block';
+                } else {
+                    videoInputs.forEach((input, index) => {
+                        console.log(`Video upload input ${index}:`, {
+                            id: input.id,
+                            name: input.name,
+                            visible: input.offsetParent !== null,
+                            style: window.getComputedStyle(input).display
+                        });
+                        if (window.getComputedStyle(input).display === 'none') {
+                            console.warn(`Video upload input ${index} is hidden. Check CSS rules.`);
+                            document.getElementById('video-upload-error').style.display = 'block';
+                        }
+                    });
+                }
             }
 
             // Initialize TinyMCE
@@ -388,7 +420,7 @@
                             editor.save();
                         });
                     },
-                    placeholder: 'Enter question with LaTeX support (e.g., \\(x^2 + y^2 = z^2\\))'
+                    placeholder: 'Enter content with LaTeX support (e.g., \\(x^2 + y^2 = z^2\\))'
                 }).then(function () {
                     element.setAttribute('data-tinymce-initialized', 'true');
                     console.debug(`TinyMCE initialized for ID: ${id}`);
@@ -400,7 +432,6 @@
             // Initialize quiz section
             function initializeQuiz(quizForm, partIndex, isFinal = false) {
                 const prefix = isFinal ? 'course_finalQuiz' : `course_parts_${partIndex}_quiz`;
-                const quizFormId = isFinal ? 'quiz-form-final' : `quiz-form-part-${partIndex}`;
                 const quizModeId = isFinal ? 'course_quizMode' : `course_parts_${partIndex}_quizMode`;
                 const manualQuizId = isFinal ? 'manual-quiz-final' : `manual-quiz-part-${partIndex}`;
                 const questionsId = isFinal ? 'questions-final' : `questions-part-${partIndex}`;
@@ -409,16 +440,8 @@
                 const manualQuizSection = document.querySelector(`#${manualQuizId}`);
                 const questionsContainer = document.querySelector(`#${questionsId}`);
 
-                if (!quizModeSelect) {
-                    console.error(`Quiz mode select not found: #${quizModeId}`);
-                    return;
-                }
-                if (!manualQuizSection) {
-                    console.error(`Manual quiz section not found: #${manualQuizId}`);
-                    return;
-                }
-                if (!questionsContainer) {
-                    console.error(`Questions container not found: #${questionsId}`);
+                if (!quizModeSelect || !manualQuizSection || !questionsContainer) {
+                    console.error(`Quiz initialization failed: missing elements for ${isFinal ? 'final quiz' : 'part ' + partIndex}`);
                     return;
                 }
 
@@ -426,11 +449,10 @@
 
                 function toggleManualQuizSection() {
                     manualQuizSection.style.display = quizModeSelect.value === 'manual' ? 'block' : 'none';
-                    console.debug(`Toggled manual quiz section for ${isFinal ? 'final quiz' : 'part ' + partIndex}: ${manualQuizSection.style.display}`);
                     if (quizModeSelect.value === 'manual') {
                         questionsContainer.querySelectorAll('.question-form').forEach((questionDiv, qIndex) => {
                             const textInput = questionDiv.querySelector(`#${prefix}_questions_${qIndex}_text`);
-                            if (textInput) {
+                            if (textInput && !textInput.hasAttribute('data-tinymce-initialized')) {
                                 initializeTinyMCE(textInput, `${prefix}_questions_${qIndex}_text`);
                             }
                             initializeQuestion(questionDiv, partIndex, qIndex, isFinal);
@@ -441,70 +463,51 @@
                 quizModeSelect.addEventListener('change', toggleManualQuizSection);
                 toggleManualQuizSection();
 
-                const addQuestionButton = questionsContainer.querySelector('.add-question-btn');
-                if (!addQuestionButton) {
-                    console.error(`Add question button not found in questions container: #${questionsId}`);
-                    return;
-                }
-
                 const prototype = questionsContainer.dataset.prototype;
                 if (!prototype) {
                     console.error(`Questions prototype not found for ${isFinal ? 'final quiz' : 'part ' + partIndex}`);
                     return;
                 }
 
-                addQuestionButton.addEventListener('click', function () {
-                    const newQuestionDiv = document.createElement('div');
-                    newQuestionDiv.classList.add('question-form', 'card', 'shadow-sm', 'rounded-3', 'mb-2');
-                    newQuestionDiv.setAttribute('data-question-index', questionIndex);
-                    const optionsContainerId = isFinal ? `options-final-${questionIndex}` : `options-part-${partIndex}-${questionIndex}`;
-                    newQuestionDiv.innerHTML = prototype
-                        .replace(/__name__/g, questionIndex)
-                        .replace(/id="[^"]*_text"/, `id="${prefix}_questions_${questionIndex}_text"`)
-                        .replace(/id="[^"]*_type"/, `id="${prefix}_questions_${questionIndex}_type"`)
-                        .replace(/id="[^"]*_correctAnswer"/, `id="${prefix}_questions_${questionIndex}_correctAnswer"`)
-                        .replace(
-                            /<div class="options-container"[^>]*>/,
-                            `<div class="options-container" id="${optionsContainerId}" data-dependent="mcq" style="display: none;">`
-                        );
-                    try {
-                        questionsContainer.insertBefore(newQuestionDiv, addQuestionButton);
-                        // Wait for DOM to stabilize using MutationObserver
-                        const observer = new MutationObserver((mutations, obs) => {
-                            const textInput = newQuestionDiv.querySelector(`#${prefix}_questions_${questionIndex}_text`);
-                            const correctAnswerInput = newQuestionDiv.querySelector(`#${prefix}_questions_${questionIndex}_correctAnswer`);
-                            if (textInput && correctAnswerInput) {
-                                obs.disconnect();
-                                if (textInput) {
-                                    initializeTinyMCE(textInput, `${prefix}_questions_${questionIndex}_text`);
-                                }
-                                initializeQuestion(newQuestionDiv, partIndex, questionIndex, isFinal);
-                                console.debug(`Added question ${questionIndex} to ${isFinal ? 'final quiz' : 'part ' + partIndex}`);
-                                questionIndex++;
-                            }
-                        });
-                        observer.observe(newQuestionDiv, { childList: true, subtree: true });
-                    } catch (error) {
-                        console.error(`Failed to add question to ${isFinal ? 'final quiz' : 'part ' + partIndex}: ${error.message}`);
-                    }
-                });
-
+                // Event delegation for add/remove question buttons
                 questionsContainer.addEventListener('click', function (e) {
-                    if (e.target.classList.contains('remove-question-btn')) {
+                    if (e.target.classList.contains('add-question-btn')) {
+                        console.log(`Adding question for part ${partIndex}, question ${questionIndex}`);
+                        const newQuestionDiv = document.createElement('div');
+                        newQuestionDiv.classList.add('question-form', 'card', 'shadow-sm', 'rounded-3', 'mb-2', 'animate__animated', 'animate__fadeIn');
+                        newQuestionDiv.setAttribute('data-question-index', questionIndex);
+                        const optionsContainerId = isFinal ? `options-final-${questionIndex}` : `options-part-${partIndex}-${questionIndex}`;
+                        newQuestionDiv.innerHTML = prototype
+                            .replace(/__name__/g, questionIndex)
+                            .replace(/<div class="options-container"[^>]*>([\s\S]*?)<\/div>/, '') // Remove existing options
+                            + `<div class="options-container" id="${optionsContainerId}" data-dependent="mcq" style="display: none;">
+                                <button type="button" class="btn add-option-btn mt-2" data-question-index="${questionIndex}" data-part-index="${partIndex}">Add Option</button>
+                            </div>`
+                            + `<button type="button" class="btn remove-question-btn mt-2">Remove Question</button>`;
+                        questionsContainer.insertBefore(newQuestionDiv, e.target);
+                        const textInput = newQuestionDiv.querySelector(`[id$="_text"]`);
+                        if (textInput) {
+                            initializeTinyMCE(textInput, textInput.id);
+                        }
+                        initializeQuestion(newQuestionDiv, partIndex, questionIndex, isFinal);
+                        questionIndex++;
+                    } else if (e.target.classList.contains('remove-question-btn')) {
                         const questionDiv = e.target.closest('.question-form');
                         const qIndex = questionDiv.getAttribute('data-question-index');
-                        if (tinymce.get(`${prefix}_questions_${qIndex}_text`)) {
-                            tinymce.get(`${prefix}_questions_${qIndex}_text`).remove();
+                        console.log(`Removing question ${qIndex} for part ${partIndex}`);
+                        const textInput = questionDiv.querySelector(`[id$="_text"]`);
+                        if (textInput && tinymce.get(textInput.id)) {
+                            tinymce.get(textInput.id).remove();
                         }
                         questionDiv.remove();
-                        console.debug(`Removed question ${qIndex} from ${isFinal ? 'final quiz' : 'part ' + partIndex}`);
                     }
                 });
 
+                // Initialize existing questions
                 questionsContainer.querySelectorAll('.question-form').forEach((questionDiv, qIndex) => {
-                    const textInput = questionDiv.querySelector(`#${prefix}_questions_${qIndex}_text`);
-                    if (textInput) {
-                        initializeTinyMCE(textInput, `${prefix}_questions_${qIndex}_text`);
+                    const textInput = questionDiv.querySelector(`[id$="_text"]`);
+                    if (textInput && !textInput.hasAttribute('data-tinymce-initialized')) {
+                        initializeTinyMCE(textInput, textInput.id);
                     }
                     initializeQuestion(questionDiv, partIndex, qIndex, isFinal);
                 });
@@ -514,68 +517,119 @@
             function initializeQuestion(questionDiv, partIndex, questionIndex, isFinal = false) {
                 const prefix = isFinal ? 'course_finalQuiz' : `course_parts_${partIndex}_quiz`;
                 const optionsContainerId = isFinal ? `options-final-${questionIndex}` : `options-part-${partIndex}-${questionIndex}`;
-                const typeSelectId = `${prefix}_questions_${questionIndex}_type`;
+                const typeSelect = questionDiv.querySelector('.question-type');
                 let optionsContainer = questionDiv.querySelector(`#${optionsContainerId}`);
-                const typeSelect = questionDiv.querySelector(`#${typeSelectId}`);
-                const addOptionButton = questionDiv.querySelector(`.add-option-btn[data-question-index="${questionIndex}"]`);
-                const correctAnswerInput = questionDiv.querySelector(`#${prefix}_questions_${questionIndex}_correctAnswer`);
 
-                // Create options container if it doesn't exist
+                console.log(`Initializing question for part ${partIndex}, question ${questionIndex}, optionsContainerId: ${optionsContainerId}`);
+
+                if (!typeSelect) {
+                    console.error(`Question initialization failed: missing type select for question ${questionIndex} in part ${partIndex}`);
+                    return;
+                }
+
+                // Ensure options container exists
                 if (!optionsContainer) {
-                    console.warn(`Options container not found: #${optionsContainerId}. Creating new one.`);
+                    console.log(`Creating options container for part ${partIndex}, question ${questionIndex}`);
                     optionsContainer = document.createElement('div');
                     optionsContainer.classList.add('options-container');
                     optionsContainer.id = optionsContainerId;
                     optionsContainer.setAttribute('data-dependent', 'mcq');
                     optionsContainer.style.display = 'none';
-                    // Insert before correctAnswerInput if it exists, otherwise append
-                    if (correctAnswerInput && correctAnswerInput.parentNode === questionDiv) {
-                        questionDiv.insertBefore(optionsContainer, correctAnswerInput);
+                    optionsContainer.innerHTML = `<button type="button" class="btn add-option-btn mt-2" data-question-index="${questionIndex}" data-part-index="${partIndex}">Add Option</button>`;
+                    const correctAnswerDiv = questionDiv.querySelector('.mb-3:last-child');
+                    if (correctAnswerDiv) {
+                        questionDiv.insertBefore(optionsContainer, correctAnswerDiv);
                     } else {
                         questionDiv.appendChild(optionsContainer);
                     }
                 }
 
-                if (!typeSelect) {
-                    console.error(`Question type select not found: #${typeSelectId}`);
-                    return;
-                }
-                if (!addOptionButton) {
-                    console.error(`Add option button not found for question ${questionIndex}`);
-                    return;
+                function createOptionElement() {
+                    const optionContainer = document.createElement('div');
+                    optionContainer.classList.add('option-container', 'row', 'mb-2');
+
+                    const col10 = document.createElement('div');
+                    col10.classList.add('col-md-10');
+
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.name = `${prefix}[questions][${questionIndex}][options][]`;
+                    input.classList.add('form-control');
+                    input.placeholder = 'Enter option';
+
+                    col10.appendChild(input);
+
+                    const col2 = document.createElement('div');
+                    col2.classList.add('col-md-2');
+
+                    const removeBtn = document.createElement('button');
+                    removeBtn.type = 'button';
+                    removeBtn.classList.add('btn', 'remove-option-btn', 'mt-1');
+                    removeBtn.textContent = 'Remove Option';
+
+                    col2.appendChild(removeBtn);
+
+                    optionContainer.appendChild(col10);
+                    optionContainer.appendChild(col2);
+
+                    return optionContainer;
                 }
 
                 function toggleOptions() {
-                    optionsContainer.style.display = typeSelect.value === 'mcq' ? 'block' : 'none';
-                    console.debug(`Toggled options for question ${questionIndex} in ${isFinal ? 'final quiz' : 'part ' + partIndex}: ${optionsContainer.style.display}`);
+                    const currentType = typeSelect.value;
+                    console.log(`Toggling options for part ${partIndex}, question ${questionIndex}, type: ${currentType}`);
+                    optionsContainer.style.display = currentType === 'mcq' ? 'block' : 'none';
+                    const addOptionButton = optionsContainer.querySelector('.add-option-btn');
+                    if (!addOptionButton) {
+                        console.error(`Add Option button missing for part ${partIndex}, question ${questionIndex}`);
+                        return;
+                    }
+                    if (currentType === 'mcq') {
+                        let existingOptions = optionsContainer.querySelectorAll('.option-container').length;
+                        if (existingOptions === 0) {
+                            for (let i = 0; i < 2; i++) {
+                                const newOption = createOptionElement();
+                                optionsContainer.insertBefore(newOption, addOptionButton);
+                                existingOptions++;
+                            }
+                        }
+                        addOptionButton.disabled = existingOptions >= 4;
+                        console.log(`Options container visible with ${existingOptions} options for part ${partIndex}, question ${questionIndex}`);
+                    } else {
+                        optionsContainer.querySelectorAll('.option-container').forEach(container => container.remove());
+                        addOptionButton.disabled = false;
+                        console.log(`Options container hidden for part ${partIndex}, question ${questionIndex}`);
+                    }
                 }
 
-                // Call toggleOptions on initialization to handle default value
+                // Attach change listener if not already attached
+                if (!typeSelect.dataset.changeListener) {
+                    typeSelect.addEventListener('change', toggleOptions);
+                    typeSelect.dataset.changeListener = 'true';
+                }
+
                 toggleOptions();
-                typeSelect.addEventListener('change', toggleOptions);
 
-                const prototype = `
-                    <div class="option-container row mb-2">
-                        <div class="col-md-10">
-                            <input type="text" name="${prefix}[questions][${questionIndex}][options][]" class="form-control" placeholder="Enter option">
-                        </div>
-                        <div class="col-md-2">
-                            <button type="button" class="btn remove-option-btn mt-1">Remove Option</button>
-                        </div>
-                    </div>
-                `;
-
-                addOptionButton.addEventListener('click', function () {
-                    const newOptionDiv = document.createElement('div');
-                    newOptionDiv.innerHTML = prototype;
-                    optionsContainer.insertBefore(newOptionDiv.firstChild, addOptionButton);
-                    console.debug(`Added option to question ${questionIndex} in ${isFinal ? 'final quiz' : 'part ' + partIndex}`);
-                });
-
+                // Event delegation for add/remove option buttons
                 optionsContainer.addEventListener('click', function (e) {
-                    if (e.target.classList.contains('remove-option-btn')) {
-                        e.target.closest('.option-container').remove();
-                        console.debug(`Removed option from question ${questionIndex} in ${isFinal ? 'final quiz' : 'part ' + partIndex}`);
+                    if (e.target.classList.contains('add-option-btn')) {
+                        console.log(`Add Option button clicked for part ${partIndex}, question ${questionIndex}`);
+                        const existingOptions = optionsContainer.querySelectorAll('.option-container').length;
+                        if (existingOptions < 4) {
+                            const newOption = createOptionElement();
+                            optionsContainer.insertBefore(newOption, e.target);
+                            console.log(`Added option ${existingOptions + 1} for part ${partIndex}, question ${questionIndex}`);
+                            toggleOptions();
+                        } else {
+                            console.log(`Maximum options (4) reached for part ${partIndex}, question ${questionIndex}`);
+                        }
+                    } else if (e.target.classList.contains('remove-option-btn')) {
+                        console.log(`Remove Option button clicked for part ${partIndex}, question ${questionIndex}`);
+                        const optionContainer = e.target.closest('.option-container');
+                        if (optionContainer) {
+                            optionContainer.remove();
+                            toggleOptions();
+                        }
                     }
                 });
             }
@@ -609,13 +663,13 @@
 
             // Initialize media uploads
             function initializeMediaUploads(partDiv, index) {
-                const mediaUploadsContainer = partDiv.querySelector(`[id^="course_parts_${index}_writtenSection_mediaUploads"]`);
+                const mediaUploadsContainer = partDiv.querySelector(`[id^="course_parts_${index}_writtenSection_mediaUploads"]`)?.parentNode;
                 if (!mediaUploadsContainer) return;
                 const addMediaUploadButton = partDiv.querySelector(`.add-media-upload-btn[data-part-index="${index}"]`);
                 const prototype = `
                     <div class="media-upload-container row mb-2">
                         <div class="col-md-10">
-                            <input type="file" name="course[parts][${index}][writtenSection][mediaUploads][]" class="form-control">
+                            <input type="file" name="course[parts][${index}][writtenSection][mediaUploads][]" class="form-control" accept="image/*,video/*">
                         </div>
                         <div class="col-md-2">
                             <button type="button" class="btn remove-media-upload-btn mt-1">Remove</button>
@@ -625,7 +679,7 @@
                 addMediaUploadButton.addEventListener('click', function () {
                     const newMediaDiv = document.createElement('div');
                     newMediaDiv.innerHTML = prototype;
-                    mediaUploadsContainer.insertBefore(newMediaDiv.firstChild, addMediaUploadButton);
+                    mediaUploadsContainer.appendChild(newMediaDiv.firstChild);
                 });
                 mediaUploadsContainer.addEventListener('click', function (e) {
                     if (e.target.classList.contains('remove-media-upload-btn')) {
@@ -634,63 +688,70 @@
                 });
             }
 
+            // Initialize GeoGebra
+            function initializeGeoGebra(partDiv, index) {
+                const ggbContainer = partDiv.querySelector(`#geogebra-element-${index}`);
+                const ggbSpinner = partDiv.querySelector(`#ggb-spinner-${index}`);
+                const ggbError = partDiv.querySelector(`#geogebra-error-${index}`);
+                if (!ggbContainer || !ggbSpinner || !ggbError) {
+                    console.error(`GeoGebra initialization failed: missing elements for part ${index}`);
+                    return;
+                }
+
+                const materialId = partDiv.querySelector(`[name="course[parts][${index}][geogebraMaterialId]"]`).value || '';
+                if (!materialId) {
+                    ggbSpinner.style.display = 'none';
+                    ggbError.style.display = 'block';
+                    return;
+                }
+
+                ggbSpinner.style.display = 'block';
+                const ggbApp = new GGBApplet({
+                    appName: 'graphing',
+                    width: ggbContainer.offsetWidth,
+                    height: 400,
+                    showToolBar: true,
+                    showAlgebraInput: true,
+                    showMenuBar: true,
+                    material_id: materialId
+                }, true);
+                ggbApp.inject(`geogebra-element-${index}`, function() {
+                    ggbSpinner.style.display = 'none';
+                    const ggbInstance = window[`ggbApplet${index.replace(/-/g, '')}`];
+                    if (ggbInstance) {
+                        ggbInstance.registerAddListener(function(json) {
+                            console.log(`GeoGebra interaction detected for part ${index}:`, json);
+                        });
+                    }
+                }, function(error) {
+                    ggbSpinner.style.display = 'none';
+                    ggbError.style.display = 'block';
+                });
+            }
+
             // Initialize parts
+            function initializePart(partDiv, index) {
+                const textInput = partDiv.querySelector(`#written_section_${index}_content`);
+                if (textInput && !textInput.hasAttribute('data-tinymce-initialized')) {
+                    initializeTinyMCE(textInput, `written_section_${index}_content`);
+                }
+                initializeMediaUrls(partDiv, index);
+                initializeMediaUploads(partDiv, index);
+                initializeGeoGebra(partDiv, index);
+                const quizForm = partDiv.querySelector(`#quiz-form-part-${index}`);
+                if (quizForm) {
+                    initializeQuiz(quizForm, index);
+                }
+                debugVideoUploads();
+            }
+
             const partsContainer = document.getElementById('parts-container');
             const addPartButton = document.querySelector('.add-part-btn');
             let partIndex = document.querySelectorAll('.part-form').length;
 
-            if (!partsContainer) {
-                console.error('Parts container not found: #parts-container');
+            if (!partsContainer || !addPartButton) {
+                console.error('Parts container or add part button not found');
                 return;
-            }
-            if (!addPartButton) {
-                console.error('Add part button not found: .add-part-btn');
-                return;
-            }
-
-            function initializePart(partDiv, index) {
-                initializeTinyMCE(partDiv.querySelector(`#written_section_${index}_content`), `written_section_${index}_content`);
-                initializeMediaUrls(partDiv, index);
-                initializeMediaUploads(partDiv, index);
-                const quizForm = partDiv.querySelector(`#quiz-form-part-${index}`);
-                if (quizForm) {
-                    initializeQuiz(quizForm, index);
-                } else {
-                    console.error(`Quiz form not found for part ${index}`);
-                }
-                const ggbSpinner = partDiv.querySelector(`#ggb-spinner-${index}`);
-                if (ggbSpinner) ggbSpinner.style.display = 'block';
-                const ggbScript = document.createElement('script');
-                ggbScript.src = 'https://www.geogebra.org/apps/deployggb.js';
-                ggbScript.defer = true;
-                ggbScript.onload = function() {
-                    const ggbContainer = partDiv.querySelector(`#geogebra-element-${index}`);
-                    if (ggbContainer) {
-                        const materialId = partDiv.querySelector(`[name="course[parts][${index}][geogebraMaterialId]"]`).value || '';
-                        const ggbApp = new GGBApplet({
-                            appName: 'graphing',
-                            width: ggbContainer.offsetWidth,
-                            height: 400,
-                            showToolBar: true,
-                            showAlgebraInput: true,
-                            showMenuBar: true,
-                            material_id: materialId
-                        }, true);
-                        ggbApp.inject(`geogebra-element-${index}`, function() {
-                            if (ggbSpinner) ggbSpinner.style.display = 'none';
-                            const ggbInstance = window[`ggbApplet${index.replace(/-/g, '')}`];
-                            if (ggbInstance) {
-                                ggbInstance.registerAddListener(function(json) {
-                                    console.log(`GeoGebra interaction detected for part ${index}:`, json);
-                                });
-                            }
-                        }, function(error) {
-                            if (ggbSpinner) ggbSpinner.style.display = 'none';
-                            ggbContainer.innerHTML = '<p class="text-danger">Failed to load GeoGebra applet. Please try again later.</p>';
-                        });
-                    }
-                };
-                document.head.appendChild(ggbScript);
             }
 
             document.querySelectorAll('.part-form').forEach((partDiv, index) => {
@@ -700,27 +761,26 @@
             const finalQuizForm = document.querySelector('#quiz-form-final');
             if (finalQuizForm) {
                 initializeQuiz(finalQuizForm, 'final', true);
-            } else {
-                console.error('Final quiz form not found');
             }
 
             addPartButton.addEventListener('click', function () {
                 const prototype = partsContainer.dataset.prototype.replace(/__name__/g, partIndex);
                 const newPartDiv = document.createElement('div');
-                newPartDiv.classList.add('part-form', 'card', 'shadow-sm', 'rounded-3');
+                newPartDiv.classList.add('part-form', 'card', 'shadow-sm', 'rounded-3', 'animate__animated', 'animate__fadeIn');
                 newPartDiv.setAttribute('data-part-index', partIndex);
 
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(prototype, 'text/html');
-                let titleDiv = '', descriptionDiv = '', durationDiv = '', orderDiv = '', videoFileDiv = '', videoDescDiv = '', geoDiv = '', tutorialDiv = '', writtenDiv = '', mediaUrlsDiv = '', mediaUploadsDiv = '', quizDiv = '', quizModeDiv = '', questionsPrototype = '';
+                let titleDiv = '', descriptionDiv = '', durationDiv = '', orderDiv = '', videoFilenameDiv = '', videoDescDiv = '', videoDurationDiv = '', geoDiv = '', tutorialDiv = '', writtenDiv = '', mediaUrlsDiv = '', mediaUploadsDiv = '', quizDiv = '', quizModeDiv = '', questionsPrototype = '';
 
                 for (let div of doc.getElementsByTagName('div')) {
                     if (div.querySelector('input[name$="[title]"]')) titleDiv = div.outerHTML;
                     else if (div.querySelector('textarea[name$="[description]"]')) descriptionDiv = div.outerHTML;
                     else if (div.querySelector('input[name$="[duration]"]')) durationDiv = div.outerHTML;
                     else if (div.querySelector('input[name$="[partOrder]"]')) orderDiv = div.outerHTML;
-                    else if (div.querySelector('input[name$="[videoFile]"]')) videoFileDiv = div.outerHTML;
-                    else if (div.querySelector('textarea[name$="[videoDescription]"]')) videoDescDiv = div.outerHTML;
+                    else if (div.querySelector('input[name$="[video][filename]"]')) videoFilenameDiv = div.outerHTML;
+                    else if (div.querySelector('textarea[name$="[video][description]"]')) videoDescDiv = div.outerHTML;
+                    else if (div.querySelector('input[name$="[video][duration]"]')) videoDurationDiv = div.outerHTML;
                     else if (div.querySelector('input[name$="[geogebraMaterialId]"]')) geoDiv = div.outerHTML;
                     else if (div.querySelector('textarea[name$="[tutorialContent]"]')) tutorialDiv = div.outerHTML;
                     else if (div.querySelector('textarea[name$="[writtenSection][content]"]')) writtenDiv = div.outerHTML;
@@ -741,14 +801,18 @@
                     <div class="mb-3">${descriptionDiv}</div>
                     <h5 class="fw-bold">Video Content</h5>
                     <div class="row mb-3">
-                        <div class="col-md-12">${videoFileDiv}</div>
+                        <div class="col-md-12">${videoFilenameDiv}</div>
                     </div>
                     <div class="mb-3">${videoDescDiv}</div>
+                    <div class="mb-3">${videoDurationDiv}</div>
                     <h5 class="fw-bold">GeoGebra Content</h5>
                     <div class="mb-3">${geoDiv}</div>
                     <div class="geogebra-container">
                         <div class="loading-spinner" id="ggb-spinner-${partIndex}"></div>
                         <div id="geogebra-element-${partIndex}" style="width: 100%; height: 400px;"></div>
+                        <div class="geogebra-error text-danger" id="geogebra-error-${partIndex}" style="display: none;">
+                            Failed to load GeoGebra applet. Please check the material ID or try again later.
+                        </div>
                     </div>
                     <div class="mb-3">${tutorialDiv}</div>
                     <h5 class="fw-bold">Written Content</h5>
@@ -778,14 +842,10 @@
                     <button type="button" class="btn remove-part-btn mt-3">Remove Part</button>
                 `;
 
-                try {
-                    partsContainer.appendChild(newPartDiv);
-                    initializePart(newPartDiv, partIndex);
-                    console.debug(`Added part ${partIndex}`);
-                    partIndex++;
-                } catch (error) {
-                    console.error(`Failed to add part ${partIndex}: ${error.message}`);
-                }
+                partsContainer.appendChild(newPartDiv);
+                initializePart(newPartDiv, partIndex);
+                debugVideoUploads();
+                partIndex++;
             });
 
             // Remove part
@@ -799,13 +859,13 @@
                     }
                     const quizQuestions = partDiv.querySelectorAll(`#questions-part-${index} .question-form`);
                     quizQuestions.forEach((questionDiv, qIndex) => {
-                        const textInput = questionDiv.querySelector(`#course_parts_${index}_quiz_questions_${qIndex}_text`);
-                        if (textInput && tinymce.get(`course_parts_${index}_quiz_questions_${qIndex}_text`)) {
-                            tinymce.get(`course_parts_${index}_quiz_questions_${qIndex}_text`).remove();
+                        const textInput = questionDiv.querySelector(`[id$="_text"]`);
+                        if (textInput && tinymce.get(textInput.id)) {
+                            tinymce.get(textInput.id).remove();
                         }
                     });
                     partDiv.remove();
-                    console.debug(`Removed part ${index}`);
+                    debugVideoUploads();
                 }
             });
 
@@ -815,10 +875,7 @@
                 const finalQuizMode = document.querySelector('#course_quizMode');
                 const finalQuizQuestions = document.querySelectorAll('#questions-final .question-form').length;
 
-                if (!finalQuizMode) {
-                    console.error('Final quiz mode select not found');
-                    isValid = false;
-                } else if (finalQuizMode.value === 'manual' && finalQuizQuestions !== 10) {
+                if (finalQuizMode && finalQuizMode.value === 'manual' && finalQuizQuestions !== 10) {
                     alert('Final quiz must have exactly 10 questions.');
                     isValid = false;
                 }
@@ -844,6 +901,9 @@
                     { left: "\\(", right: "\\)", display: false }
                 ]
             });
+
+            // Initial debug of video upload fields
+            setTimeout(debugVideoUploads, 100);
         });
     </script>
 {% endblock %}
