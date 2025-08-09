@@ -1,0 +1,170 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}My Profile - eGENIUS{% endblock %}
+
+{% block css %}
+    <style>
+        .profile-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem 0;
+        }
+        .profile-header {
+            background: linear-gradient(135deg, #4a90e2, #6ab0ff);
+            color: white;
+            padding: 3rem 0;
+            border-radius: 16px;
+            text-align: center;
+            position: relative;
+            margin-bottom: 2rem;
+        }
+        .profile-avatar {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            border: 4px solid white;
+            margin-bottom: 1rem;
+            object-fit: cover;
+        }
+        .profile-name {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        .profile-role {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        .profile-stats {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-top: 1rem;
+        }
+        .stat-item {
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+        .stat-label {
+            font-size: 0.9rem;
+        }
+        .profile-section {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+            margin-bottom: 2rem;
+        }
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid #e5e7eb;
+            padding-bottom: 0.5rem;
+        }
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        .form-label {
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+        .form-control {
+            border-radius: 8px;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #4a90e2, #3b82f6);
+            border: none;
+            border-radius: 9999px;
+            padding: 0.75rem 2rem;
+            font-weight: 600;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #3b82f6, #4a90e2);
+        }
+        .course-list {
+            list-style: none;
+            padding: 0;
+        }
+        .course-item {
+            padding: 1rem 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .course-item:last-child {
+            border-bottom: none;
+        }
+        .course-title {
+            font-weight: 600;
+        }
+        .course-progress {
+            font-size: 0.9rem;
+            color: #6b7280;
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+    <div class="container profile-container">
+        <div class="profile-header">
+            <img src="{{ user.avatar ? asset('uploads/avatars/' ~ user.avatar) : 'https://placehold.co/150x150.png' }}" alt="Profile Picture" class="profile-avatar">
+            <h1 class="profile-name">{{ user.username }}</h1>
+            <p class="profile-role">{{ user.role|capitalize }}</p>
+            <div class="profile-stats">
+                <div class="stat-item">
+                    <div class="stat-number">{{ user.enrollments|length }}</div>
+                    <div class="stat-label">Courses Enrolled</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">{{ user.createdAt|date('M Y') }}</div>
+                    <div class="stat-label">Joined</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">{{ user.lastLogin ? user.lastLogin|date('M d, Y') : 'N/A' }}</div>
+                    <div class="stat-label">Last Login</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="profile-section">
+            <h2 class="section-title">Edit Profile</h2>
+            {{ form_start(form) }}
+                <div class="form-group">
+                    {{ form_label(form.username) }}
+                    {{ form_widget(form.username, {'attr': {'class': 'form-control'}}) }}
+                </div>
+                <div class="form-group">
+                    {{ form_label(form.email) }}
+                    {{ form_widget(form.email, {'attr': {'class': 'form-control'}}) }}
+                </div>
+                <div class="form-group">
+                    {{ form_label(form.plainPassword) }}
+                    {{ form_widget(form.plainPassword, {'attr': {'class': 'form-control'}}) }}
+                </div>
+                <div class="form-group">
+                    {{ form_label(form.avatar) }}
+                    {{ form_widget(form.avatar, {'attr': {'class': 'form-control-file'}}) }}
+                </div>
+                <button type="submit" class="btn btn-primary">Update Profile</button>
+            {{ form_end(form) }}
+        </div>
+
+        <div class="profile-section">
+            <h2 class="section-title">Enrolled Courses</h2>
+            {% if user.enrollments is empty %}
+                <p>You haven't enrolled in any courses yet.</p>
+            {% else %}
+                <ul class="course-list">
+                    {% for enrollment in user.enrollments %}
+                        <li class="course-item">
+                            <div class="course-title">{{ enrollment.course ? enrollment.course.title : 'Unknown Course' }}</div>
+                            <div class="course-progress">Enrolled on: {{ enrollment.enrolledAt|date('M d, Y') }}</div>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}

@@ -166,7 +166,7 @@
                                             }
                                         }) }}
                                     </div>
-                                    <div class="quiz-section" id="quiz-section-part-{{ loop.index0 }}" style="display: block;">
+                                    <div class="manual-quiz-section" id="manual-quiz-part-{{ loop.index0 }}" style="display: block;">
                                         <div class="mb-3">
                                             {{ form_label(partForm.quiz.title, 'Quiz Title') }}
                                             {{ form_widget(partForm.quiz.title, {
@@ -253,7 +253,7 @@
                                 }
                             }) }}
                         </div>
-                        <div class="quiz-section" id="quiz-section-final" style="display: block;">
+                        <div class="manual-quiz-section" id="manual-quiz-final" style="display: block;">
                             <div class="mb-3">
                                 {{ form_label(form.finalQuiz.title, 'Final Quiz Title') }}
                                 {{ form_widget(form.finalQuiz.title, {
@@ -413,55 +413,40 @@
                 const prefix = isFinal ? 'course_finalQuiz' : `course_parts_${partIndex}_quiz`;
                 const quizFormId = isFinal ? 'quiz-form-final' : `quiz-form-part-${partIndex}`;
                 const quizModeId = isFinal ? 'course_quizMode' : `course_parts_${partIndex}_quizMode`;
-                const quizSectionId = isFinal ? 'quiz-section-final' : `quiz-section-part-${partIndex}`;
+                const manualQuizId = isFinal ? 'manual-quiz-final' : `manual-quiz-part-${partIndex}`;
                 const questionsId = isFinal ? 'questions-final' : `questions-part-${partIndex}`;
 
                 const quizModeSelect = document.querySelector(`#${quizModeId}`);
-                let quizSection = document.querySelector(`#${quizSectionId}`);
-                let questionsContainer = document.querySelector(`#${questionsId}`);
+                const manualQuizSection = document.querySelector(`#${manualQuizId}`);
+                const questionsContainer = document.querySelector(`#${questionsId}`);
 
                 if (!quizModeSelect) {
                     console.error(`Quiz mode select not found: #${quizModeId}`);
                     return;
                 }
 
-                if (!quizSection) {
-                    quizSection = document.createElement('div');
-                    quizSection.id = quizSectionId;
-                    quizSection.classList.add('quiz-section');
-                    quizForm.appendChild(quizSection);
+                if (!manualQuizSection) {
+                    console.error(`Manual quiz section not found: #${manualQuizId}`);
+                    return;
                 }
+
                 if (!questionsContainer) {
-                    questionsContainer = document.createElement('div');
-                    questionsContainer.id = questionsId;
-                    questionsContainer.classList.add('questions-container');
-                    questionsContainer.setAttribute('data-part-index', partIndex);
-                    questionsContainer.setAttribute('data-prototype', quizForm.querySelector(`#${quizFormId} .questions-container`)?.dataset.prototype || '');
-                    quizSection.appendChild(questionsContainer);
-                    const addQuestionButton = document.createElement('button');
-                    addQuestionButton.type = 'button';
-                    addQuestionButton.classList.add('btn', 'add-question-btn', 'mt-2');
-                    addQuestionButton.setAttribute('data-part-index', partIndex);
-                    addQuestionButton.textContent = 'Add Question';
-                    questionsContainer.appendChild(addQuestionButton);
-                    const helpText = document.createElement('div');
-                    helpText.classList.add('help-text');
-                    helpText.textContent = 'Add exactly 10 questions for this quiz.';
-                    questionsContainer.appendChild(helpText);
+                    console.error(`Questions container not found: #${questionsId}`);
+                    return;
                 }
 
-                function toggleQuizSection() {
-                    quizSection.style.display = 'block'; // Always show
-                    const isAi = quizModeSelect.value === 'ai';
-                    quizSection.querySelectorAll('input, select, textarea').forEach(el => el.disabled = isAi);
-                    quizSection.querySelectorAll('.add-question-btn, .remove-question-btn').forEach(btn => btn.style.display = isAi ? 'none' : 'inline-block');
-                    questionsContainer.querySelectorAll('.question-form').forEach((questionDiv, qIndex) => {
-                        initializeQuestion(questionDiv, partIndex, qIndex, isFinal);
-                    });
+                function toggleManualQuizSection() {
+                    const isManual = quizModeSelect.value === 'manual';
+                    manualQuizSection.style.display = isManual ? 'block' : 'none';
+                    if (isManual) {
+                        questionsContainer.querySelectorAll('.question-form').forEach((questionDiv, qIndex) => {
+                            initializeQuestion(questionDiv, partIndex, qIndex, isFinal);
+                        });
+                    }
                 }
 
-                quizModeSelect.addEventListener('change', toggleQuizSection);
-                toggleQuizSection();
+                quizModeSelect.addEventListener('change', toggleManualQuizSection);
+                toggleManualQuizSection();
 
                 let questionIndex = questionsContainer.querySelectorAll('.question-form').length;
                 const addQuestionButton = questionsContainer.querySelector('.add-question-btn');
@@ -512,9 +497,8 @@
             function initializeQuestion(questionDiv, partIndex, questionIndex, isFinal = false) {
                 const prefix = isFinal ? 'course_finalQuiz' : `course_parts_${partIndex}_quiz`;
                 const optionsContainerId = isFinal ? `options-final-${questionIndex}` : `options-part-${partIndex}-${questionIndex}`;
-                const typeSelectId = `${prefix}_questions_${questionIndex}_type`;
                 let optionsContainer = questionDiv.querySelector(`#${optionsContainerId}`);
-                const typeSelect = questionDiv.querySelector(`#${typeSelectId}`);
+                const typeSelect = questionDiv.querySelector(`#${prefix}_questions_${questionIndex}_type`);
                 const correctAnswerInput = questionDiv.querySelector(`#${prefix}_questions_${questionIndex}_correctAnswer`);
 
                 if (!optionsContainer) {
@@ -531,7 +515,7 @@
                 }
 
                 if (!typeSelect) {
-                    console.error(`Question type select not found: #${typeSelectId}`);
+                    console.error(`Question type select not found: #${prefix}_questions_${questionIndex}_type`);
                     return;
                 }
 
@@ -734,7 +718,7 @@
                         <h5 class="fw-bold">Part Quiz</h5>
                         <div class="quiz-form" id="quiz-form-part-${partIndex}">
                             <div class="quiz-toggle mb-3">${quizModeDiv}</div>
-                            <div class="quiz-section" id="quiz-section-part-${partIndex}" style="display: block;">
+                            <div class="manual-quiz-section" id="manual-quiz-part-${partIndex}" style="display: block;">
                                 ${quizDiv}
                                 <div class="questions-container" id="questions-part-${partIndex}" data-part-index="${partIndex}" data-prototype='${questionsPrototype.replace(/__name__/g, '0')}'>
                                     <button type="button" class="btn add-question-btn mt-2" data-part-index="${partIndex}">Add Question</button>

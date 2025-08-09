@@ -72,10 +72,8 @@ class CourseType extends AbstractType
             if ($course instanceof Course && $course->getFinalQuiz()) {
                 $quiz = $course->getFinalQuiz();
                 $form->get('quizMode')->setData($quiz->isGeneratedByAI() ? 'ai' : 'manual');
-                // Ensure questions are properly initialized
-                if ($quiz->isGeneratedByAI()) {
-                    $form->get('finalQuiz')->setData($quiz);
-                }
+                // Ensure questions are initialized
+                $form->get('finalQuiz')->setData($quiz);
             } else {
                 $form->get('quizMode')->setData('ai'); // Default to AI-generated
             }

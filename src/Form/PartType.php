@@ -86,9 +86,7 @@ class PartType extends AbstractType
                 $quiz = $part->getQuiz();
                 $form->get('quizMode')->setData($quiz->isGeneratedByAI() ? 'ai' : 'manual');
                 // Ensure questions are initialized
-                if ($quiz->isGeneratedByAI()) {
-                    $form->get('quiz')->setData($quiz);
-                }
+                $form->get('quiz')->setData($quiz);
             } else {
                 $form->get('quizMode')->setData('ai'); // Default to AI-generated
             }

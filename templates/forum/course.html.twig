@@ -1,0 +1,656 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Forum for {{ course.title }}{% endblock %}
+
+{% block css %}
+    <style>
+        .forum-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+        .comment-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            transition: box-shadow 0.2s;
+            position: relative;
+        }
+        .comment-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .user-info {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+        .avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            margin-right: 1rem;
+            object-fit: cover;
+        }
+        .username {
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: #1a1a1a;
+            margin-right: 0.5rem;
+        }
+        .role-badge {
+            font-size: 0.7rem;
+            padding: 0.2rem 0.6rem;
+            border-radius: 9999px;
+            font-weight: 500;
+        }
+        .role-badge.bg-primary {
+            background: #dbeafe;
+            color: #3b82f6;
+        }
+        .role-badge.bg-danger {
+            background: #fee2e2;
+            color: #ef4444;
+        }
+        .timestamp {
+            color: #6b7280;
+            font-size: 0.85rem;
+            margin-left: auto;
+        }
+        .comment-content {
+            font-size: 1rem;
+            color: #374151;
+            line-height: 1.5;
+            margin-bottom: 1rem;
+        }
+        .comment-media {
+            margin-top: 0.75rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .comment-media img,
+        .comment-media video {
+            max-width: calc(50% - 0.25rem);
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+        }
+        .comment-actions {
+            display: flex;
+            gap: 1.5rem;
+            color: #6b7280;
+            font-size: 0.9rem;
+        }
+        .comment-actions button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            transition: color 0.2s;
+        }
+        .comment-actions button:hover {
+            color: #3b82f6;
+        }
+        .replies-container {
+            margin-left: 3rem;
+            border-left: 2px solid #e5e7eb;
+            padding-left: 1rem;
+            margin-top: 1rem;
+        }
+        .replies-container .comment-card {
+            padding: 1rem;
+            box-shadow: none;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+        }
+        .replies-container .user-info {
+            margin-bottom: 0.5rem;
+        }
+        .replies-container .avatar {
+            width: 32px;
+            height: 32px;
+        }
+        .replies-container .username {
+            font-size: 1rem;
+        }
+        .replies-container .timestamp {
+            font-size: 0.75rem;
+        }
+        .replies-container .comment-content {
+            font-size: 0.95rem;
+            margin-bottom: 0.5rem;
+        }
+        .replies-container .comment-actions {
+            font-size: 0.8rem;
+            gap: 1rem;
+        }
+        .reply-form {
+            margin-top: 1rem;
+            display: none;
+            background: #f9fafb;
+            padding: 1rem;
+            border-radius: 8px;
+            display: flex;
+            align-items: flex-end;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        .reply-form textarea {
+            resize: none;
+            min-height: 40px;
+            max-height: 200px;
+            border-radius: 20px;
+            border: 1px solid #d1d5db;
+            padding: 0.75rem 1rem;
+            flex-grow: 1;
+        }
+        .new-comment-form {
+            background: white;
+            padding: 1.25rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            margin-bottom: 2rem;
+        }
+        .new-comment-form form {
+            display: flex;
+            align-items: flex-end;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        .new-comment-form textarea {
+            resize: none;
+            min-height: 40px;
+            max-height: 200px;
+            border-radius: 20px;
+            border: 1px solid #d1d5db;
+            padding: 0.75rem 1rem;
+            flex-grow: 1;
+        }
+        .like-btn.liked {
+            color: #ef4444;
+        }
+        .like-btn.liked i {
+            font-weight: 900;
+        }
+        .attach-btn {
+            color: #6b7280;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        .attach-btn:hover {
+            color: #3b82f6;
+        }
+        .hidden {
+            display: none;
+        }
+        .submit-btn {
+            color: #3b82f6;
+            transition: color 0.2s;
+        }
+        .submit-btn:hover {
+            color: #2563eb;
+        }
+        .preview-area {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+            width: 100%;
+        }
+        .preview-item {
+            position: relative;
+            width: 80px;
+            height: 80px;
+        }
+        .preview-item img, .preview-item video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 4px;
+        }
+        .remove-preview {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: red;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .media-fallback {
+            background: #f0f0f0;
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .media-fallback i {
+            font-size: 2rem;
+            color: #888;
+        }
+        .options-menu {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            cursor: pointer;
+        }
+        .options-dropdown {
+            display: none;
+            position: absolute;
+            top: 1.5rem;
+            right: 0;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            z-index: 10;
+        }
+        .options-dropdown a, .options-dropdown button {
+            display: block;
+            padding: 0.5rem 1rem;
+            color: #333;
+            text-decoration: none;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+        }
+        .options-dropdown a:hover, .options-dropdown button:hover {
+            background: #f0f0f0;
+        }
+        .edit-form {
+            display: none;
+            margin-top: 1rem;
+        }
+    </style>
+{% endblock %}
+{% block body %}
+    <div class="container my-5 forum-container">
+        <h1 class="mb-4 text-2xl font-bold">Forum for {{ course.title }}</h1>
+        <p class="mb-6 text-gray-600">Discuss all parts of this course here. For specific parts, visit the part forum.</p>
+      
+        {% if comments is empty %}
+            <p class="alert alert-info p-4 bg-blue-50 text-blue-800 rounded-lg">No discussions yet. Be the first!</p>
+        {% else %}
+            {% for comment in comments %}
+                {{ _self.render_comment(comment, 0, true) }}
+            {% endfor %}
+        {% endif %}
+      
+        <div class="new-comment-form">
+            <h3 class="mb-3 font-semibold text-lg">Post a New Comment</h3>
+            <form method="post" enctype="multipart/form-data">
+                <div class="preview-area"></div>
+                <textarea name="content" class="form-control" placeholder="What's on your mind?" required oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'"></textarea>
+                <label for="new-media" class="attach-btn">
+                    <i class="fas fa-paperclip"></i>
+                </label>
+                <input type="file" id="new-media" name="media[]" multiple accept="image/*,video/*" class="hidden">
+                <input type="hidden" name="_token" value="{{ csrf_token('forum_post') }}">
+                <button type="submit" class="submit-btn">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </form>
+        </div>
+      
+        <a href="{{ path('app_course_details', {'id': course.id}) }}" class="btn btn-secondary inline-block bg-gray-200 text-gray-800 px-4 py-2 rounded-lg">Back to Course</a>
+    </div>
+{% endblock %}
+{% macro render_comment(comment, level, is_course) %}
+    <div class="comment-card" data-comment-id="{{ comment.id }}">
+        {% if app.user and comment.user.id == app.user.id %}
+            <div class="options-menu" onclick="toggleOptions(this)">
+                <i class="fas fa-ellipsis-h"></i>
+                <div class="options-dropdown">
+                    <button onclick="toggleEditForm('{{ comment.id }}')">Edit</button>
+                    <form method="post" action="{{ path('app_forum_delete_comment', {'id': comment.id}) }}" onsubmit="return confirm('Are you sure you want to delete this comment?');">
+                        <input type="hidden" name="_token" value="{{ csrf_token('comment_delete_' ~ comment.id) }}">
+                        <button type="submit">Delete</button>
+                    </form>
+                </div>
+            </div>
+        {% endif %}
+        <div class="user-info">
+            <img class="avatar" src="{{ comment.user.avatar ? asset('uploads/avatars/' ~ comment.user.avatar) : 'https://placehold.co/48x48.png' }}" alt="{{ comment.user.username }}'s avatar">
+            <span class="username">{{ comment.user.username }}</span>
+            {% if comment.user.role == 'teacher' %}
+                <span class="role-badge bg-primary">[Teacher]</span>
+            {% elseif comment.user.role == 'admin' %}
+                <span class="role-badge bg-danger">[Admin]</span>
+            {% endif %}
+            <span class="timestamp">{{ comment.postedAt|date('Y-m-d H:i') }}</span>
+        </div>
+        <div class="comment-content-wrapper">
+            <p class="comment-content">{{ comment.content }}</p>
+            <div class="edit-form" id="edit-form-{{ comment.id }}" style="display:none;">
+                <form method="post" action="{{ path('app_forum_edit_comment', {'id': comment.id}) }}" data-comment-id="{{ comment.id }}" class="edit-comment-form">
+                    <textarea name="content" required>{{ comment.content }}</textarea>
+                    <input type="hidden" name="_token" value="{{ csrf_token('comment_edit_' ~ comment.id) }}">
+                    <button type="submit">Save</button>
+                </form>
+            </div>
+        </div>
+        {% if comment.mediaUploads|length > 0 %}
+            <div class="comment-media">
+                {% for media in comment.mediaUploads %}
+                    {% set extension = media.url|split('.')|last|lower %}
+                    {% if extension in ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg'] or media.type starts with 'image/' %}
+                        <img src="{{ asset(media.url) }}" alt="Media" class="rounded-lg">
+                    {% elseif extension in ['mp4', 'webm', 'ogg'] or media.type starts with 'video/' %}
+                        <video controls src="{{ asset(media.url) }}" class="rounded-lg"></video>
+                    {% else %}
+                        <div class="media-fallback">
+                            <i class="fas fa-file"></i>
+                            <p><a href="{{ asset(media.url) }}" download>Download file ({{ extension|upper }})</a></p>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        {% endif %}
+        <div class="comment-actions mt-2">
+            <button class="like-btn {% if app.user and comment.isLikedByUser(app.user) %}liked{% endif %}">
+                <i class="{% if app.user and comment.isLikedByUser(app.user) %}fas{% else %}far{% endif %} fa-heart"></i> <span class="like-count">{{ comment.getLikeCount }}</span>
+            </button>
+            <button class="reply-toggle">
+                <i class="far fa-comment"></i> Reply {% if comment.replies|length > 0 %}({{ comment.replies|length }}){% endif %}
+            </button>
+            {% if is_course and comment.part %}
+                <a href="{{ path('app_forum_part', {'id': comment.part.id}) }}" class="text-blue-500 hover:underline">View in Part</a>
+            {% endif %}
+        </div>
+        <div class="replies-container {% if level > 0 %}ml-6{% endif %}">
+            {% for reply in comment.replies %}
+                {{ _self.render_comment(reply, level + 1, is_course) }}
+            {% endfor %}
+        </div>
+        <form method="post" enctype="multipart/form-data" class="reply-form">
+            <div class="preview-area"></div>
+            <textarea name="content" class="form-control" placeholder="Reply to this comment..." required oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'"></textarea>
+            <label for="reply-media-{{ comment.id }}" class="attach-btn">
+                <i class="fas fa-paperclip"></i>
+            </label>
+            <input type="file" id="reply-media-{{ comment.id }}" name="media[]" multiple accept="image/*,video/*" class="hidden">
+            <input type="hidden" name="parentId" value="{{ comment.id }}">
+            <input type="hidden" name="_token" value="{{ csrf_token('forum_post') }}">
+            <button type="submit" class="submit-btn">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </form>
+    </div>
+{% endmacro %}
+{% block js %}
+    <script>
+        function toggleOptions(menu) {
+            const dropdown = menu.querySelector('.options-dropdown');
+            dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+        }
+
+        function toggleEditForm(id) {
+            const form = document.getElementById('edit-form-' + id);
+            form.style.display = form.style.display === 'block' ? 'none' : 'block';
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Relative timestamps (simple, can use moment.js for better)
+            document.querySelectorAll('.timestamp').forEach(el => {
+                const date = new Date(el.textContent);
+                el.textContent = date.toLocaleString(); // Placeholder; add relative logic if needed
+            });
+            // Toggle reply forms
+            const toggleReply = (btn) => {
+                const form = btn.closest('.comment-actions').nextElementSibling.nextElementSibling;
+                form.style.display = form.style.display === 'flex' ? 'none' : 'flex';
+            };
+            document.querySelectorAll('.reply-toggle').forEach(btn => {
+                btn.addEventListener('click', () => toggleReply(btn));
+            });
+            // Like buttons
+            document.querySelectorAll('.like-btn').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const commentId = btn.closest('.comment-card').dataset.commentId;
+                    const response = await fetch(`/forum/comment/${commentId}/like`, {
+                        method: 'POST',
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    });
+                    if (response.ok) {
+                        const json = await response.json();
+                        btn.classList.toggle('liked', json.liked);
+                        btn.querySelector('.like-count').textContent = json.count;
+                        const icon = btn.querySelector('i');
+                        icon.classList.toggle('far', !json.liked);
+                        icon.classList.toggle('fas', json.liked);
+                    }
+                });
+            });
+            // File preview
+            const handleFilePreview = (input) => {
+                const previewArea = input.closest('form').querySelector('.preview-area');
+                previewArea.innerHTML = '';
+                const files = input.files;
+                for (let file of files) {
+                    const item = document.createElement('div');
+                    item.classList.add('preview-item');
+                    let preview;
+                    if (file.type.startsWith('image/')) {
+                        preview = document.createElement('img');
+                        preview.src = URL.createObjectURL(file);
+                    } else if (file.type.startsWith('video/')) {
+                        preview = document.createElement('video');
+                        preview.src = URL.createObjectURL(file);
+                        preview.controls = true;
+                    }
+                    item.appendChild(preview);
+                    const remove = document.createElement('span');
+                    remove.classList.add('remove-preview');
+                    remove.innerHTML = '×';
+                    remove.onclick = () => item.remove();
+                    item.appendChild(remove);
+                    previewArea.appendChild(item);
+                }
+            };
+            document.querySelectorAll('input[type="file"]').forEach(input => {
+                input.addEventListener('change', () => handleFilePreview(input));
+            });
+            // AJAX form submission
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                const form = e.target;
+                const data = new FormData(form);
+                const response = await fetch(window.location.href, {
+                    method: 'POST',
+                    body: data,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                if (response.ok) {
+                    const json = await response.json();
+                    if (json.success) {
+                        const newComment = createCommentElement(json.comment);
+                        if (json.comment.parentId) {
+                            // Append as reply
+                            let parent = document.querySelector(`[data-comment-id="${json.comment.parentId}"]`);
+                            if (parent) {
+                                let repliesContainer = parent.querySelector('.replies-container');
+                                if (!repliesContainer) {
+                                    repliesContainer = document.createElement('div');
+                                    repliesContainer.classList.add('replies-container');
+                                    parent.insertBefore(repliesContainer, parent.querySelector('.reply-form'));
+                                }
+                                repliesContainer.appendChild(newComment);
+                            }
+                        } else {
+                            // Append as top-level
+                            const container = document.querySelector('.forum-container');
+                            container.insertBefore(newComment, document.querySelector('.new-comment-form'));
+                        }
+                        form.reset();
+                        form.style.display = 'none';
+                        form.querySelector('.preview-area').innerHTML = '';
+                        // Re-attach listeners
+                        newComment.querySelector('.reply-toggle')?.addEventListener('click', () => toggleReply(newComment.querySelector('.reply-toggle')));
+                        newComment.querySelector('form')?.addEventListener('submit', handleSubmit);
+                        newComment.querySelector('.like-btn')?.addEventListener('click', async (e) => {
+                            const btn = e.currentTarget;
+                            const commentId = btn.closest('.comment-card').dataset.commentId;
+                            const response = await fetch(`/forum/comment/${commentId}/like`, {
+                                method: 'POST',
+                                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                            });
+                            if (response.ok) {
+                                const json = await response.json();
+                                btn.classList.toggle('liked', json.liked);
+                                btn.querySelector('.like-count').textContent = json.count;
+                                const icon = btn.querySelector('i');
+                                icon.classList.toggle('far', !json.liked);
+                                icon.classList.toggle('fas', json.liked);
+                            }
+                        });
+                        newComment.querySelector('input[type="file"]')?.addEventListener('change', () => handleFilePreview(newComment.querySelector('input[type="file"]')));
+                        // For edit forms in new comments
+                        newComment.querySelectorAll('.edit-comment-form').forEach(form => {
+                            form.addEventListener('submit', async (e) => {
+                                e.preventDefault();
+                                const data = new FormData(form);
+                                const commentId = form.dataset.commentId;
+                                const response = await fetch(`/forum/comment/${commentId}/edit`, {
+                                    method: 'POST',
+                                    body: data,
+                                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                                });
+                                if (response.ok) {
+                                    const json = await response.json();
+                                    if (json.success) {
+                                        form.closest('.comment-content-wrapper').querySelector('.comment-content').textContent = json.content;
+                                        toggleEditForm(commentId);
+                                    } else {
+                                        alert(json.error || 'Error updating comment.');
+                                    }
+                                } else {
+                                    alert('Error updating comment.');
+                                }
+                            });
+                        });
+                    } else {
+                        alert(json.error || 'Error posting comment.');
+                    }
+                } else {
+                    alert('Error posting comment.');
+                }
+            };
+            document.querySelectorAll('form').forEach(form => {
+                form.addEventListener('submit', handleSubmit);
+            });
+            // AJAX edit submission for existing forms
+            document.querySelectorAll('.edit-comment-form').forEach(form => {
+                form.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const data = new FormData(form);
+                    const commentId = form.dataset.commentId;
+                    const response = await fetch(`/forum/comment/${commentId}/edit`, {
+                        method: 'POST',
+                        body: data,
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    });
+                    if (response.ok) {
+                        const json = await response.json();
+                        if (json.success) {
+                            form.closest('.comment-content-wrapper').querySelector('.comment-content').textContent = json.content;
+                            toggleEditForm(commentId);
+                        } else {
+                            alert(json.error || 'Error updating comment.');
+                        }
+                    } else {
+                        alert('Error updating comment.');
+                    }
+                });
+            });
+        });
+        function createCommentElement(data) {
+            const div = document.createElement('div');
+            div.classList.add('comment-card');
+            div.dataset.commentId = data.id;
+            let mediaHtml = '';
+            if (data.media && data.media.length > 0) {
+                mediaHtml = '<div class="comment-media">';
+                data.media.forEach(m => {
+                    let extension = m.url.split('.').pop().toLowerCase();
+                    if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg'].includes(extension) || m.type.startsWith('image/')) {
+                        mediaHtml += `<img src="/${m.url}" alt="Media" class="rounded-lg">`;
+                    } else if (['mp4', 'webm', 'ogg'].includes(extension) || m.type.startsWith('video/')) {
+                        mediaHtml += `<video controls src="/${m.url}" class="rounded-lg"></video>`;
+                    } else {
+                        mediaHtml += `<div class="media-fallback"><i class="fas fa-file"></i><p><a href="/${m.url}" download>Download file (${extension.toUpperCase()})</a></p></div>`;
+                    }
+                });
+                mediaHtml += '</div>';
+            }
+            let optionsHtml = '';
+            if (data.userId === {{ app.user ? app.user.id : 0 }}) {
+                optionsHtml = `
+                    <div class="options-menu" onclick="toggleOptions(this)">
+                        <i class="fas fa-ellipsis-h"></i>
+                        <div class="options-dropdown">
+                            <button onclick="toggleEditForm('${data.id}')">Edit</button>
+                            <form method="post" action="/forum/comment/${data.id}/delete" onsubmit="return confirm('Are you sure?');">
+                                <input type="hidden" name="_token" value="${data.delete_token}">
+                                <button type="submit">Delete</button>
+                            </form>
+                        </div>
+                    </div>
+                `;
+            }
+            div.innerHTML = `
+                ${optionsHtml}
+                <div class="user-info">
+                    <img class="avatar" src="${data.avatar}" alt="${data.username}'s avatar">
+                    <span class="username">${data.username}</span>
+                    ${data.role === 'teacher' ? '<span class="role-badge bg-primary">[Teacher]</span>' : ''}
+                    ${data.role === 'admin' ? '<span class="role-badge bg-danger">[Admin]</span>' : ''}
+                    <span class="timestamp">${data.postedAt}</span>
+                </div>
+                <div class="comment-content-wrapper">
+                    <p class="comment-content">${data.content}</p>
+                    <div class="edit-form" id="edit-form-${data.id}" style="display:none;">
+                        <form method="post" action="/forum/comment/${data.id}/edit" data-comment-id="${data.id}" class="edit-comment-form">
+                            <textarea name="content" required>${data.content}</textarea>
+                            <input type="hidden" name="_token" value="${data.edit_token}">
+                            <button type="submit">Save</button>
+                        </form>
+                    </div>
+                </div>
+                ${mediaHtml}
+                <div class="comment-actions mt-2">
+                    <button class="like-btn">
+                        <i class="far fa-heart"></i> <span class="like-count">0</span>
+                    </button>
+                    <button class="reply-toggle">
+                        <i class="far fa-comment"></i> Reply
+                    </button>
+                    ${data.partId ? `<a href="/forum/part/${data.partId}" class="text-blue-500 hover:underline">View in Part</a>` : ''}
+                </div>
+                <div class="replies-container"></div>
+                <form method="post" enctype="multipart/form-data" class="reply-form" style="display:none;">
+                    <div class="preview-area"></div>
+                    <textarea name="content" class="form-control" placeholder="Reply to this comment..." required oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'"></textarea>
+                    <label for="reply-media-${data.id}" class="attach-btn">
+                        <i class="fas fa-paperclip"></i>
+                    </label>
+                    <input type="file" id="reply-media-${data.id}" name="media[]" multiple accept="image/*,video/*" class="hidden">
+                    <input type="hidden" name="parentId" value="${data.id}">
+                    <input type="hidden" name="_token" value="{{ csrf_token('forum_post') }}">
+                    <button type="submit" class="submit-btn">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </form>
+            `;
+            return div;
+        }
+    </script>
+{% endblock %}

@@ -2,10 +2,9 @@
 
 namespace App\Entity;
 
-use App\Repository\MediaUploadRepository;
 use Doctrine\ORM\Mapping as ORM;
 
-#[ORM\Entity(repositoryClass: MediaUploadRepository::class)]
+#[ORM\Entity]
 #[ORM\Table(name: 'mediaupload')]
 class MediaUpload
 {
@@ -30,6 +29,10 @@ class MediaUpload
     #[ORM\ManyToOne(targetEntity: WrittenSection::class, inversedBy: 'mediaUploads')]
     #[ORM\JoinColumn(name: 'writtenSectionId', referencedColumnName: 'id', nullable: true)]
     private ?WrittenSection $writtenSection = null;
+
+    #[ORM\ManyToOne(targetEntity: Comment::class, inversedBy: 'mediaUploads')]
+    #[ORM\JoinColumn(name: 'commentId', referencedColumnName: 'id', nullable: true)]
+    private ?Comment $comment = null;
 
     public function getId(): ?int
     {
@@ -88,6 +91,17 @@ class MediaUpload
     public function setWrittenSection(?WrittenSection $writtenSection): self
     {
         $this->writtenSection = $writtenSection;
+        return $this;
+    }
+
+    public function getComment(): ?Comment
+    {
+        return $this->comment;
+    }
+
+    public function setComment(?Comment $comment): self
+    {
+        $this->comment = $comment;
         return $this;
     }
 }
