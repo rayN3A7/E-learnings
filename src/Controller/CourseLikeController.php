@@ -14,6 +14,7 @@ use Symfony\Component\Routing\Annotation\Route;
 
 class CourseLikeController extends AbstractController
 {
+    
     private EntityManagerInterface $entityManager;
 
     public function __construct(EntityManagerInterface $entityManager)
