@@ -8,6 +8,7 @@ use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\CollectionType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\Extension\Core\Type\HiddenType;
+use Symfony\Component\Form\Extension\Core\Type\TextareaType; // New import
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Form\FormEvent;
 use Symfony\Component\Form\FormEvents;
@@ -68,6 +69,15 @@ class QuestionType extends AbstractType
                 'by_reference' => false,
                 'attr' => ['class' => 'options-collection'],
                 'label' => 'Options (for MCQ)',
+            ])
+            ->add('explanation', TextareaType::class, [
+                'label' => 'Explanation (optional)',
+                'attr' => [
+                    'class' => 'form-control',
+                    'placeholder' => 'Provide a step-by-step explanation for the correct answer and common mistakes',
+                    'rows' => 4,
+                ],
+                'required' => false,
             ]);
 
         // Transform generatedByAI to ensure boolean values
@@ -120,6 +130,7 @@ class QuestionType extends AbstractType
             if ($question instanceof Question) {
                 $form->get('type')->setData($type);
                 $form->get('generatedByAI')->setData($question->isGeneratedByAI() ? '1' : '0');
+                $form->get('explanation')->setData($question->getExplanation());
             }
         });
 

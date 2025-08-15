@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Service;
 
 use App\Entity\Part;
@@ -40,37 +39,25 @@ class QuizService
         $correctAnswers = 0;
         $totalQuestions = count($quiz->getQuestions());
         $feedback = [];
-
         foreach ($quiz->getQuestions() as $question) {
             $userAnswer = $answers[$question->getId()] ?? null;
             if ($userAnswer === null) {
-                $feedback[$question->getId()] = ['isCorrect' => false, 'correctAnswer' => $question->getCorrectAnswer(), 'userAnswer' => null];
+                $feedback[$question->getId()] = ['isCorrect' => false, 'correctAnswer' => $question->getCorrectAnswer(), 'userAnswer' => null, 'explanation' => $question->getExplanation()];
                 continue;
             }
-
             $isCorrect = $question->getType() === QuestionType::MCQ->value
                 ? $userAnswer === $question->getCorrectAnswer()
                 : abs((float) $userAnswer - (float) $question->getCorrectAnswer()) <= 0.01;
             if ($isCorrect) $correctAnswers++;
-
             $feedback[$question->getId()] = [
                 'isCorrect' => $isCorrect,
                 'correctAnswer' => $question->getCorrectAnswer(),
-                'userAnswer' => $userAnswer
+                'userAnswer' => $userAnswer,
+                'explanation' => $isCorrect ? null : $question->getExplanation() // Only show for incorrect
             ];
         }
-
         $score = $totalQuestions > 0 ? ($correctAnswers / $totalQuestions) * 100 : 0;
         $attemptNumber = $this->getAttemptCount($user, $quiz) + 1;
-        $attempt = (new QuizAttempt())
-            ->setUser($user)
-            ->setQuiz($quiz)
-            ->setAnswers($feedback)
-            ->setScore($score)
-            ->setTakenAt(new \DateTime())
-            ->setAttemptNumber($attemptNumber);
-        $this->entityManager->persist($attempt);
-
         return ['score' => $score, 'feedback' => $feedback, 'attemptNumber' => $attemptNumber];
     }
 
@@ -83,7 +70,6 @@ class QuizService
     {
         return $this->getAttemptCount($user, $quiz) < 3;
     }
-
     public function getOrGeneratePartQuiz(?User $user, ?Part $part, string $quizMode = 'ai'): ?Quiz
     {
         if (!$part || !$part->getCourse() || $part->getTitle() === null) {
@@ -260,7 +246,7 @@ class QuizService
                 return null;
             }
 
-            $validQuestions = array_filter($quizData['questions'], fn($q) => isset($q['type'], $q['text'], $q['correctAnswer']) && in_array(strtolower($q['type']), ['mcq', 'numeric']));
+            $validQuestions = array_filter($quizData['questions'], fn($q) => isset($q['type'], $q['text'], $q['correctAnswer'], $q['explanation']) && in_array(strtolower($q['type']), ['mcq', 'numeric']));
             if (count($validQuestions) >= 5) {
                 $this->logger->info('Successfully generated quiz with ' . count($validQuestions) . ' valid questions');
                 return ['questions' => array_values($validQuestions)];
@@ -295,6 +281,7 @@ class QuizService
                 ->setText($qData['text'])
                 ->setOptions($qData['options'] ?? ['Option A', 'Option B', 'Option C', 'Option D'])
                 ->setCorrectAnswer($qData['correctAnswer'])
+                ->setExplanation($qData['explanation'] ?? '')
                 ->setGeneratedByAI(true);
             $quiz->addQuestion($question);
             $this->entityManager->persist($question);
@@ -306,6 +293,7 @@ class QuizService
                 ->setType(QuestionType::Numeric->value)
                 ->setText($qData['text'])
                 ->setCorrectAnswer((string) $qData['correctAnswer'])
+                ->setExplanation($qData['explanation'] ?? '')
                 ->setGeneratedByAI(true);
             $quiz->addQuestion($question);
             $this->entityManager->persist($question);
@@ -318,6 +306,7 @@ class QuizService
                 ->setText('Default MCQ question')
                 ->setOptions(['Option A', 'Option B', 'Option C', 'Option D'])
                 ->setCorrectAnswer('Option A')
+                ->setExplanation('This is a default explanation for the MCQ question.')
                 ->setGeneratedByAI(true);
             $quiz->addQuestion($question);
             $this->entityManager->persist($question);
@@ -329,6 +318,7 @@ class QuizService
                 ->setType(QuestionType::Numeric->value)
                 ->setText('Default numeric question')
                 ->setCorrectAnswer('0')
+                ->setExplanation('This is a default explanation for the numeric question.')
                 ->setGeneratedByAI(true);
             $quiz->addQuestion($question);
             $this->entityManager->persist($question);
@@ -352,18 +342,18 @@ class QuizService
 
         $questions = [
             'mcq' => [
-                ['text' => "What is the main purpose of $baseTopic?", 'options' => ['Construct polynomials', 'Solve equations', 'Optimize', 'Classify'], 'correctAnswer' => 'Construct polynomials'],
-                ['text' => "What does $baseTopic use?", 'options' => ['Data points', 'Random samples', 'Derivatives', 'Integrals'], 'correctAnswer' => 'Data points'],
-                ['text' => "Key feature of $baseTopic?", 'options' => ['Exact fit', 'Linear only', 'Optimization', 'Reduction'], 'correctAnswer' => 'Exact fit'],
-                ['text' => "Polynomials in $baseTopic?", 'options' => ['Basis', 'Orthogonal', 'Chebyshev', 'Fourier'], 'correctAnswer' => 'Basis'],
-                ['text' => "Result at interpolation point?", 'options' => ['Matches data', 'Approximates derivative', 'Zero', 'Minimizes'], 'correctAnswer' => 'Matches data'],
+                ['text' => "What is the main purpose of $baseTopic?", 'options' => ['Construct polynomials', 'Solve equations', 'Optimize', 'Classify'], 'correctAnswer' => 'Construct polynomials', 'explanation' => 'Interpolation constructs polynomials that pass through given data points exactly. Common mistake: confusing with approximation methods.'],
+                ['text' => "What does $baseTopic use?", 'options' => ['Data points', 'Random samples', 'Derivatives', 'Integrals'], 'correctAnswer' => 'Data points', 'explanation' => 'It uses known data points (x,y pairs). Step: Build basis polynomials for each point.'],
+                ['text' => "Key feature of $baseTopic?", 'options' => ['Exact fit', 'Linear only', 'Optimization', 'Reduction'], 'correctAnswer' => 'Exact fit', 'explanation' => 'The polynomial fits all points exactly. Mistake: Thinking it minimizes error like regression.'],
+                ['text' => "Polynomials in $baseTopic?", 'options' => ['Basis', 'Orthogonal', 'Chebyshev', 'Fourier'], 'correctAnswer' => 'Basis', 'explanation' => 'Uses Lagrange basis polynomials. Step: l_i(x) = product over j≠i of (x - x_j)/(x_i - x_j).'],
+                ['text' => "Result at interpolation point?", 'options' => ['Matches data', 'Approximates derivative', 'Zero', 'Minimizes'], 'correctAnswer' => 'Matches data', 'explanation' => 'P(x_i) = y_i exactly. Common mistake: Expecting smooth curves beyond points (Runge phenomenon).'],
             ],
             'numeric' => [
-                ['text' => "Points for linear polynomial?", 'correctAnswer' => '2'],
-                ['text' => "Degree for 3 points?", 'correctAnswer' => '2'],
-                ['text' => "Basis polynomials for 4 points?", 'correctAnswer' => '4'],
-                ['text' => "Sum of basis at point?", 'correctAnswer' => '1'],
-                ['text' => "Terms for 5 points?", 'correctAnswer' => '5'],
+                ['text' => "Points for linear polynomial?", 'correctAnswer' => '2', 'explanation' => 'Linear (degree 1) needs 2 points. General: n points for degree n-1.'],
+                ['text' => "Degree for 3 points?", 'correctAnswer' => '2', 'explanation' => '3 points fit a quadratic (degree 2). Mistake: Overestimating degree.'],
+                ['text' => "Basis polynomials for 4 points?", 'correctAnswer' => '4', 'explanation' => 'One basis per point. Sum to 1 at each x_i.'],
+                ['text' => "Sum of basis at point?", 'correctAnswer' => '1', 'explanation' => 'By construction, sum l_i(x) = 1 for Lagrange.'],
+                ['text' => "Terms for 5 points?", 'correctAnswer' => '5', 'explanation' => 'Degree 4 polynomial has 5 terms (a0 + a1x + ... + a4x^4).'],
             ],
         ];
 
@@ -373,6 +363,7 @@ class QuizService
                 ->setType(QuestionType::Numeric->value)
                 ->setText($qData['text'])
                 ->setCorrectAnswer($qData['correctAnswer'])
+                ->setExplanation($qData['explanation'])
                 ->setGeneratedByAI(false);
             $quiz->addQuestion($question);
             $this->entityManager->persist($question);
@@ -384,6 +375,7 @@ class QuizService
                 ->setText($qData['text'])
                 ->setOptions($qData['options'])
                 ->setCorrectAnswer($qData['correctAnswer'])
+                ->setExplanation($qData['explanation'])
                 ->setGeneratedByAI(false);
             $quiz->addQuestion($question);
             $this->entityManager->persist($question);
@@ -406,25 +398,25 @@ class QuizService
         $baseTopic = strpos(strtolower($content), 'lagrange') !== false ? 'Lagrange Interpolation' : 'Polynomial Interpolation';
 
         $mcqQuestions = [
-            ['text' => "Primary goal of $baseTopic?", 'options' => ['Fit polynomials', 'Solve equations', 'Approximate', 'Optimize'], 'correctAnswer' => 'Fit polynomials'],
-            ['text' => "Method for $baseTopic?", 'options' => ['Lagrange', 'Gaussian', 'Fourier', 'Least squares'], 'correctAnswer' => 'Lagrange'],
-            ['text' => "Ensures at points?", 'options' => ['Exact match', 'Minimum error', 'Linear', 'Constant'], 'correctAnswer' => 'Exact match'],
-            ['text' => "Based on?", 'options' => ['Data points', 'Random', 'Derivatives', 'Integrals'], 'correctAnswer' => 'Data points'],
-            ['text' => "Challenge in $baseTopic?", 'options' => ['Runge’s phenomenon', 'Overfitting', 'Underfitting', 'Variance'], 'correctAnswer' => 'Runge’s phenomenon'],
+            ['text' => "Primary goal of $baseTopic?", 'options' => ['Fit polynomials', 'Solve equations', 'Approximate', 'Optimize'], 'correctAnswer' => 'Fit polynomials', 'explanation' => 'Aims to fit a polynomial exactly through points. Step: Use basis to weight y-values.'],
+            ['text' => "Method for $baseTopic?", 'options' => ['Lagrange', 'Gaussian', 'Fourier', 'Least squares'], 'correctAnswer' => 'Lagrange', 'explanation' => 'Lagrange method is direct. Mistake: Confusing with Newton (divided differences).'],
+            ['text' => "Ensures at points?", 'options' => ['Exact match', 'Minimum error', 'Linear', 'Constant'], 'correctAnswer' => 'Exact match', 'explanation' => 'P(x_i) = y_i. Common issue: Oscillation between points.'],
+            ['text' => "Based on?", 'options' => ['Data points', 'Random', 'Derivatives', 'Integrals'], 'correctAnswer' => 'Data points', 'explanation' => 'Only needs (x,y) pairs, no derivatives.'],
+            ['text' => "Challenge in $baseTopic?", 'options' => ['Runge’s phenomenon', 'Overfitting', 'Underfitting', 'Variance'], 'correctAnswer' => 'Runge’s phenomenon', 'explanation' => 'High-degree polynomials oscillate. Solution: Use splines or Chebyshev points.'],
         ];
 
         $numericQuestions = $studentPerformance === 'high' ? [
-            ['text' => "Degree for 4 points?", 'correctAnswer' => '3'],
-            ['text' => "Points for cubic?", 'correctAnswer' => '4'],
-            ['text' => "Basis sum at point?", 'correctAnswer' => '1'],
-            ['text' => "Terms for 6 points?", 'correctAnswer' => '6'],
-            ['text' => "Degree for 2 points?", 'correctAnswer' => '1'],
+            ['text' => "Degree for 4 points?", 'correctAnswer' => '3', 'explanation' => 'n points need degree at most n-1.'],
+            ['text' => "Points for cubic?", 'correctAnswer' => '4', 'explanation' => 'Cubic is degree 3, needs 4 points.'],
+            ['text' => "Basis sum at point?", 'correctAnswer' => '1', 'explanation' => 'Property of Lagrange basis.'],
+            ['text' => "Terms for 6 points?", 'correctAnswer' => '6', 'explanation' => 'Degree 5 has 6 coefficients.'],
+            ['text' => "Degree for 2 points?", 'correctAnswer' => '1', 'explanation' => 'Linear interpolation.'],
         ] : [
-            ['text' => "Points for linear?", 'correctAnswer' => '2'],
-            ['text' => "Degree for 3 points?", 'correctAnswer' => '2'],
-            ['text' => "Basis for 4 points?", 'correctAnswer' => '4'],
-            ['text' => "Basis sum at point?", 'correctAnswer' => '1'],
-            ['text' => "Points for quadratic?", 'correctAnswer' => '3'],
+            ['text' => "Points for linear?", 'correctAnswer' => '2', 'explanation' => 'Basic: 2 points for straight line.'],
+            ['text' => "Degree for 3 points?", 'correctAnswer' => '2', 'explanation' => 'Quadratic curve through 3 points.'],
+            ['text' => "Basis for 4 points?", 'correctAnswer' => '4', 'explanation' => 'One per point.'],
+            ['text' => "Basis sum at point?", 'correctAnswer' => '1', 'explanation' => 'Ensures interpolation property.'],
+            ['text' => "Points for quadratic?", 'correctAnswer' => '3', 'explanation' => 'Degree 2 needs 3 points.'],
         ];
 
         foreach ($numericQuestions as $qData) {
@@ -433,6 +425,7 @@ class QuizService
                 ->setType(QuestionType::Numeric->value)
                 ->setText($qData['text'])
                 ->setCorrectAnswer($qData['correctAnswer'])
+                ->setExplanation($qData['explanation'])
                 ->setGeneratedByAI(false);
             $quiz->addQuestion($question);
             $this->entityManager->persist($question);
@@ -444,6 +437,7 @@ class QuizService
                 ->setText($qData['text'])
                 ->setOptions($qData['options'])
                 ->setCorrectAnswer($qData['correctAnswer'])
+                ->setExplanation($qData['explanation'])
                 ->setGeneratedByAI(false);
             $quiz->addQuestion($question);
             $this->entityManager->persist($question);

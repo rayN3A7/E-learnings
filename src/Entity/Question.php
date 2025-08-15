@@ -32,6 +32,9 @@ class Question
     #[ORM\Column(type: 'boolean', name: "generatedByAI")]
     private bool $generatedByAI = false;
 
+    #[ORM\Column(type: 'text', nullable: true)]
+    private ?string $explanation = null;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -100,6 +103,17 @@ class Question
     public function setGeneratedByAI(bool $generatedByAI): self
     {
         $this->generatedByAI = $generatedByAI;
+        return $this;
+    }
+
+    public function getExplanation(): ?string
+    {
+        return $this->explanation;
+    }
+
+    public function setExplanation(?string $explanation): self
+    {
+        $this->explanation = $explanation;
         return $this;
     }
 }
