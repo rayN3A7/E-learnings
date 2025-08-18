@@ -35,6 +35,9 @@ class Question
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $explanation = null;
 
+    #[ORM\Column(type: 'text', nullable: true)]
+    private ?string $hint = null;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -114,6 +117,17 @@ class Question
     public function setExplanation(?string $explanation): self
     {
         $this->explanation = $explanation;
+        return $this;
+    }
+
+    public function getHint(): ?string
+    {
+        return $this->hint;
+    }
+
+    public function setHint(?string $hint): self
+    {
+        $this->hint = $hint;
         return $this;
     }
 }

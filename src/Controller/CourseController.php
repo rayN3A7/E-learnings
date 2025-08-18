@@ -404,8 +404,13 @@ class CourseController extends AbstractController
                     }
                 }
 
-                // Handle Quiz
+                // Handle Quiz - Regenerate if AI mode and no quiz or existing is manual
+                $existingQuiz = $part->getQuiz();
                 if ($quizMode === 'manual' && $quizData instanceof Quiz) {
+                    if ($existingQuiz && $existingQuiz->isGeneratedByAI()) {
+                        // Delete old AI quiz if switching to manual
+                        $this->entityManager->remove($existingQuiz);
+                    }
                     $questions = $quizData->getQuestions();
                     foreach ($questions as $question) {
                         $question->setQuiz($quizData);
@@ -420,18 +425,18 @@ class CourseController extends AbstractController
                     }
                     $part->setQuiz($quizData);
                 } elseif ($quizMode === 'ai') {
-                    $existingQuiz = $part->getQuiz();
-                    if ($existingQuiz && $existingQuiz->isGeneratedByAI()) {
-                        $part->setQuiz($existingQuiz);
-                    } else {
-                        $generatedQuiz = $this->quizService->getOrGeneratePartQuiz($this->getUser(), $part, $quizMode);
-                        if ($generatedQuiz) {
-                            if (!$this->entityManager->contains($generatedQuiz)) {
-                                $generatedQuiz->setPart($part);
-                                $this->entityManager->persist($generatedQuiz);
-                            }
-                            $part->setQuiz($generatedQuiz);
+                    if ($existingQuiz && !$existingQuiz->isGeneratedByAI()) {
+                        // Delete old manual quiz if switching to AI
+                        $this->entityManager->remove($existingQuiz);
+                        $part->setQuiz(null);
+                    }
+                    $generatedQuiz = $this->quizService->getOrGeneratePartQuiz($this->getUser(), $part, $quizMode);
+                    if ($generatedQuiz) {
+                        if (!$this->entityManager->contains($generatedQuiz)) {
+                            $generatedQuiz->setPart($part);
+                            $this->entityManager->persist($generatedQuiz);
                         }
+                        $part->setQuiz($generatedQuiz);
                     }
                 }
 
@@ -443,10 +448,15 @@ class CourseController extends AbstractController
                 }
             }
 
-            // Handle Final Quiz
+            // Handle Final Quiz - Similar logic for regeneration
             $finalQuizData = $form->get('finalQuiz')->getData();
             $finalQuizMode = $form->get('quizMode')->getData() ?? 'ai';
+            $existingFinalQuiz = $course->getFinalQuiz();
             if ($finalQuizMode === 'manual' && $finalQuizData instanceof Quiz) {
+                if ($existingFinalQuiz && $existingFinalQuiz->isGeneratedByAI()) {
+                    // Delete old AI final quiz if switching to manual
+                    $this->entityManager->remove($existingFinalQuiz);
+                }
                 $questions = $finalQuizData->getQuestions();
                 foreach ($questions as $question) {
                     $question->setQuiz($finalQuizData);
@@ -461,18 +471,18 @@ class CourseController extends AbstractController
                 }
                 $course->setFinalQuiz($finalQuizData);
             } elseif ($finalQuizMode === 'ai') {
-                $existingFinalQuiz = $course->getFinalQuiz();
-                if ($existingFinalQuiz && $existingFinalQuiz->isGeneratedByAI()) {
-                    $course->setFinalQuiz($existingFinalQuiz);
-                } else {
-                    $generatedFinalQuiz = $this->quizService->getOrGenerateFinalQuiz($this->getUser(), $course, $finalQuizMode);
-                    if ($generatedFinalQuiz) {
-                        if (!$this->entityManager->contains($generatedFinalQuiz)) {
-                            $generatedFinalQuiz->setCourse($course);
-                            $this->entityManager->persist($generatedFinalQuiz);
-                        }
-                        $course->setFinalQuiz($generatedFinalQuiz);
+                if ($existingFinalQuiz && !$existingFinalQuiz->isGeneratedByAI()) {
+                    // Delete old manual final quiz if switching to AI
+                    $this->entityManager->remove($existingFinalQuiz);
+                    $course->setFinalQuiz(null);
+                }
+                $generatedFinalQuiz = $this->quizService->getOrGenerateFinalQuiz($this->getUser(), $course, $finalQuizMode);
+                if ($generatedFinalQuiz) {
+                    if (!$this->entityManager->contains($generatedFinalQuiz)) {
+                        $generatedFinalQuiz->setCourse($course);
+                        $this->entityManager->persist($generatedFinalQuiz);
                     }
+                    $course->setFinalQuiz($generatedFinalQuiz);
                 }
             }
 

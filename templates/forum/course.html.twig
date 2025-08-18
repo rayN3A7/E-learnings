@@ -1,7 +1,5 @@
 {% extends 'base.html.twig' %}
-
 {% block title %}Forum for {{ course.title }}{% endblock %}
-
 {% block css %}
     <style>
         .forum-container {
@@ -276,7 +274,7 @@
     <div class="container my-5 forum-container">
         <h1 class="mb-4 text-2xl font-bold">Forum for {{ course.title }}</h1>
         <p class="mb-6 text-gray-600">Discuss all parts of this course here. For specific parts, visit the part forum.</p>
-      
+     
         {% if comments is empty %}
             <p class="alert alert-info p-4 bg-blue-50 text-blue-800 rounded-lg">No discussions yet. Be the first!</p>
         {% else %}
@@ -284,7 +282,7 @@
                 {{ _self.render_comment(comment, 0, true) }}
             {% endfor %}
         {% endif %}
-      
+     
         <div class="new-comment-form">
             <h3 class="mb-3 font-semibold text-lg">Post a New Comment</h3>
             <form method="post" enctype="multipart/form-data">
@@ -300,7 +298,7 @@
                 </button>
             </form>
         </div>
-      
+     
         <a href="{{ path('app_course_details', {'id': course.id}) }}" class="btn btn-secondary inline-block bg-gray-200 text-gray-800 px-4 py-2 rounded-lg">Back to Course</a>
     </div>
 {% endblock %}
@@ -311,10 +309,7 @@
                 <i class="fas fa-ellipsis-h"></i>
                 <div class="options-dropdown">
                     <button onclick="toggleEditForm('{{ comment.id }}')">Edit</button>
-                    <form method="post" action="{{ path('app_forum_delete_comment', {'id': comment.id}) }}" onsubmit="return confirm('Are you sure you want to delete this comment?');">
-                        <input type="hidden" name="_token" value="{{ csrf_token('comment_delete_' ~ comment.id) }}">
-                        <button type="submit">Delete</button>
-                    </form>
+                    <button onclick="deleteComment('{{ comment.id }}', '{{ csrf_token('comment_delete_' ~ comment.id) }}')">Delete</button>
                 </div>
             </div>
         {% endif %}
@@ -392,12 +387,40 @@
             const dropdown = menu.querySelector('.options-dropdown');
             dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
         }
-
         function toggleEditForm(id) {
             const form = document.getElementById('edit-form-' + id);
             form.style.display = form.style.display === 'block' ? 'none' : 'block';
         }
-
+        function deleteComment(id, token) {
+            if (!confirm('Are you sure you want to delete this comment?')) return;
+            fetch(`/forum/comment/${id}/delete`, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: `_token=${token}`
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(json => {
+                if (json.success) {
+                    const commentElem = document.querySelector(`[data-comment-id="${id}"]`);
+                    if (commentElem) {
+                        commentElem.remove();
+                    }
+                } else {
+                    alert(json.error || 'Error deleting comment.');
+                }
+            })
+            .catch(error => {
+                alert('Error deleting comment: ' + error.message);
+            });
+        }
         document.addEventListener('DOMContentLoaded', () => {
             // Relative timestamps (simple, can use moment.js for better)
             document.querySelectorAll('.timestamp').forEach(el => {
@@ -598,10 +621,7 @@
                         <i class="fas fa-ellipsis-h"></i>
                         <div class="options-dropdown">
                             <button onclick="toggleEditForm('${data.id}')">Edit</button>
-                            <form method="post" action="/forum/comment/${data.id}/delete" onsubmit="return confirm('Are you sure?');">
-                                <input type="hidden" name="_token" value="${data.delete_token}">
-                                <button type="submit">Delete</button>
-                            </form>
+                            <button onclick="deleteComment('${data.id}', '${data.delete_token}')">Delete</button>
                         </div>
                     </div>
                 `;

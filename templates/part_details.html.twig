@@ -246,6 +246,17 @@
         .manual-quiz .quiz-question {
             margin-bottom: 1.5rem;
         }
+        .recommended-videos .card {
+            transition: transform 0.3s ease;
+        }
+        .recommended-videos .card:hover {
+            transform: translateY(-5px);
+        }
+        .embed-container iframe {
+            width: 100%;
+            height: 200px;
+            border-radius: var(--border-radius);
+        }
         @media (max-width: 768px) {
             .course-header { padding: 3rem 0; }
             .course-header h1 { font-size: 2.25rem; }
@@ -321,6 +332,14 @@
         }
         .next-part-btn {
             margin-top: 1.5rem;
+        }
+        /* New styles for hints */
+        .hint-icon {
+            cursor: help;
+            font-size: 0.8rem;
+            background: #e2e8f0;
+            border-radius: 50%;
+            padding: 0.2rem 0.5rem;
         }
     </style>
 {% endblock %}
@@ -420,7 +439,11 @@
                                 <input type="hidden" name="_token" value="{{ csrf_token('quiz_submit' ~ quiz.id) }}">
                                 {% for question in quiz.questions %}
                                     <div class="quiz-question {% if attempt_count == 2 and question.id in incorrect_question_ids %}incorrect-highlight{% endif %}" {% if quiz.generatedByAI %}style="--question-index: {{ loop.index }}"{% endif %}>
-                                        <h5 class="fw-bold">{{ loop.index }}. {{ question.text }}</h5>
+                                        <h5 class="fw-bold">{{ loop.index }}. {{ question.text }}
+                                            {% if question.hint %}
+                                                <span class="ms-2 text-primary hint-icon" data-bs-toggle="popover" data-bs-placement="top" data-bs-content="{{ question.hint }}" data-bs-trigger="hover focus">ℹ️</span>
+                                            {% endif %}
+                                        </h5>
                                         {% if question.type|lower == 'mcq' %}
                                             {% for option in question.options %}
                                                 <div class="form-check">
@@ -447,7 +470,6 @@
                             <div class="corrected-quiz">
                                 <h5 class="fw-bold mb-3">Corrected Quiz</h5>
                                 {% for question in quiz.questions %}
-                                    {% set qFeedback = feedback[question.id] ?? null %}
                                     <div class="quiz-question {% if qFeedback and qFeedback.isCorrect %}correct-highlight{% endif %}">
                                         <h5 class="fw-bold">{{ loop.index }}. {{ question.text }}</h5>
                                         <p class="text-success">Correct Answer: {{ question.correctAnswer }}</p>
@@ -486,6 +508,30 @@
                 {% else %}
                     <p class="text-muted">No quiz available for this part.</p>
                 {% endif %}
+               {% if recommendedVideos|length > 0 %}
+    <div class="recommended-videos mt-4">
+        <h4 class="fw-bold mb-3">Recommended Videos</h4>
+        <div class="row">
+            {% for video in recommendedVideos %}
+                <div class="col-md-4 mb-3">
+                    <div class="card shadow-sm rounded-3">
+                        <img src="{{ video.thumbnail }}" alt="{{ video.title }}" class="card-img-top" loading="lazy">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ video.title|u.truncate(50, '...') }}</h5>
+                            <p class="card-text text-muted">{{ video.description|u.truncate(100, '...') }}</p>
+                            <button class="btn btn-primary" onclick="playVideo('{{ video.videoId }}', this)">Play Video</button>
+                            <div class="embed-container mt-3" style="display: none;">
+                                <iframe width="100%" height="200" src="https://www.youtube-nocookie.com/embed/{{ video.videoId }}" frameborder="0" allowfullscreen loading="lazy"></iframe>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+{% else %}
+    <p class="text-muted">No recommended videos found.</p>
+{% endif %}
             </div>
         </div>
     </section>
@@ -495,6 +541,12 @@
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <script>
+        function playVideo(videoId, button) {
+            const container = button.nextElementSibling;
+            container.style.display = 'block';
+            button.style.display = 'none';
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             try {
                 renderMathInElement(document.body, {
@@ -520,7 +572,7 @@
                         const ggbContainer = document.getElementById(`ggb-element-${partId}`);
                         if (ggbContainer) {
                             const ggbApp = new GGBApplet({
-                                appName: 'graphing',
+                                appName: '3d',  // Changed to '3d' to support potential 3D materials
                                 width: ggbContainer.offsetWidth,
                                 height: 400,
                                 showToolBar: true,
@@ -528,6 +580,7 @@
                                 showMenuBar: true,
                                 material_id: materialId
                             }, true);
+                            ggbApp.setHTML5Codebase('https://www.geogebra.org/apps/latest/web3d');  // Explicitly set latest codebase to avoid version/CORS issues
                             ggbApp.inject(`ggb-element-${partId}`, function() {
                                 if (ggbSpinner) ggbSpinner.style.display = 'none';
                             }, function(error) {
@@ -584,6 +637,14 @@
                     }, 1000);
                 });
             }
+
+            // Initialize Bootstrap popovers for hints and explanations
+            const popoverTriggerList = document.querySelectorAll('[data-bs-toggle="popover"]');
+            const popoverList = [...popoverTriggerList].map(popoverTriggerEl => new bootstrap.Popover(popoverTriggerEl, {
+                html: true, // Allow HTML in content if needed
+                trigger: 'hover focus', // Allow hover works
+            }));
+            console.log('Popovers initialized:', popoverList.length); // Debug to check if init worked
         });
     </script>
 {% endblock %}

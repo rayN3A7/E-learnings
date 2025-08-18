@@ -13,7 +13,7 @@ class Part
     #[ORM\Column(type: 'integer')]
     private ?int $id = null;
 
-    #[ORM\Column(type: 'string', length: 255)]
+    #[ORM\Column(type: 'string', length: 255, nullable: true)]
     private ?string $title = null;
 
     #[ORM\Column(type: 'text', nullable: true)]
@@ -23,7 +23,7 @@ class Part
     private ?int $duration = null;
 
     #[ORM\Column(type: 'integer', name: 'partOrder')]
-    private ?int $partOrder = null;
+    private int $partOrder;
 
     #[ORM\Column(type: 'string', length: 255, nullable: true, name: 'geogebraMaterialId')]
     private ?string $geogebraMaterialId = null;
@@ -31,17 +31,17 @@ class Part
     #[ORM\Column(type: 'text', nullable: true, name: 'tutorialContent')]
     private ?string $tutorialContent = null;
 
-    #[ORM\ManyToOne(targetEntity: Course::class, inversedBy: 'parts', cascade: ['persist'])]
-    #[ORM\JoinColumn(name: 'courseId', referencedColumnName: 'id')]
+    #[ORM\ManyToOne(targetEntity: Course::class, inversedBy: 'parts')]
+    #[ORM\JoinColumn(name: 'courseId', referencedColumnName: 'id', nullable: false)]
     private ?Course $course = null;
 
-    #[ORM\OneToOne(targetEntity: Video::class, mappedBy: 'part')]
+    #[ORM\OneToOne(targetEntity: Video::class, mappedBy: 'part', cascade: ['persist', 'remove'])]
     private ?Video $video = null;
 
-    #[ORM\OneToOne(targetEntity: WrittenSection::class, mappedBy: 'part')]
+    #[ORM\OneToOne(targetEntity: WrittenSection::class, mappedBy: 'part', cascade: ['persist', 'remove'])]
     private ?WrittenSection $writtenSection = null;
 
-    #[ORM\OneToOne(targetEntity: Quiz::class, mappedBy: 'part')]
+    #[ORM\OneToOne(targetEntity: Quiz::class, mappedBy: 'part', cascade: ['persist', 'remove'])]
     private ?Quiz $quiz = null;
 
     public function getId(): ?int
@@ -54,7 +54,7 @@ class Part
         return $this->title;
     }
 
-    public function setTitle(string $title): self
+    public function setTitle(?string $title): self
     {
         $this->title = $title;
         return $this;
@@ -82,7 +82,7 @@ class Part
         return $this;
     }
 
-    public function getPartOrder(): ?int
+    public function getPartOrder(): int
     {
         return $this->partOrder;
     }
@@ -157,10 +157,5 @@ class Part
     {
         $this->quiz = $quiz;
         return $this;
-    }
-
-    public function __toString(): string
-    {
-        return $this->title ?? 'Part #' . ($this->id ?? 'unsaved');
     }
 }

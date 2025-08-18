@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Controller;
 
 use App\Entity\Part;
@@ -7,6 +8,7 @@ use App\Entity\Quiz;
 use App\Entity\QuizAttempt;
 use App\Service\CourseProgressService;
 use App\Service\QuizService;
+use App\Service\YouTubeService;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -20,17 +22,20 @@ class PartController extends AbstractController
     private EntityManagerInterface $entityManager;
     private CourseProgressService $progressService;
     private QuizService $quizService;
+    private YouTubeService $youTubeService;
     private LoggerInterface $logger;
 
     public function __construct(
         EntityManagerInterface $entityManager,
         CourseProgressService $progressService,
         QuizService $quizService,
+        YouTubeService $youTubeService,
         LoggerInterface $logger
     ) {
         $this->entityManager = $entityManager;
         $this->progressService = $progressService;
         $this->quizService = $quizService;
+        $this->youTubeService = $youTubeService;
         $this->logger = $logger;
     }
 
@@ -67,7 +72,16 @@ class PartController extends AbstractController
         }
 
         $course = $part->getCourse();
-        $partQuiz = $this->entityManager->getRepository(Quiz::class)->findOneBy(['part' => $part]);
+        $partQuiz = $part->getQuiz();
+        if (!$partQuiz) {
+            // Generate quiz if not exists (default to 'ai')
+            $quizMode = 'ai'; // Default to AI
+            $partQuiz = $this->quizService->getOrGeneratePartQuiz($user, $part, $quizMode);
+            if ($partQuiz) {
+                $part->setQuiz($partQuiz);
+                $this->entityManager->flush();
+            }
+        }
         $latestAttempt = null;
         $attemptCount = 0;
         $feedback = [];
@@ -83,6 +97,8 @@ class PartController extends AbstractController
             }
         }
 
+        $recommendedVideos = $this->youTubeService->getRecommendations($part->getTitle());
+
         return $this->render('part_details.html.twig', [
             'part' => $part,
             'course' => $course,
@@ -93,7 +109,8 @@ class PartController extends AbstractController
             'attempt_count' => $attemptCount,
             'feedback' => $feedback,
             'incorrect_question_ids' => $incorrectQuestionIds,
-            'can_attempt' => $partQuiz ? $this->quizService->canAttemptQuiz($user, $partQuiz) : false
+            'can_attempt' => $partQuiz ? $this->quizService->canAttemptQuiz($user, $partQuiz) : false,
+            'recommendedVideos' => $recommendedVideos
         ]);
     }
 

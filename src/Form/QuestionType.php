@@ -78,6 +78,15 @@ class QuestionType extends AbstractType
                     'rows' => 4,
                 ],
                 'required' => false,
+            ])
+            ->add('hint', TextareaType::class, [
+                'label' => 'Hint (optional)',
+                'attr' => [
+                    'class' => 'form-control',
+                    'placeholder' => 'Provide a helpful hint for the question (shown on hover)',
+                    'rows' => 3,
+                ],
+                'required' => false,
             ]);
 
         // Transform generatedByAI to ensure boolean values
@@ -131,6 +140,7 @@ class QuestionType extends AbstractType
                 $form->get('type')->setData($type);
                 $form->get('generatedByAI')->setData($question->isGeneratedByAI() ? '1' : '0');
                 $form->get('explanation')->setData($question->getExplanation());
+                $form->get('hint')->setData($question->getHint());
             }
         });
 

@@ -330,6 +330,8 @@
             </div>
         </div>
     </section>
+    <div class="toast-container position-fixed top-0 end-0 p-3">
+    </div>
 {% endblock %}
 
 {% block js %}
@@ -408,6 +410,26 @@
                 });
             }
 
+            function showCustomError(message) {
+                const container = document.querySelector('.toast-container');
+                const toastDiv = document.createElement('div');
+                toastDiv.classList.add('toast', 'align-items-center', 'text-bg-danger', 'border-0');
+                toastDiv.setAttribute('role', 'alert');
+                toastDiv.setAttribute('aria-live', 'assertive');
+                toastDiv.setAttribute('aria-atomic', 'true');
+                toastDiv.innerHTML = `
+                  <div class="d-flex">
+                    <div class="toast-body">
+                      ${message}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                  </div>
+                `;
+                container.appendChild(toastDiv);
+                const toast = new bootstrap.Toast(toastDiv, {autohide: true, delay: 5000});
+                toast.show();
+            }
+
             // Initialize Quiz
             function initializeQuiz(quizForm, partIndex, isFinal = false) {
                 const prefix = isFinal ? 'course_finalQuiz' : `course_parts_${partIndex}_quiz`;
@@ -435,7 +457,7 @@
                     return;
                 }
 
-                function toggleManualQuizSection() {
+                function toggleManualQuiz() {
                     const isManual = quizModeSelect.value === 'manual';
                     manualQuizSection.style.display = isManual ? 'block' : 'none';
                     if (isManual) {
@@ -445,8 +467,8 @@
                     }
                 }
 
-                quizModeSelect.addEventListener('change', toggleManualQuizSection);
-                toggleManualQuizSection();
+                quizModeSelect.addEventListener('change', toggleManualQuiz);
+                toggleManualQuiz();
 
                 let questionIndex = questionsContainer.querySelectorAll('.question-form').length;
                 const addQuestionButton = questionsContainer.querySelector('.add-question-btn');
@@ -455,7 +477,7 @@
                 if (addQuestionButton && prototype) {
                     addQuestionButton.addEventListener('click', function () {
                         if (questionsContainer.querySelectorAll('.question-form').length >= 10) {
-                            alert('Maximum of 10 questions allowed.');
+                            showCustomError('Maximum of 10 questions allowed.');
                             return;
                         }
                         const newQuestionDiv = document.createElement('div');
@@ -762,7 +784,7 @@
                 const finalQuizMode = document.querySelector('#course_quizMode');
                 const finalQuizQuestions = document.querySelectorAll('#questions-final .question-form').length;
                 if (finalQuizMode.value === 'manual' && finalQuizQuestions !== 10) {
-                    alert('Final quiz must have exactly 10 questions.');
+                    showCustomError('Final quiz must have exactly 10 questions.');
                     isValid = false;
                 }
 
@@ -770,7 +792,7 @@
                     const quizMode = partDiv.querySelector(`#course_parts_${index}_quizMode`);
                     const questions = partDiv.querySelectorAll(`#questions-part-${index} .question-form`).length;
                     if (quizMode.value === 'manual' && questions !== 10) {
-                        alert(`Part ${index + 1} quiz must have exactly 10 questions.`);
+                        showCustomError(`Part ${index + 1} quiz must have exactly 10 questions.`);
                         isValid = false;
                     }
                     // Validate questions
@@ -781,12 +803,12 @@
                         if (type === 'mcq') {
                             const options = q.querySelectorAll('.option-container input');
                             if (options.length !== 4 || Array.from(options).some(o => o.value.trim() === '')) {
-                                alert('MCQ questions must have exactly 4 non-empty options.');
+                                showCustomError('MCQ questions must have exactly 4 non-empty options.');
                                 isValid = false;
                             }
                         } else if (type === 'numeric') {
                             if (isNaN(parseFloat(correctAnswer.value))) {
-                                alert('Numeric questions must have a numeric correct answer.');
+                                showCustomError('Numeric questions must have a numeric correct answer.');
                                 isValid = false;
                             }
                         }
