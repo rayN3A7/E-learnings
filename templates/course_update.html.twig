@@ -1,51 +1,46 @@
 {% extends 'layout.html.twig' %}
-
 {% block title %}Update Course - eLEARNING{% endblock %}
-
 {% block css %}
     <link rel="stylesheet" href="{{ asset('css/custom.css') }}">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous">
     <style>
         body { background-color: #f4f7fc; font-family: 'Inter', sans-serif; }
         .course-create-header {
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            background: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%);
             color: #ffffff; padding: 80px 0; border-radius: 0 0 24px 24px;
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15); position: relative; overflow: hidden;
         }
         .course-create-header::before {
             content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: url('https://www.transparenttextures.com/patterns/subtle-dots.png'); opacity: 0.1;
+            background: url('https://www.transparenttextures.com/patterns/cute-pattern.png'); opacity: 0.1;
         }
-        .course-create-header h1 {
-            font-size: 2.8rem; font-weight: 800; text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        .course-create-header h1 { font-size: 2.8rem; font-weight: 800; text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); color: #ff69b4; }
+        .course-create-header .lead { font-size: 1.3rem; max-width: 700px; margin: 0 auto; opacity: 0.9; color: #fff; }
+        .form-section .card { background: #ffffff; border: none; border-radius: 16px; box-shadow: 0 6px 24px rgba(255, 105, 180, 0.1); padding: 2rem; }
+        .form-section .form-control { border-radius: 10px; border: 1px solid #ffb6c1; padding: 12px; background-color: #fff0f6; }
+        .form-section .form-control:focus { border-color: #ff69b4; box-shadow: 0 0 0 3px rgba(255, 105, 180, 0.2); }
+        .part-form, .quiz-form { background: #fff0f6; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 4px 12px rgba(255, 182, 193, 0.2); }
+        .mce-content-body { min-height: 150px !important; border-radius: 8px; border: 1px solid #ffb6c1; background-color: #fff0f6; }
+        .add-part-btn, .add-media-btn, .add-question-btn, .add-option-btn, .add-media-upload-btn {
+            border-radius: 50px; padding: 0.6rem 1.8rem; font-weight: 600; background-color: #ff69b4; color: #ffffff; transition: transform 0.2s, box-shadow 0.2s;
         }
-        .course-create-header .lead {
-            font-size: 1.3rem; max-width: 700px; margin: 0 auto; opacity: 0.9;
+        .add-part-btn:hover, .add-media-btn:hover, .add-question-btn:hover, .add-option-btn:hover, .add-media-upload-btn:hover {
+            transform: scale(1.05); box-shadow: 0 4px 12px rgba(255, 105, 180, 0.3);
         }
-        .form-section .card {
-            background: #ffffff; border: none; border-radius: 16px; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.1); padding: 2rem;
+        .remove-part-btn, .remove-media-btn, .remove-question-btn, .remove-option-btn, .remove-media-upload-btn {
+            border-radius: 50px; padding: 0.6rem 1.8rem; font-weight: 600; background-color: #ff1493; color: #ffffff; transition: transform 0.2s, box-shadow 0.2s;
         }
-        .form-section .form-control {
-            border-radius: 10px; border: 1px solid #e2e8f0; padding: 12px;
+        .remove-part-btn:hover, .remove-media-btn:hover, .remove-question-btn:hover, .remove-option-btn:hover, .remove-media-upload-btn:hover {
+            transform: scale(1.05); box-shadow: 0 4px 12px rgba(255, 20, 147, 0.3);
         }
-        .form-section .form-control:focus {
-            border-color: #2a5298; box-shadow: 0 0 0 3px rgba(42, 82, 152, 0.2);
-        }
-        .part-form, .quiz-form {
-            background: #f9fafb; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem;
-        }
-        .mce-content-body { min-height: 150px !important; border-radius: 8px; border: 1px solid #e2e8f0; }
-        .add-part-btn, .add-media-btn, .add-question-btn, .add-option-btn {
-            border-radius: 50px; padding: 0.6rem 1.8rem; font-weight: 600; background-color: #2a5298; color: #ffffff;
-        }
-        .remove-part-btn, .remove-media-btn, .remove-question-btn, .remove-option-btn {
-            border-radius: 50px; padding: 0.6rem 1.8rem; font-weight: 600; background-color: #dc3545; color: #ffffff;
-        }
-        .media-url-container, .question-container, .option-container { margin-bottom: 1rem; }
-        h1, h2, h3, h4, h5, h6 { color: #2a5298; }
+        .media-url-container, .question-container, .option-container, .media-upload-container { margin-bottom: 1rem; transition: all 0.3s ease; }
+        .media-url-container:hover, .question-container:hover, .option-container:hover, .media-upload-container:hover { transform: translateY(-2px); }
+        h1, h2, h3, h4, h5, h6 { color: #ff69b4; font-family: 'Comic Sans MS', cursive, sans-serif; }
         .quiz-toggle { margin-bottom: 1rem; }
         .geogebra-container {
-            min-height: 400px; position: relative;
+            min-height: 400px; position: relative; border: 2px dashed #ffb6c1; border-radius: 12px; background-color: #fff0f6;
         }
         .geogebra-container #geogebra-element- {
             width: 100% !important; height: 100% !important; min-height: 400px;
@@ -55,40 +50,41 @@
             .course-create-header h1 { font-size: 2rem; }
             .form-section .card { padding: 1.5rem; }
         }
+        .toast-container .toast { border-radius: 12px; box-shadow: 0 4px 12px rgba(255, 105, 180, 0.2); }
+        .btn i { margin-right: 0.5rem; }
+        .help-text { color: #ff69b4; font-style: italic; margin-top: 0.5rem; }
     </style>
 {% endblock %}
-
 {% block body %}
-    <section class="course-create-header animate__animated animate__fadeIn">
+    <section class="course-create-header animate__animated animate__bounceInDown">
         <div class="container text-center">
-            <h1 class="display-4 fw-bold">Update Course: {{ course.title }}</h1>
-            <p class="lead">Modify your numerical analysis course with rich, interactive content.</p>
+            <h1 class="display-4 fw-bold">🌟 Update Your Magical Course: {{ course.title }} 🌟</h1>
+            <p class="lead">Sprinkle some more magic on your numerical analysis adventure! ✨</p>
         </div>
     </section>
-
-    <section class="form-section py-5">
+    <section class="form-section py-5 animate__animated animate__fadeInUp">
         <div class="container">
             <div class="card shadow-sm rounded-3">
                 {{ form_start(form, {'attr': {'enctype': 'multipart/form-data', 'id': 'course-update-form'}}) }}
                     {{ form_widget(form._token) }}
                     <div class="mb-4">
-                        {{ form_row(form.title, {'attr': {'class': 'form-control form-control-lg', 'placeholder': 'Enter course title'}}) }}
+                        {{ form_row(form.title, {'attr': {'class': 'form-control form-control-lg', 'placeholder': 'Update the cute title! 💖'}}) }}
                     </div>
                     <div class="mb-4">
-                        {{ form_row(form.description, {'attr': {'class': 'form-control', 'placeholder': 'Describe your course'}}) }}
+                        {{ form_row(form.description, {'attr': {'class': 'form-control', 'placeholder': 'Update the fun description! 📖'}}) }}
                     </div>
                     <div class="mb-4">
                         {{ form_row(form.image, {'attr': {'class': 'form-control'}}) }}
+                        <div class="help-text">Change to a new kawaii image if you like! 🖼️</div>
                     </div>
-
-                    <h3 class="fw-bold mb-4">Course Parts</h3>
+                    <h3 class="fw-bold mb-4">Course Parts 🎉</h3>
                     <div id="parts-container" data-prototype="{{ form_widget(form.parts.vars.prototype)|e('html_attr')|replace({'__name__': '0'})|raw }}">
                         {% for partForm in form.parts %}
-                            <div class="part-form card shadow-sm rounded-3" data-part-index="{{ loop.index0 }}">
-                                <h4 class="fw-bold">Part {{ loop.index }}</h4>
+                            <div class="part-form card shadow-sm rounded-3 animate__animated animate__zoomIn" data-part-index="{{ loop.index0 }}">
+                                <h4 class="fw-bold">Part {{ loop.index }} 🧩</h4>
                                 <div class="row mb-3">
                                     <div class="col-md-6">
-                                        {{ form_row(partForm.title, {'attr': {'class': 'form-control', 'placeholder': 'Part title'}}) }}
+                                        {{ form_row(partForm.title, {'attr': {'class': 'form-control', 'placeholder': 'Update part title! 🌈'}}) }}
                                     </div>
                                     <div class="col-md-3">
                                         {{ form_row(partForm.partOrder, {'attr': {'class': 'form-control'}}) }}
@@ -98,11 +94,11 @@
                                     </div>
                                 </div>
                                 <div class="mb-3">
-                                    {{ form_row(partForm.description, {'label': 'Part Description', 'attr': {'class': 'form-control', 'placeholder': 'Enter a brief part description'}}) }}
+                                    {{ form_row(partForm.description, {'label': 'Part Description', 'attr': {'class': 'form-control', 'placeholder': 'Update the adorable description! 💕'}}) }}
                                 </div>
-                                <h5 class="fw-bold">Video Content</h5>
+                                <h5 class="fw-bold">Video Content 📹</h5>
                                 {% if partForm.vars.data.video and partForm.vars.data.video.filename %}
-                                    <p>Current Video: {{ partForm.vars.data.video.filename }}</p>
+                                    <p>Current Video: {{ partForm.vars.data.video.filename }} 🎥</p>
                                 {% endif %}
                                 <div class="row mb-3">
                                     <div class="col-md-12">
@@ -110,32 +106,32 @@
                                     </div>
                                 </div>
                                 <div class="mb-3">
-                                    {{ form_row(partForm.video.description, {'attr': {'class': 'form-control', 'placeholder': 'Video description'}}) }}
+                                    {{ form_row(partForm.video.description, {'attr': {'class': 'form-control', 'placeholder': 'Update video description!'}}) }}
                                 </div>
                                 <div class="mb-3">
-                                    {{ form_row(partForm.video.duration, {'attr': {'class': 'form-control', 'placeholder': 'Video duration in minutes'}}) }}
+                                    {{ form_row(partForm.video.duration, {'attr': {'class': 'form-control', 'placeholder': 'Update duration in minutes! ⏰'}}) }}
                                 </div>
-                                <h5 class="fw-bold">GeoGebra Content</h5>
+                                <h5 class="fw-bold">GeoGebra Content 🧮</h5>
                                 <div class="mb-3">
-                                    {{ form_row(partForm.geogebraMaterialId, {'attr': {'class': 'form-control', 'placeholder': 'GeoGebra material ID'}}) }}
+                                    {{ form_row(partForm.geogebraMaterialId, {'attr': {'class': 'form-control', 'placeholder': 'Update GeoGebra ID'}}) }}
                                 </div>
                                 <div class="geogebra-container">
                                     <div class="loading-spinner" id="ggb-spinner-{{ loop.index0 }}"></div>
                                     <div id="geogebra-element-{{ loop.index0 }}" style="width: 100%; height: 400px;"></div>
                                 </div>
                                 <div class="mb-3">
-                                    {{ form_row(partForm.tutorialContent, {'label': 'Tutorial Content', 'attr': {'class': 'form-control', 'placeholder': 'Enter tutorial content'}}) }}
+                                    {{ form_row(partForm.tutorialContent, {'label': 'Tutorial Content', 'attr': {'class': 'form-control', 'placeholder': 'Update tutorial content'}}) }}
                                 </div>
-                                <h5 class="fw-bold">Written Content</h5>
+                                <h5 class="fw-bold">Written Content ✏️</h5>
                                 <div class="mb-3">
                                     {{ form_row(partForm.writtenSection.content, {
                                         'id': 'written_section_' ~ loop.index0 ~ '_content',
                                         'attr': {'class': 'form-control rich-text-editor'}
                                     }) }}
-                                    <div class="help-text">Use headings, images, videos, and LaTeX (e.g., \( x^2 \)) for mathematical expressions.</div>
+                                    <div class="help-text">Update with more magic and math! 🪄</div>
                                 </div>
                                 <div class="mb-3">
-                                    <label class="fw-bold">Media URLs</label>
+                                    <label class="fw-bold">Media URLs 📸</label>
                                     <div class="media-urls-container" data-part-index="{{ loop.index0 }}">
                                         {% for mediaUrlField in partForm.writtenSection.mediaUrls %}
                                             <div class="media-url-container row mb-2">
@@ -143,19 +139,18 @@
                                                     {{ form_widget(mediaUrlField, {'attr': {'class': 'form-control media-url', 'placeholder': 'e.g., https://example.com/image.jpg'}}) }}
                                                 </div>
                                                 <div class="col-md-2">
-                                                    <button type="button" class="btn remove-media-btn mt-1">Remove</button>
+                                                    <button type="button" class="btn remove-media-btn mt-1"><i class="fas fa-trash-alt"></i> Remove</button>
                                                 </div>
                                             </div>
                                         {% endfor %}
-                                        <button type="button" class="btn add-media-btn mt-2" data-part-index="{{ loop.index0 }}">Add Media URL</button>
+                                        <button type="button" class="btn add-media-btn mt-2" data-part-index="{{ loop.index0 }}"><i class="fas fa-plus-circle"></i> Add Media URL</button>
                                     </div>
                                 </div>
                                 <div class="mb-3">
                                     {{ form_row(partForm.writtenSection.mediaUploads) }}
-                                    <button type="button" class="btn add-media-upload-btn mt-2" data-part-index="{{ loop.index0 }}">Add Media Upload</button>
+                                    <button type="button" class="btn add-media-upload-btn mt-2" data-part-index="{{ loop.index0 }}"><i class="fas fa-upload"></i> Add Media Upload</button>
                                 </div>
-                                <!-- Part Quiz Section -->
-                                <h5 class="fw-bold">Part Quiz</h5>
+                                <h5 class="fw-bold">Part Quiz 🧠</h5>
                                 <div class="quiz-form" id="quiz-form-part-{{ loop.index0 }}">
                                     <div class="quiz-toggle mb-3">
                                         {{ form_row(partForm.quizMode, {
@@ -227,29 +222,27 @@
                                                         {{ form_errors(questionForm.correctAnswer) }}
                                                     </div>
                                                     {{ form_widget(questionForm.generatedByAI, {'attr': {'type': 'hidden'}}) }}
-                                                    <button type="button" class="btn remove-question-btn mt-2">Remove Question</button>
+                                                    <button type="button" class="btn remove-question-btn mt-2"><i class="fas fa-trash-alt"></i> Remove Question</button>
                                                 </div>
                                             {% endfor %}
-                                            <button type="button" class="btn add-question-btn mt-2" data-part-index="{{ loop.index0 }}">Add Question</button>
+                                            <button type="button" class="btn add-question-btn mt-2" data-part-index="{{ loop.index0 }}"><i class="fas fa-question-circle"></i> Add Question</button>
                                         </div>
-                                        <div class="help-text">Add exactly 10 questions for this quiz.</div>
+                                        <div class="help-text">Update with 10 fun questions! 🏆</div>
                                     </div>
                                 </div>
-                                <button type="button" class="btn remove-part-btn mt-3">Remove Part</button>
+                                <button type="button" class="btn remove-part-btn mt-3"><i class="fas fa-trash-alt"></i> Remove Part</button>
                             </div>
                         {% endfor %}
                     </div>
-                    <button type="button" class="btn add-part-btn mt-3">Add Part</button>
-
-                    <!-- Final Course Quiz Section -->
-                    <h3 class="fw-bold mb-4">Final Course Quiz</h3>
-                    <div class="quiz-form card shadow-sm rounded-3" id="quiz-form-final">
+                    <button type="button" class="btn add-part-btn mt-3"><i class="fas fa-plus-circle"></i> Add Part</button>
+                    <h3 class="fw-bold mb-4">Final Course Quiz 🎓</h3>
+                    <div class="quiz-form" id="quiz-form-final">
                         <div class="quiz-toggle mb-3">
                             {{ form_row(form.quizMode, {
                                 'attr': {
                                     'class': 'form-control quiz-mode',
-                                    'id': 'course_quizMode',
-                                    'data-part-index': 'final'
+                                    'data-part-index': 'final',
+                                    'id': 'course_quizMode'
                                 }
                             }) }}
                         </div>
@@ -314,17 +307,16 @@
                                             {{ form_errors(questionForm.correctAnswer) }}
                                         </div>
                                         {{ form_widget(questionForm.generatedByAI, {'attr': {'type': 'hidden'}}) }}
-                                        <button type="button" class="btn remove-question-btn mt-2">Remove Question</button>
+                                        <button type="button" class="btn remove-question-btn mt-2"><i class="fas fa-trash-alt"></i> Remove Question</button>
                                     </div>
                                 {% endfor %}
-                                <button type="button" class="btn add-question-btn mt-2" data-part-index="final">Add Question</button>
+                                <button type="button" class="btn add-question-btn mt-2" data-part-index="final"><i class="fas fa-question-circle"></i> Add Question</button>
                             </div>
-                            <div class="help-text">Add exactly 10 questions for the final quiz.</div>
+                            <div class="help-text">Update with 10 epic questions! 🔥</div>
                         </div>
                     </div>
-
                     <div class="mt-4">
-                        <button type="submit" class="btn btn-primary btn-lg">Update Course</button>
+                        <button type="submit" class="btn btn-primary btn-lg"><i class="fas fa-magic"></i> Update Course</button>
                     </div>
                 {{ form_end(form) }}
             </div>
@@ -333,7 +325,6 @@
     <div class="toast-container position-fixed top-0 end-0 p-3">
     </div>
 {% endblock %}
-
 {% block js %}
     <script src="https://cdn.jsdelivr.net/npm/wow.js@1.1.3/dist/wow.min.js"></script>
     <script>

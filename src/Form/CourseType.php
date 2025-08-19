@@ -79,6 +79,24 @@ class CourseType extends AbstractType
             }
         });
 
+        // Unset quiz data if mode is 'ai'
+        $builder->addEventListener(FormEvents::PRE_SUBMIT, function (FormEvent $event) {
+            $data = $event->getData();
+            if (is_array($data)) {
+                if (isset($data['parts'])) {
+                    foreach ($data['parts'] as &$partData) {
+                        if (isset($partData['quizMode']) && $partData['quizMode'] === 'ai') {
+                            unset($partData['quiz']);
+                        }
+                    }
+                }
+                if (isset($data['quizMode']) && $data['quizMode'] === 'ai') {
+                    unset($data['finalQuiz']);
+                }
+                $event->setData($data);
+            }
+        });
+
         // Preserve AI-generated quiz data on submission or set generatedByAI to false for manual
         $builder->addEventListener(FormEvents::PRE_SUBMIT, function (FormEvent $event) {
             $data = $event->getData();

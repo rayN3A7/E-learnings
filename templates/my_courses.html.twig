@@ -8,85 +8,204 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
     <link rel="stylesheet" href="{{ asset('css/custom.css') }}">
     <style>
-        body { background-color: #f4f7fc; font-family: 'Inter', sans-serif; }
+        :root {
+            --primary: #4a90e2;
+            --secondary: #f1f5f9;
+            --success: #2ecc71;
+            --danger: #e74c3c;
+            --warning: #f39c12;
+            --info: #3498db;
+            --light: #f8f9fa;
+            --dark: #343a40;
+            --text: #2d3748;
+            --border-radius: 20px;
+            --shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            --transition: all 0.3s ease;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--secondary), #ffffff);
+            color: var(--text);
+        }
         .my-courses-header {
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-            color: #ffffff; padding: 80px 0; border-radius: 0 0 24px 24px;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15); position: relative; overflow: hidden;
+            background: linear-gradient(135deg, var(--primary), var(--info));
+            color: white;
+            padding: 100px 0 80px;
+            border-radius: 0 0 var(--border-radius) var(--border-radius);
+            box-shadow: var(--shadow);
+            position: relative;
+            overflow: hidden;
+            text-align: center;
         }
         .my-courses-header::before {
-            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: url('https://www.transparenttextures.com/patterns/subtle-dots.png'); opacity: 0.1;
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 70%);
+            animation: rotate 20s linear infinite;
+        }
+        @keyframes rotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
         .my-courses-header h1 {
-            font-size: 2.8rem; font-weight: 800; text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            font-size: 3rem;
+            font-weight: 800;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 1rem;
         }
         .my-courses-header .lead {
-            font-size: 1.3rem; max-width: 700px; margin: 0 auto; opacity: 0.9;
+            font-size: 1.25rem;
+            max-width: 600px;
+            margin: 0 auto;
+            opacity: 0.9;
         }
         .course-card {
-            background: #ffffff; border: none; border-radius: 16px; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.1);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            background: white;
+            border: none;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+            overflow: hidden;
+            position: relative;
         }
         .course-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+            transform: translateY(-8px);
+            box-shadow: 0 12px 32px rgba(0,0,0,0.1);
         }
-        .progress-bar {
-            background-color: #2a5298;
+        .course-img {
+            height: 180px;
+            object-fit: cover;
+            filter: brightness(0.9);
+            transition: var(--transition);
+        }
+        .course-card:hover .course-img {
+            filter: brightness(1);
+            transform: scale(1.05);
+        }
+        .course-info {
+            padding: 1.5rem;
         }
         .course-title {
-            font-weight: 700; color: #1e3c72;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
         }
-        .course-progress {
-            font-size: 1.1rem; color: #2a5298; font-weight: 600;
+        .course-desc {
+            font-size: 0.9rem;
+            color: var(--text);
+            opacity: 0.8;
+            margin-bottom: 1rem;
+        }
+        .progress {
+            height: 8px;
+            background-color: var(--light);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .progress-bar {
+            background: linear-gradient(to right, var(--success), var(--primary));
+            transition: width 1s ease-in-out;
+        }
+        .progress-text {
+            font-size: 0.85rem;
+            color: var(--dark);
+            margin-top: 0.5rem;
         }
         .no-courses {
-            text-align: center; padding: 50px 0; color: #6c757d;
+            text-align: center;
+            padding: 80px 0;
+            color: var(--text);
+        }
+        .no-courses i {
+            font-size: 4rem;
+            color: var(--primary);
+            margin-bottom: 1rem;
+            animation: bounce 2s infinite;
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
         }
         .browse-btn {
-            border-radius: 50px; padding: 0.75rem 2rem; font-weight: 600;
+            border-radius: 50px;
+            padding: 0.75rem 2.5rem;
+            font-weight: 600;
+            background: var(--primary);
+            border: none;
+            transition: var(--transition);
+        }
+        .browse-btn:hover {
+            background: var(--info);
+            transform: scale(1.05);
+        }
+        .search-bar {
+            max-width: 600px;
+            margin: 0 auto 2rem;
+        }
+        .search-bar input {
+            border-radius: 50px 0 0 50px;
+        }
+        .search-bar button {
+            border-radius: 0 50px 50px 0;
+            background: var(--primary);
         }
         @media (max-width: 768px) {
-            .my-courses-header { padding: 40px 0; }
-            .my-courses-header h1 { font-size: 2rem; }
+            .my-courses-header { padding: 60px 0 40px; }
+            .my-courses-header h1 { font-size: 2.5rem; }
             .course-card { margin-bottom: 1.5rem; }
+            .recommended-videos { margin-top: 2rem; }
         }
     </style>
 {% endblock %}
 
 {% block body %}
-    <section class="my-courses-header animate__animated animate__fadeIn">
-        <div class="container text-center">
-            <h1 class="display-4 fw-bold">My Courses</h1>
-            <p class="lead">Track your enrolled courses and monitor your learning progress.</p>
+    <section class="my-courses-header animate__animated animate__fadeInDown">
+        <div class="container">
+            <h1>My Courses</h1>
+            <p class="lead">Explore your enrolled courses, track progress, and continue learning seamlessly.</p>
         </div>
     </section>
 
-    <section class="my-courses-section py-5">
+    <section class="py-5">
         <div class="container">
+            <div class="search-bar animate__animated animate__fadeIn">
+                <div class="input-group">
+                    <input type="text" class="form-control" placeholder="Search your courses..." id="course-search">
+                    <button class="btn" type="button"><i class="fas fa-search"></i></button>
+                </div>
+            </div>
+
             {% if courses|length > 0 %}
-                <div class="row">
+                <div class="row" id="course-list">
                     {% for course in courses %}
-                        <div class="col-md-4 mb-4">
-                            <div class="course-card p-4 animate__animated animate__fadeInUp" style="animation-delay: {{ loop.index * 0.1 }}s;">
-                                <h5 class="course-title mb-3">{{ course.title }}</h5>
-                                <p class="text-muted mb-3">{{ course.description|slice(0, 100) ~ '...' }}</p>
-                                <div class="progress mb-2" style="height: 8px;">
-                                    <div class="progress-bar" role="progressbar" style="width: {{ progresses[course.id] }}%;" aria-valuenow="{{ progresses[course.id] }}" aria-valuemin="0" aria-valuemax="100"></div>
+                        <div class="col-md-4 mb-4 animate__animated animate__fadeInUp" style="animation-delay: {{ loop.index * 0.1 }}s;">
+                            <div class="course-card">
+                                <img src="{{ course.image ? asset('uploads/images/' ~ course.image) : 'https://placehold.co/400x180?text=' ~ course.title|slice(0, 20) }}" alt="{{ course.title }}" class="course-img w-100">
+                                <div class="course-info">
+                                    <h5 class="course-title">{{ course.title }}</h5>
+                                    <p class="course-desc">{{ course.description|slice(0, 80) ~ '...' }}</p>
+                                    <div class="progress mb-2">
+                                        <div class="progress-bar" role="progressbar" style="width: 0%;" data-progress="{{ progresses[course.id] }}" aria-valuenow="{{ progresses[course.id] }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center progress-text">
+                                        <span>{{ progresses[course.id] }}% Complete</span>
+                                        <a href="{{ path('app_course_details', {'id': course.id}) }}" class="btn btn-sm btn-primary">Continue <i class="fas fa-arrow-right ms-1"></i></a>
+                                    </div>
                                 </div>
-                                <span class="course-progress">{{ progresses[course.id] }}% Complete</span>
-                                <a href="{{ path('app_course_details', {id: course.id}) }}" class="btn btn-primary btn-sm mt-3 w-100">Continue Learning <i class="fas fa-arrow-right ms-2"></i></a>
                             </div>
                         </div>
                     {% endfor %}
                 </div>
             {% else %}
-                <div class="no-courses">
-                    <i class="fas fa-book-open fa-3x mb-3 text-primary"></i>
+                <div class="no-courses animate__animated animate__zoomIn">
+                    <i class="fas fa-book-reader"></i>
                     <h4 class="fw-bold mb-3">No Courses Enrolled Yet</h4>
-                    <p>Explore our wide range of courses and start your learning journey today!</p>
-                    <a href="{{ path('app_courses') }}" class="btn btn-primary browse-btn">Browse Courses</a>
+                    <p>Discover exciting courses tailored for you and start learning today!</p>
+                    <a href="{{ path('app_courses') }}" class="btn browse-btn">Explore Courses</a>
                 </div>
             {% endif %}
         </div>
@@ -95,14 +214,33 @@
 
 {% block js %}
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            // Add smooth scrolling for links if needed
-            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-                anchor.addEventListener('click', function (e) {
-                    e.preventDefault();
-                    document.querySelector(this.getAttribute('href')).scrollIntoView({
-                        behavior: 'smooth'
+        document.addEventListener('DOMContentLoaded', function() {
+            // Animate progress bars
+            document.querySelectorAll('.progress-bar').forEach(bar => {
+                const progress = bar.dataset.progress;
+                setTimeout(() => {
+                    bar.style.width = `${progress}%`;
+                }, 500);
+            });
+
+            // Course search functionality
+            const searchInput = document.getElementById('course-search');
+            const courseList = document.getElementById('course-list');
+            if (searchInput && courseList) {
+                searchInput.addEventListener('input', function() {
+                    const filter = this.value.toLowerCase();
+                    courseList.querySelectorAll('.col-md-4').forEach(card => {
+                        const title = card.querySelector('.course-title').textContent.toLowerCase();
+                        card.style.display = title.includes(filter) ? '' : 'none';
                     });
+                });
+            }
+
+            // Smooth scroll if needed
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    document.querySelector(this.getAttribute('href')).scrollIntoView({ behavior: 'smooth' });
                 });
             });
         });

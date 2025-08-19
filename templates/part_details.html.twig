@@ -439,7 +439,7 @@
                                 <input type="hidden" name="_token" value="{{ csrf_token('quiz_submit' ~ quiz.id) }}">
                                 {% for question in quiz.questions %}
                                     <div class="quiz-question {% if attempt_count == 2 and question.id in incorrect_question_ids %}incorrect-highlight{% endif %}" {% if quiz.generatedByAI %}style="--question-index: {{ loop.index }}"{% endif %}>
-                                        <h5 class="fw-bold">{{ loop.index }}. {{ question.text }}
+                                        <h5 class="fw-bold">{{ loop.index }}. {{ question.text | raw }}
                                             {% if question.hint %}
                                                 <span class="ms-2 text-primary hint-icon" data-bs-toggle="popover" data-bs-placement="top" data-bs-content="{{ question.hint }}" data-bs-trigger="hover focus">ℹ️</span>
                                             {% endif %}
@@ -467,21 +467,24 @@
                                 </div>
                             </form>
                         {% else %}
-                            <div class="corrected-quiz">
-                                <h5 class="fw-bold mb-3">Corrected Quiz</h5>
-                                {% for question in quiz.questions %}
-                                    <div class="quiz-question {% if qFeedback and qFeedback.isCorrect %}correct-highlight{% endif %}">
-                                        <h5 class="fw-bold">{{ loop.index }}. {{ question.text }}</h5>
-                                        <p class="text-success">Correct Answer: {{ question.correctAnswer }}</p>
-                                        {% if qFeedback and not qFeedback.isCorrect and question.explanation %}
-                                            <p class="explanation-text">Explanation: {{ question.explanation }}</p>
-                                        {% endif %}
-                                    </div>
-                                {% endfor %}
-                                <a href="{{ path('app_course_details', {'id': course.id}) }}" class="btn btn-primary next-part-btn">Proceed to Next Part</a>
-                            </div>
+                            {% if not can_attempt and latest_attempt.score < 70 %}
+                                <div class="corrected-quiz">
+                                    <h5 class="fw-bold mb-3">Corrected Quiz</h5>
+                                    {% for question in quiz.questions %}
+                                        {% set qFeedback = feedback[question.id] ?? null %}
+                                        <div class="quiz-question {% if qFeedback and qFeedback.isCorrect %}correct-highlight{% endif %}">
+                                            <h5 class="fw-bold">{{ loop.index }}. {{ question.text | raw }}</h5>
+                                            <p class="text-success">Correct Answer: {{ question.correctAnswer }}</p>
+                                            {% if qFeedback and not qFeedback.isCorrect and question.explanation %}
+                                                <p class="explanation-text">Explanation: {{ question.explanation | raw }}</p>
+                                            {% endif %}
+                                        </div>
+                                    {% endfor %}
+                                    <a href="{{ path('app_course_details', {'id': course.id}) }}" class="btn btn-primary next-part-btn">Proceed to Next Part</a>
+                                </div>
+                            {% endif %}
                         {% endif %}
-                        {% if latest_attempt %}
+                        {% if latest_attempt and (latest_attempt.attemptNumber == 3 or (latest_attempt.score >= 70 and latest_attempt.attemptNumber == 1)) %}
                             <div class="quiz-feedback">
                                 <h5>Quiz Results (Score: {{ latest_attempt.score }}%)</h5>
                                 {% for question in quiz.questions %}
@@ -490,8 +493,7 @@
                                         <div class="question-feedback {% if qFeedback.isCorrect %}correct{% else %}incorrect{% endif %}">
                                             <p><strong>Question:</strong> {{ question.text | raw }}</p>
                                             <p><strong>Your Answer:</strong> {{ qFeedback.userAnswer ?? 'No answer' }}</p>
-                                            <p><strong>Correct Answer:</strong> {{ qFeedback.correctAnswer }}</p>
-                                            {% if qFeedback.explanation is defined and not qFeedback.isCorrect and qFeedback.explanation %}
+                                            {% if qFeedback.explanation is defined and qFeedback.explanation %}
                                                 <p class="explanation text-info"><strong>Explanation:</strong> {{ qFeedback.explanation | raw }}</p>
                                             {% endif %}
                                         </div>

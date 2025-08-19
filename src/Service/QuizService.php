@@ -56,17 +56,47 @@ class QuizService
                 ? $userAnswer === $question->getCorrectAnswer()
                 : abs((float) $userAnswer - (float) $question->getCorrectAnswer()) <= 0.01;
             if ($isCorrect) $correctAnswers++;
+            $explanation = $question->getExplanation();
+            if (!$explanation) {
+                $explanation = $this->generateExplanation($question);
+                if ($explanation) {
+                    $question->setExplanation($explanation);
+                    $this->entityManager->persist($question);
+                }
+            }
             $feedback[$question->getId()] = [
                 'isCorrect' => $isCorrect,
                 'correctAnswer' => $question->getCorrectAnswer(),
                 'userAnswer' => $userAnswer,
-                'explanation' => $isCorrect ? null : $question->getExplanation(), // Only show for incorrect
-                'hint' => $question->getHint() // Always include hint
+                'explanation' => $explanation,
+                'hint' => $question->getHint()
             ];
         }
         $score = $totalQuestions > 0 ? ($correctAnswers / $totalQuestions) * 100 : 0;
         $attemptNumber = $this->getAttemptCount($user, $quiz) + 1;
         return ['score' => $score, 'feedback' => $feedback, 'attemptNumber' => $attemptNumber];
+    }
+
+    private function generateExplanation(Question $question): ?string
+    {
+        $prompt = "Provide a short, concise explanation for the following quiz question. Question: " . $question->getText() . " Correct Answer: " . $question->getCorrectAnswer() . ". Explanation should be 1-2 sentences. Use LaTeX for math enclosed in \\( \\). No HTML tags.";
+
+        $client = HttpClient::create();
+        try {
+            $response = $client->request('POST', $this->geminiApiUrl, [
+                'query' => ['key' => $this->geminiApiKey],
+                'json' => [
+                    'contents' => [['parts' => [['text' => $prompt]]]],
+                ],
+            ]);
+
+            $data = $response->toArray();
+            $explanation = $data['candidates'][0]['content']['parts'][0]['text'] ?? null;
+            return trim($explanation);
+        } catch (\Exception $e) {
+            $this->logger->error('Failed to generate explanation: ' . $e->getMessage());
+            return null;
+        }
     }
 
     public function getAttemptCount(User $user, Quiz $quiz): int
@@ -147,7 +177,7 @@ class QuizService
                         ['quiz' => $quiz, 'user' => $user],
                         ['takenAt' => 'DESC']
                     );
-                    if (!$latestAttempt || $latestAttempt->getScore() < 70) {
+                    if (!$latestAttempt or $latestAttempt->getScore() < 70) {
                         $allQuizzesPassed = false;
                         break;
                     }
@@ -188,83 +218,85 @@ class QuizService
 }
 
     private function generateQuizFromGemini(array $inputData, int $maxRetries = 1): ?array
-{
-    $client = HttpClient::create(['timeout' => 10]);
-    $isPartQuiz = $inputData['context'] === 'part';
-    $promptFile = $isPartQuiz ? __DIR__ . '/prompts/part_quiz_prompt.txt' : __DIR__ . '/prompts/final_quiz_prompt.txt';
+    {
+        $client = HttpClient::create(['timeout' => 10]);
+        $isPartQuiz = $inputData['context'] === 'part';
+        $promptFile = $isPartQuiz ? __DIR__ . '/prompts/part_quiz_prompt.txt' : __DIR__ . '/prompts/final_quiz_prompt.txt';
 
-    if (!file_exists($promptFile)) {
-        $this->logger->error('Prompt file not found: ' . $promptFile);
-        return null;
-    }
-
-    $promptTemplate = file_get_contents($promptFile);
-    $content = $inputData['content'];
-    if ($isPartQuiz && isset($inputData['part'])) {
-        if ($inputData['part']->getWrittenSection()) {
-            $content .= "\nWritten Section: " . strip_tags($inputData['part']->getWrittenSection()->getContent()) . "\n";
-        }
-        if ($inputData['part']->getVideo()) {
-            $content .= "\nVideo Description: " . strip_tags($inputData['part']->getVideo()->getDescription()) . "\n";
-        }
-    } elseif (isset($inputData['course'])) {
-        foreach ($inputData['course']->getParts() as $part) {
-            if ($part->getWrittenSection()) {
-                $content .= "\nPart {$part->getPartOrder()} Written Section: " . strip_tags($part->getWrittenSection()->getContent()) . "\n";
-            }
-            if ($part->getVideo()) {
-                $content .= "\nPart {$part->getPartOrder()} Video Description: " . strip_tags($part->getVideo()->getDescription()) . "\n";
-            }
-        }
-    }
-
-    $prompt = str_replace(
-        ['{{course_title}}', '{{part_title}}', '{{content}}', '{{student_performance}}'],
-        [$inputData['course_title'], $inputData['part_title'] ?? '', $content, $inputData['student_performance'] ?? 'medium'],
-        $promptTemplate
-    );
-
-        $this->logger->debug('Gemini API prompt: ' . substr($prompt, 0, 200) . '...');
-
-        try {
-            $response = $client->request('POST', $this->geminiApiUrl, [
-                'headers' => ['Content-Type' => 'application/json'],
-                'query' => ['key' => $this->geminiApiKey],
-                'json' => [
-                    'contents' => [['parts' => [['text' => $prompt]]]],
-                    'generationConfig' => [
-                        'temperature' => 0.7,
-                        'maxOutputTokens' => 1024,
-                        'response_mime_type' => 'application/json'
-                    ]
-                ],
-            ]);
-
-            if ($response->getStatusCode() !== 200) {
-                $this->logger->error('Gemini API returned non-200 status: ' . $response->getStatusCode());
-                return null;
-            }
-
-            $quizText = $response->toArray(false)['candidates'][0]['content']['parts'][0]['text'] ?? '';
-            $quizText = trim(preg_replace('/^```(?:json)?\n|\n```$/', '', $quizText));
-            $quizData = json_decode($quizText, true);
-
-            if (json_last_error() !== JSON_ERROR_NONE || !isset($quizData['questions']) || !is_array($quizData['questions'])) {
-                $this->logger->error('Invalid JSON or quiz data format: ' . json_last_error_msg());
-                return null;
-            }
-
-            $validQuestions = array_filter($quizData['questions'], fn($q) => isset($q['type'], $q['text'], $q['correctAnswer'], $q['explanation'], $q['hint']) && in_array(strtolower($q['type']), ['mcq', 'numeric']));
-            if (count($validQuestions) >= 5) {
-                $this->logger->info('Successfully generated quiz with ' . count($validQuestions) . ' valid questions');
-                return ['questions' => array_values($validQuestions)];
-            }
-        } catch (TransportExceptionInterface | \Exception $e) {
-            $this->logger->error('Error during Gemini API call: ' . $e->getMessage());
+        if (!file_exists($promptFile)) {
+            $this->logger->error('Prompt file not found: ' . $promptFile);
+            return null;
         }
 
-        return null;
-    }
+        $promptTemplate = file_get_contents($promptFile);
+        $content = $inputData['content'];
+        if ($isPartQuiz && isset($inputData['part'])) {
+            if ($inputData['part']->getWrittenSection()) {
+                $content .= "\nWritten Section: " . strip_tags($inputData['part']->getWrittenSection()->getContent()) . "\n";
+            }
+            if ($inputData['part']->getVideo()) {
+                $content .= "\nVideo Description: " . strip_tags($inputData['part']->getVideo()->getDescription()) . "\n";
+            }
+        } elseif (isset($inputData['course'])) {
+            foreach ($inputData['course']->getParts() as $part) {
+                if ($part->getWrittenSection()) {
+                    $content .= "\nPart {$part->getPartOrder()} Written Section: " . strip_tags($part->getWrittenSection()->getContent()) . "\n";
+                }
+                if ($part->getVideo()) {
+                    $content .= "\nPart {$part->getPartOrder()} Video Description: " . strip_tags($part->getVideo()->getDescription()) . "\n";
+                }
+            }
+        }
+
+        $prompt = str_replace(
+            ['{{course_title}}', '{{part_title}}', '{{content}}', '{{student_performance}}'],
+            [$inputData['course_title'], $inputData['part_title'] ?? '', $content, $inputData['student_performance'] ?? 'medium'],
+            $promptTemplate
+        );
+        // Append instructions to avoid HTML and use LaTeX
+        $prompt .= "\nImportant: Do not use any HTML tags in the question text, options, explanations, or hints. For mathematical formulas, use LaTeX formatting enclosed in \\( \\) for inline math or \\[ \\] for display math. For example, use \\( x^2 \\) for x squared.";
+
+            $this->logger->debug('Gemini API prompt: ' . substr($prompt, 0, 200) . '...');
+
+            try {
+                $response = $client->request('POST', $this->geminiApiUrl, [
+                    'headers' => ['Content-Type' => 'application/json'],
+                    'query' => ['key' => $this->geminiApiKey],
+                    'json' => [
+                        'contents' => [['parts' => [['text' => $prompt]]]],
+                        'generationConfig' => [
+                            'temperature' => 0.7,
+                            'maxOutputTokens' => 1024,
+                            'response_mime_type' => 'application/json'
+                        ]
+                    ],
+                ]);
+
+                if ($response->getStatusCode() !== 200) {
+                    $this->logger->error('Gemini API returned non-200 status: ' . $response->getStatusCode());
+                    return null;
+                }
+
+                $quizText = $response->toArray(false)['candidates'][0]['content']['parts'][0]['text'] ?? '';
+                $quizText = trim(preg_replace('/^```(?:json)?\n|\n```$/', '', $quizText));
+                $quizData = json_decode($quizText, true);
+
+                if (json_last_error() !== JSON_ERROR_NONE || !isset($quizData['questions']) || !is_array($quizData['questions'])) {
+                    $this->logger->error('Invalid JSON or quiz data format: ' . json_last_error_msg());
+                    return null;
+                }
+
+                $validQuestions = array_filter($quizData['questions'], fn($q) => isset($q['type'], $q['text'], $q['correctAnswer'], $q['explanation'], $q['hint']) && in_array(strtolower($q['type']), ['mcq', 'numeric']));
+                if (count($validQuestions) >= 5) {
+                    $this->logger->info('Successfully generated quiz with ' . count($validQuestions) . ' valid questions');
+                    return ['questions' => array_values($validQuestions)];
+                }
+            } catch (TransportExceptionInterface | \Exception $e) {
+                $this->logger->error('Error during Gemini API call: ' . $e->getMessage());
+            }
+
+            return null;
+        }
 
     private function buildQuiz(?Part $part, array $questions, string $title, ?Course $course = null): Quiz
     {
@@ -283,27 +315,34 @@ class QuizService
 
         for ($i = 0; $i < $mcqCount; $i++) {
             $qData = array_values($mcqQuestions)[$i];
+            $text = strip_tags($qData['text']);
+            $explanation = strip_tags($qData['explanation'] ?? '');
+            $hint = strip_tags($qData['hint'] ?? '');
+            $options = array_map('strip_tags', $qData['options'] ?? ['Option A', 'Option B', 'Option C', 'Option D']);
             $question = (new Question())
                 ->setQuiz($quiz)
                 ->setType(QuestionType::MCQ->value)
-                ->setText($qData['text'])
-                ->setOptions($qData['options'] ?? ['Option A', 'Option B', 'Option C', 'Option D'])
+                ->setText($text)
+                ->setOptions($options)
                 ->setCorrectAnswer($qData['correctAnswer'])
-                ->setExplanation($qData['explanation'] ?? '')
-                ->setHint($qData['hint'] ?? '')  // Added hint
+                ->setExplanation($explanation)
+                ->setHint($hint)  // Added hint
                 ->setGeneratedByAI(true);
             $quiz->addQuestion($question);
             $this->entityManager->persist($question);
         }
         for ($i = 0; $i < $numericCount; $i++) {
             $qData = array_values($numericQuestions)[$i];
+            $text = strip_tags($qData['text']);
+            $explanation = strip_tags($qData['explanation'] ?? '');
+            $hint = strip_tags($qData['hint'] ?? '');
             $question = (new Question())
                 ->setQuiz($quiz)
                 ->setType(QuestionType::Numeric->value)
-                ->setText($qData['text'])
+                ->setText($text)
                 ->setCorrectAnswer((string) $qData['correctAnswer'])
-                ->setExplanation($qData['explanation'] ?? '')
-                ->setHint($qData['hint'] ?? '')  // Added hint
+                ->setExplanation($explanation)
+                ->setHint($hint)  // Added hint
                 ->setGeneratedByAI(true);
             $quiz->addQuestion($question);
             $this->entityManager->persist($question);
@@ -357,7 +396,7 @@ class QuizService
                 ['text' => "What is the main purpose of $baseTopic?", 'options' => ['Construct polynomials', 'Solve equations', 'Optimize', 'Classify'], 'correctAnswer' => 'Construct polynomials', 'explanation' => 'Interpolation constructs polynomials that pass through given data points exactly. Common mistake: confusing with approximation methods.', 'hint' => 'Think about fitting data exactly.' ],
                 ['text' => "What does $baseTopic use?", 'options' => ['Data points', 'Random samples', 'Derivatives', 'Integrals'], 'correctAnswer' => 'Data points', 'explanation' => 'It uses known data points (x,y pairs). Step: Build basis polynomials for each point.', 'hint' => 'Focus on given (x,y) pairs.' ],
                 ['text' => "Key feature of $baseTopic?", 'options' => ['Exact fit', 'Linear only', 'Optimization', 'Reduction'], 'correctAnswer' => 'Exact fit', 'explanation' => 'The polynomial fits all points exactly. Mistake: Thinking it minimizes error like regression.', 'hint' => 'It matches points precisely.' ],
-                ['text' => "Polynomials in $baseTopic?", 'options' => ['Basis', 'Orthogonal', 'Chebyshev', 'Fourier'], 'correctAnswer' => 'Basis', 'explanation' => 'Uses Lagrange basis polynomials. Step: l_i(x) = product over j≠i of (x - x_j)/(x_i - x_j).', 'hint' => 'Involves basis functions.' ],
+                ['text' => "Polynomials in $baseTopic?", 'options' => ['Basis', 'Orthogonal', 'Chebyshev', 'Fourier'], 'correctAnswer' => 'Basis', 'explanation' => '\\( l_i(x) = \\prod_{j \\neq i} \\frac{x - x_j}{x_i - x_j} \\).', 'hint' => 'Involves basis functions.' ],
                 ['text' => "Result at interpolation point?", 'options' => ['Matches data', 'Approximates derivative', 'Zero', 'Minimizes'], 'correctAnswer' => 'Matches data', 'explanation' => 'P(x_i) = y_i exactly. Common mistake: Expecting smooth curves beyond points (Runge phenomenon).', 'hint' => 'Exact at given points.' ],
             ],
             'numeric' => [
@@ -426,7 +465,7 @@ class QuizService
             ['text' => "Terms for 6 points?", 'correctAnswer' => '6', 'explanation' => 'Degree 5 has 6 coefficients.', 'hint' => 'Degree +1 terms.' ],
             ['text' => "Degree for 2 points?", 'correctAnswer' => '1', 'explanation' => 'Linear interpolation.', 'hint' => 'Straight line.' ],
         ] : [
-            ['text' => "Points for linear?", 'correctAnswer' => '2', 'explanation' => 'Basic: 2 points for straight line.', 'hint' => 'Simplest case.' ],
+            ['text' => "Points for linear?", 'correctAnswer' => '2', 'explanation' => 'Basic: 2 points for straight line.', 'hint' => 'Basic case.' ],
             ['text' => "Degree for 3 points?", 'correctAnswer' => '2', 'explanation' => 'Quadratic curve through 3 points.', 'hint' => 'Quadratic.' ],
             ['text' => "Basis for 4 points?", 'correctAnswer' => '4', 'explanation' => 'One per point.', 'hint' => 'Matches points count.' ],
             ['text' => "Basis sum at point?", 'correctAnswer' => '1', 'explanation' => 'Ensures interpolation property.', 'hint' => 'Total is one.' ],

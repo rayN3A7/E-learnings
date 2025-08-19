@@ -69,6 +69,7 @@ class PartType extends AbstractType
                 ],
                 'attr' => ['class' => 'form-control quiz-mode'],
                 'required' => true,
+                'mapped' => false, // Added to prevent mapping to entity property
             ])
             ->add('quiz', ManualQuizType::class, [
                 'label' => 'Quiz',

@@ -63,14 +63,12 @@ class ManualQuizType extends AbstractType
             }
         });
 
-        // Validate quiz has exactly 10 questions
+        // Validate quiz has exactly 10 questions only if questions are provided (skip for AI/empty)
         $builder->addEventListener(FormEvents::POST_SUBMIT, function (FormEvent $event) {
             $form = $event->getForm();
             $quiz = $form->getData();
-            if ($quiz instanceof Quiz) {
-                if (count($quiz->getQuestions()) !== 10) {
-                    $form->addError(new FormError('Quiz must have exactly 10 questions.'));
-                }
+            if ($quiz instanceof Quiz && count($quiz->getQuestions()) > 0 && count($quiz->getQuestions()) !== 10) {
+                $form->addError(new FormError('Quiz must have exactly 10 questions.'));
             }
         });
     }
