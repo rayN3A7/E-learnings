@@ -161,6 +161,9 @@
                                             }
                                         }) }}
                                     </div>
+                                    <div class="ai-quiz-section" id="ai-quiz-part-{{ loop.index0 }}" style="display: none;">
+                                        {{ form_row(partForm.regenerateQuiz, {'attr': {'class': 'form-check-input'}}) }}
+                                    </div>
                                     <div class="manual-quiz-section" id="manual-quiz-part-{{ loop.index0 }}" style="display: block;">
                                         <div class="mb-3">
                                             {{ form_label(partForm.quiz.title, 'Quiz Title') }}
@@ -245,6 +248,9 @@
                                     'id': 'course_quizMode'
                                 }
                             }) }}
+                        </div>
+                        <div class="ai-quiz-section" id="ai-quiz-final" style="display: none;">
+                            {{ form_row(form.regenerateFinalQuiz, {'attr': {'class': 'form-check-input'}}) }}
                         </div>
                         <div class="manual-quiz-section" id="manual-quiz-final" style="display: block;">
                             <div class="mb-3">
@@ -427,10 +433,12 @@
                 const quizFormId = isFinal ? 'quiz-form-final' : `quiz-form-part-${partIndex}`;
                 const quizModeId = isFinal ? 'course_quizMode' : `course_parts_${partIndex}_quizMode`;
                 const manualQuizId = isFinal ? 'manual-quiz-final' : `manual-quiz-part-${partIndex}`;
+                const aiQuizId = isFinal ? 'ai-quiz-final' : `ai-quiz-part-${partIndex}`;
                 const questionsId = isFinal ? 'questions-final' : `questions-part-${partIndex}`;
 
                 const quizModeSelect = document.querySelector(`#${quizModeId}`);
                 const manualQuizSection = document.querySelector(`#${manualQuizId}`);
+                const aiQuizSection = document.querySelector(`#${aiQuizId}`);
                 const questionsContainer = document.querySelector(`#${questionsId}`);
 
                 if (!quizModeSelect) {
@@ -451,6 +459,9 @@
                 function toggleManualQuiz() {
                     const isManual = quizModeSelect.value === 'manual';
                     manualQuizSection.style.display = isManual ? 'block' : 'none';
+                    if (aiQuizSection) {
+                        aiQuizSection.style.display = isManual ? 'none' : 'block';
+                    }
                     if (isManual) {
                         questionsContainer.querySelectorAll('.question-form').forEach((questionDiv, qIndex) => {
                             initializeQuestion(questionDiv, partIndex, qIndex, isFinal);
@@ -637,9 +648,6 @@
                     }, true);
                     ggbApp.inject(`geogebra-element-${index}`, function() {
                         if (ggbSpinner) ggbSpinner.style.display = 'none';
-                    }, function(error) {
-                        if (ggbSpinner) ggbSpinner.style.display = 'none';
-                        ggbContainer.innerHTML = '<p class="text-danger">Failed to load GeoGebra applet. Please try again later.</p>';
                     });
                 }
             }
@@ -674,7 +682,7 @@
 
                     const parser = new DOMParser();
                     const doc = parser.parseFromString(prototype, 'text/html');
-                    let titleDiv = '', descriptionDiv = '', durationDiv = '', orderDiv = '', videoFilenameDiv = '', videoDescriptionDiv = '', videoDurationDiv = '', geoDiv = '', tutorialDiv = '', writtenDiv = '', mediaUrlsDiv = '', mediaUploadsDiv = '', quizDiv = '', quizModeDiv = '', questionsPrototype = '';
+                    let titleDiv = '', descriptionDiv = '', durationDiv = '', orderDiv = '', videoFilenameDiv = '', videoDescriptionDiv = '', videoDurationDiv = '', geoDiv = '', tutorialDiv = '', writtenDiv = '', mediaUrlsDiv = '', mediaUploadsDiv = '', quizDiv = '', quizModeDiv = '', regenerateDiv = '', questionsPrototype = '';
 
                     for (let div of doc.getElementsByTagName('div')) {
                         if (div.querySelector('input[name$="[title]"]')) titleDiv = div.outerHTML;
@@ -691,6 +699,7 @@
                         else if (div.querySelector('input[name$="[writtenSection][mediaUploads][]"]')) mediaUploadsDiv = div.outerHTML;
                         else if (div.querySelector('input[name$="[quiz][title]"]')) quizDiv = div.outerHTML;
                         else if (div.querySelector('select[name$="[quizMode]"]')) quizModeDiv = div.outerHTML;
+                        else if (div.querySelector('input[name$="[regenerateQuiz]"]')) regenerateDiv = div.outerHTML;
                         else if (div.querySelector('div[id$="_quiz_questions"]')) questionsPrototype = div.outerHTML;
                     }
 
@@ -731,6 +740,9 @@
                         <h5 class="fw-bold">Part Quiz</h5>
                         <div class="quiz-form" id="quiz-form-part-${partIndex}">
                             <div class="quiz-toggle mb-3">${quizModeDiv}</div>
+                            <div class="ai-quiz-section" id="ai-quiz-part-${partIndex}" style="display: none;">
+                                ${regenerateDiv}
+                            </div>
                             <div class="manual-quiz-section" id="manual-quiz-part-${partIndex}" style="display: block;">
                                 ${quizDiv}
                                 <div class="questions-container" id="questions-part-${partIndex}" data-part-index="${partIndex}" data-prototype='${questionsPrototype.replace(/__name__/g, '0')}'>

@@ -7,6 +7,7 @@ use App\Entity\Quiz;
 use App\Form\ManualQuizType;
 use App\Form\PartType;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\CollectionType;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
@@ -58,6 +59,12 @@ class CourseType extends AbstractType
                 'mapped' => false,
                 'attr' => ['class' => 'form-control quiz-mode'],
                 'required' => true,
+            ])
+            ->add('regenerateFinalQuiz', CheckboxType::class, [
+                'label' => 'Regenerate AI-Generated Quiz (if unsatisfied with current one)',
+                'mapped' => false,
+                'required' => false,
+                'attr' => ['class' => 'form-check-input'],
             ])
             ->add('finalQuiz', ManualQuizType::class, [
                 'label' => 'Final Quiz',

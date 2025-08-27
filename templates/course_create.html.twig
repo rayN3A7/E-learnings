@@ -6,53 +6,68 @@
     <link rel="stylesheet" href="{{ asset('css/custom.css') }}">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css" crossorigin="anonymous">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous">
     <style>
-        body { background-color: #f4f7fc; font-family: 'Inter', sans-serif; }
+        body { background-color: #f0f4f8; font-family: 'Inter', sans-serif; color: #333; }
         .course-create-header {
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-            color: #ffffff; padding: 80px 0; border-radius: 0 0 24px 24px;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15); position: relative; overflow: hidden;
+            background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
+            color: #ffffff; padding: 100px 0; border-radius: 0 0 32px 32px;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1); position: relative; overflow: hidden;
         }
-        .error-message { color: #dc3545; font-size: 0.9rem; margin-top: 0.25rem; }
-        .quiz-form { margin-top: 20px; background: #f9fafb; border-radius: 12px; padding: 1.5rem; }
+        .error-message { color: #e74a3b; font-size: 0.9rem; margin-top: 0.25rem; background: #fff5f5; padding: 4px 8px; border-radius: 4px; }
+        .quiz-form { margin-top: 20px; background: #ffffff; border-radius: 16px; padding: 2rem; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); }
         .manual-quiz-section { margin-top: 10px; }
-        .question-form { padding: 10px; margin-bottom: 10px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; }
+        .question-form { padding: 15px; margin-bottom: 15px; background: #f8fbff; border: 1px solid #d1e7fd; border-radius: 12px; transition: all 0.3s ease; }
+        .question-form:hover { box-shadow: 0 4px 12px rgba(78, 115, 223, 0.1); }
         .course-create-header::before {
             content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: url('https://www.transparenttextures.com/patterns/subtle-dots.png'); opacity: 0.1;
+            background: url('https://www.transparenttextures.com/patterns/subtle-dots.png'); opacity: 0.15;
         }
-        .course-create-header h1 { font-size: 2.8rem; font-weight: 800; text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); }
-        .course-create-header .lead { font-size: 1.3rem; max-width: 700px; margin: 0 auto; opacity: 0.9; }
-        .form-section .card { background: #ffffff; border: none; border-radius: 16px; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.1); padding: 2rem; }
-        .form-section .form-control { border-radius: 10px; border: 1px solid #e2e8f0; padding: 12px; }
-        .form-section .form-control:focus { border-color: #2a5298; box-shadow: 0 0 0 3px rgba(42, 82, 152, 0.2); }
-        .part-form, .quiz-form { background: #f9fafb; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; }
-        .mce-content-body { min-height: 150px !important; border-radius: 8px; border: 1px solid #e2e8f0; }
+        .course-create-header h1 { font-size: 3rem; font-weight: 800; text-shadow: 0 3px 6px rgba(0, 0, 0, 0.15); animation: bounceIn 1s; }
+        .course-create-header .lead { font-size: 1.4rem; max-width: 750px; margin: 0 auto; opacity: 0.95; animation: fadeInUp 1s 0.5s both; }
+        .form-section .card { background: #ffffff; border: none; border-radius: 24px; box-shadow: 0 8px 28px rgba(0, 0, 0, 0.08); padding: 2.5rem; transition: transform 0.3s ease; }
+        .form-section .card:hover { transform: translateY(-4px); }
+        .form-section .form-control { border-radius: 12px; border: 1px solid #d1e7fd; padding: 14px; transition: all 0.3s ease; }
+        .form-section .form-control:focus { border-color: #4e73df; box-shadow: 0 0 0 4px rgba(78, 115, 223, 0.15); }
+        .part-form, .quiz-form { background: #f8fbff; border-radius: 16px; padding: 2rem; margin-bottom: 2rem; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); }
+        .mce-content-body { min-height: 180px !important; border-radius: 12px; border: 1px solid #d1e7fd; padding: 10px; }
         .add-part-btn, .add-media-btn, .add-question-btn, .add-option-btn, .add-media-upload-btn {
-            border-radius: 50px; padding: 0.6rem 1.8rem; font-weight: 600; background-color: #2a5298; color: #ffffff;
+            border-radius: 50px; padding: 0.7rem 2rem; font-weight: 600; background-color: #4e73df; color: #ffffff; transition: all 0.3s ease;
+        }
+        .add-part-btn:hover, .add-media-btn:hover, .add-question-btn:hover, .add-option-btn:hover, .add-media-upload-btn:hover {
+            background-color: #224abe; transform: scale(1.05); box-shadow: 0 4px 12px rgba(78, 115, 223, 0.3);
         }
         .remove-part-btn, .remove-media-btn, .remove-question-btn, .remove-option-btn, .remove-media-upload-btn {
-            border-radius: 50px; padding: 0.6rem 1.8rem; font-weight: 600; background-color: #dc3545; color: #ffffff;
+            border-radius: 50px; padding: 0.7rem 2rem; font-weight: 600; background-color: #e74a3b; color: #ffffff; transition: all 0.3s ease;
         }
-        .media-url-container, .question-container, .option-container, .media-upload-container { margin-bottom: 1rem; }
-        h1, h2, h3, h4, h5, h6 { color: #2a5298; }
-        .quiz-toggle { margin-bottom: 1rem; }
+        .remove-part-btn:hover, .remove-media-btn:hover, .remove-question-btn:hover, .remove-option-btn:hover, .remove-media-upload-btn:hover {
+            background-color: #c0392b; transform: scale(1.05); box-shadow: 0 4px 12px rgba(231, 74, 59, 0.3);
+        }
+        .media-url-container, .question-container, .option-container, .media-upload-container { margin-bottom: 1.5rem; transition: opacity 0.3s ease; }
+        h1, h2, h3, h4, h5, h6 { color: #4e73df; font-weight: 700; }
+        .quiz-toggle { margin-bottom: 1.5rem; }
         .geogebra-container {
-            min-height: 400px;
+            min-height: 450px; background: #ffffff; border-radius: 16px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); overflow: hidden;
             position: relative;
         }
         .geogebra-container [id^="geogebra-element-"] {
             width: 100% !important;
-            height: 400px !important;
+            height: 450px !important;
         }
-        .loading-spinner { display: none; text-align: center; padding: 20px; }
-        .loading-spinner::before { content: 'Loading GeoGebra...'; color: #2a5298; }
+        .loading-spinner { display: none; text-align: center; padding: 25px; font-size: 1.1rem; color: #4e73df; animation: pulse 1.5s infinite; }
+        .loading-spinner::before { content: 'Loading GeoGebra applet... ✨'; }
         .video-upload-error { display: none; background: #fff3cd; border: 1px solid #ffeeba; padding: 15px; border-radius: 8px; margin-bottom: 1rem; }
-        .debug-video-upload { border: 2px solid #2a5298; background-color: #e6f3ff; }
+        .debug-video-upload { border: 2px solid #4e73df; background-color: #e6f3ff; }
+        .help-text { color: #6c757d; font-size: 0.9rem; margin-top: 0.5rem; font-style: italic; }
+        .btn-primary { background-color: #4e73df; border-color: #4e73df; border-radius: 50px; padding: 0.8rem 2.5rem; font-size: 1.1rem; transition: all 0.3s ease; }
+        .btn-primary:hover { background-color: #224abe; transform: translateY(-2px); box-shadow: 0 6px 16px rgba(78, 115, 223, 0.3); }
+        .form-label { font-weight: 600; color: #4e73df; }
+        .tooltip-icon { color: #a5b1c2; margin-left: 5px; cursor: help; }
+        @keyframes pulse { 0% { opacity: 0.7; } 50% { opacity: 1; } 100% { opacity: 0.7; } }
         @media (max-width: 768px) {
-            .course-create-header { padding: 40px 0; }
-            .course-create-header h1 { font-size: 2rem; }
-            .form-section .card { padding: 1.5rem; }
+            .course-create-header { padding: 60px 0; }
+            .course-create-header h1 { font-size: 2.2rem; }
+            .form-section .card { padding: 1.8rem; }
         }
     </style>
 {% endblock %}
@@ -60,37 +75,37 @@
 {% block body %}
     <section class="course-create-header animate__animated animate__fadeIn">
         <div class="container text-center">
-            <h1 class="display-4 fw-bold">Create a New Course</h1>
-            <p class="lead">Craft an engaging numerical analysis course with rich, interactive content.</p>
+            <h1 class="display-4 fw-bold">Create a New Course ✨</h1>
+            <p class="lead">Let's craft an engaging numerical analysis course with fun, interactive content! 🎉</p>
         </div>
     </section>
 
     <section class="form-section py-5">
         <div class="container">
-            <div class="card shadow-sm rounded-3">
+            <div class="card shadow-sm rounded-3 animate__animated animate__zoomIn">
                 <div class="video-upload-error" id="video-upload-error">
                     Unable to load the video upload field. Please check your form configuration or contact support.
                 </div>
                 {{ form_start(form, {'attr': {'enctype': 'multipart/form-data', 'id': 'course-create-form'}}) }}
                     {{ form_widget(form._token) }}
                     <div class="mb-4">
-                        {{ form_row(form.title, {'attr': {'class': 'form-control form-control-lg', 'placeholder': 'Enter course title'}}) }}
+                        {{ form_row(form.title, {'attr': {'class': 'form-control form-control-lg', 'placeholder': 'Enter a catchy course title 😊'}}) }}
                     </div>
                     <div class="mb-4">
-                        {{ form_row(form.description, {'attr': {'class': 'form-control', 'placeholder': 'Describe your course'}}) }}
+                        {{ form_row(form.description, {'attr': {'class': 'form-control', 'placeholder': 'Describe your awesome course 📝'}}) }}
                     </div>
                     <div class="mb-4">
                         {{ form_row(form.image, {'attr': {'class': 'form-control'}}) }}
                     </div>
 
-                    <h3 class="fw-bold mb-4">Course Parts</h3>
+                    <h3 class="fw-bold mb-4">Course Parts <i class="fas fa-puzzle-piece tooltip-icon" title="Add as many parts as you need for your course structure!"></i></h3>
                     <div id="parts-container" data-prototype="{{ form_widget(form.parts.vars.prototype)|e('html_attr')|replace({'__name__': '0'})|raw }}">
                         {% for partForm in form.parts %}
-                            <div class="part-form card shadow-sm rounded-3 animate__animated animate__fadeIn" data-part-index="{{ loop.index0 }}">
-                                <h4 class="fw-bold">Part {{ loop.index }}</h4>
+                            <div class="part-form card shadow-sm rounded-3 animate__animated animate__fadeInUp" data-part-index="{{ loop.index0 }}">
+                                <h4 class="fw-bold">Part {{ loop.index }} <i class="fas fa-edit tooltip-icon" title="Customize this part with videos, GeoGebra, and more!"></i></h4>
                                 <div class="row mb-3">
                                     <div class="col-md-6">
-                                        {{ form_row(partForm.title, {'attr': {'class': 'form-control', 'placeholder': 'Part title'}}) }}
+                                        {{ form_row(partForm.title, {'attr': {'class': 'form-control', 'placeholder': 'Part title 🌟'}}) }}
                                     </div>
                                     <div class="col-md-3">
                                         {{ form_row(partForm.partOrder, {'attr': {'class': 'form-control'}}) }}
@@ -100,49 +115,49 @@
                                     </div>
                                 </div>
                                 <div class="mb-3">
-                                    {{ form_row(partForm.description, {'label': 'Part Description', 'attr': {'class': 'form-control', 'placeholder': 'Enter a brief part description'}}) }}
+                                    {{ form_row(partForm.description, {'label': 'Part Description', 'attr': {'class': 'form-control', 'placeholder': 'Briefly describe this part 📘'}}) }}
                                 </div>
-                                <h5 class="fw-bold">Video Content</h5>
+                                <h5 class="fw-bold">Video Content <i class="fas fa-video tooltip-icon" title="Upload an engaging video for this part."></i></h5>
                                 <div class="row mb-3">
                                     <div class="col-md-12">
                                         {{ form_row(partForm.video.filename, {'attr': {'class': 'form-control debug-video-upload', 'accept': 'video/mp4'}}) }}
                                     </div>
                                 </div>
                                 <div class="mb-3">
-                                    {{ form_row(partForm.video.description, {'attr': {'class': 'form-control', 'placeholder': 'Video description'}}) }}
+                                    {{ form_row(partForm.video.description, {'attr': {'class': 'form-control', 'placeholder': 'Video description 🎥'}}) }}
                                 </div>
                                 <div class="mb-3">
-                                    {{ form_row(partForm.video.duration, {'attr': {'class': 'form-control', 'placeholder': 'Video duration in minutes'}}) }}
+                                    {{ form_row(partForm.video.duration, {'attr': {'class': 'form-control', 'placeholder': 'Video duration in minutes ⏱️'}}) }}
                                 </div>
-                                <h5 class="fw-bold">GeoGebra Content</h5>
+                                <h5 class="fw-bold">GeoGebra Content <i class="fas fa-draw-polygon tooltip-icon" title="Add interactive math visualizations!"></i></h5>
                                 <div class="mb-3">
-                                    {{ form_row(partForm.geogebraMaterialId, {'attr': {'class': 'form-control', 'placeholder': 'GeoGebra material ID (e.g., g3n8k2m4)'}}) }}
+                                    {{ form_row(partForm.geogebraMaterialId, {'attr': {'class': 'form-control', 'placeholder': 'GeoGebra material ID (e.g., g3n8k2m4) 🔢'}}) }}
                                 </div>
                                 <div class="geogebra-container">
                                     <div class="loading-spinner" id="ggb-spinner-{{ loop.index0 }}"></div>
-                                    <div id="geogebra-element-{{ loop.index0 }}" style="width: 100%; height: 400px;"></div>
+                                    <div id="geogebra-element-{{ loop.index0 }}" style="width: 100%; height: 450px;"></div>
                                     <div class="geogebra-error text-danger" id="geogebra-error-{{ loop.index0 }}" style="display: none;">
-                                        Failed to load GeoGebra applet. Please check the material ID or try again later.
+                                        Failed to load GeoGebra applet. Please check the material ID or try again later. 😕
                                     </div>
                                 </div>
                                 <div class="mb-3">
-                                    {{ form_row(partForm.tutorialContent, {'label': 'Tutorial Content', 'attr': {'class': 'form-control', 'placeholder': 'Enter tutorial content'}}) }}
+                                    {{ form_row(partForm.tutorialContent, {'label': 'Tutorial Content', 'attr': {'class': 'form-control', 'placeholder': 'Enter tutorial content 📚'}}) }}
                                 </div>
-                                <h5 class="fw-bold">Written Content</h5>
+                                <h5 class="fw-bold">Written Content <i class="fas fa-pencil-alt tooltip-icon" title="Use LaTeX for math expressions!"></i></h5>
                                 <div class="mb-3">
                                     {{ form_row(partForm.writtenSection.content, {
                                         'id': 'written_section_' ~ loop.index0 ~ '_content',
-                                        'attr': {'class': 'form-control rich-text-editor', 'placeholder': 'Enter content with LaTeX (e.g., \\(x^2\\))'}
+                                        'attr': {'class': 'form-control rich-text-editor', 'placeholder': 'Enter content with LaTeX (e.g., \\(x^2\\)) 🧮'}
                                     }) }}
-                                    <div class="help-text">Use headings, images, videos, and LaTeX (e.g., \( x^2 \)) for mathematical expressions.</div>
+                                    <div class="help-text">Sprinkle in headings, images, videos, and math magic! ✨</div>
                                 </div>
                                 <div class="mb-3">
-                                    <label class="fw-bold">Media URLs</label>
+                                    <label class="fw-bold">Media URLs <i class="fas fa-link tooltip-icon" title="Add external media links."></i></label>
                                     <div class="media-urls-container" data-part-index="{{ loop.index0 }}">
                                         {% for mediaUrlField in partForm.writtenSection.mediaUrls %}
-                                            <div class="media-url-container row mb-2">
+                                            <div class="media-url-container row mb-2 animate__animated animate__fadeIn">
                                                 <div class="col-md-10">
-                                                    {{ form_widget(mediaUrlField, {'attr': {'class': 'form-control media-url', 'placeholder': 'e.g., https://example.com/image.jpg'}}) }}
+                                                    {{ form_widget(mediaUrlField, {'attr': {'class': 'form-control media-url', 'placeholder': 'e.g., https://example.com/image.jpg 🔗'}}) }}
                                                 </div>
                                                 <div class="col-md-2">
                                                     <button type="button" class="btn remove-media-btn mt-1">Remove</button>
@@ -156,7 +171,7 @@
                                     {{ form_row(partForm.writtenSection.mediaUploads, {'attr': {'class': 'form-control'}}) }}
                                     <button type="button" class="btn add-media-upload-btn mt-2" data-part-index="{{ loop.index0 }}">Add Media Upload</button>
                                 </div>
-                                <h5 class="fw-bold">Part Quiz</h5>
+                                <h5 class="fw-bold">Part Quiz <i class="fas fa-question-circle tooltip-icon" title="Test knowledge with fun quizzes!"></i></h5>
                                 <div class="quiz-form" id="quiz-form-part-{{ loop.index0 }}">
                                     <div class="quiz-toggle mb-3">
                                         {{ form_row(partForm.quizMode, {
@@ -173,7 +188,7 @@
                                             {{ form_widget(partForm.quiz.title, {
                                                 'attr': {
                                                     'class': 'form-control',
-                                                    'placeholder': 'Enter quiz title',
+                                                    'placeholder': 'Enter quiz title 🎯',
                                                     'id': 'course_parts_' ~ loop.index0 ~ '_quiz_title'
                                                 }
                                             }) }}
@@ -188,7 +203,7 @@
                                                         {{ form_label(questionForm.text, 'Question Text') }}
                                                         {{ form_widget(questionForm.text, {
                                                             'id': 'course_parts_' ~ loop.parent.loop.index0 ~ '_quiz_questions_' ~ loop.index0 ~ '_text',
-                                                            'attr': {'class': 'form-control rich-text-editor', 'placeholder': 'Enter question with LaTeX (e.g., \\(x^2\\))'}
+                                                            'attr': {'class': 'form-control rich-text-editor', 'placeholder': 'Enter question with LaTeX (e.g., \\(x^2\\)) ❓'}
                                                         }) }}
                                                         {{ form_errors(questionForm.text) }}
                                                     </div>
@@ -205,12 +220,12 @@
                                                     </div>
                                                     <div class="options-container" id="options-part-{{ loop.parent.loop.index0 }}-{{ loop.index0 }}" data-dependent="mcq" style="display: none;">
                                                         {% for option in questionForm.options %}
-                                                            <div class="option-container row mb-2">
+                                                            <div class="option-container row mb-2 animate__animated animate__fadeIn">
                                                                 <div class="col-md-10">
                                                                     {{ form_widget(option, {
                                                                         'attr': {
                                                                             'class': 'form-control',
-                                                                            'placeholder': 'Enter option'
+                                                                            'placeholder': 'Enter option ✅'
                                                                         }
                                                                     }) }}
                                                                     {{ form_errors(option) }}
@@ -227,7 +242,7 @@
                                                         {{ form_widget(questionForm.correctAnswer, {
                                                             'attr': {
                                                                 'class': 'form-control',
-                                                                'placeholder': 'e.g., A or 42',
+                                                                'placeholder': 'e.g., A or 42 🏆',
                                                                 'id': 'course_parts_' ~ loop.parent.loop.index0 ~ '_quiz_questions_' ~ loop.index0 ~ '_correctAnswer'
                                                             }
                                                         }) }}
@@ -239,7 +254,7 @@
                                             {% endfor %}
                                             <button type="button" class="btn add-question-btn mt-2" data-part-index="{{ loop.index0 }}">Add Question</button>
                                         </div>
-                                        <div class="help-text">Add exactly 10 questions for this quiz.</div>
+                                        <div class="help-text">Aim for exactly 10 questions to make it challenging yet fun! 🧩</div>
                                     </div>
                                 </div>
                                 <button type="button" class="btn remove-part-btn mt-3">Remove Part</button>
@@ -248,8 +263,8 @@
                     </div>
                     <button type="button" class="btn add-part-btn mt-3">Add Part</button>
 
-                    <h3 class="fw-bold mb-4">Final Course Quiz</h3>
-                    <div class="quiz-form card shadow-sm rounded-3 animate__animated animate__fadeIn" id="quiz-form-final">
+                    <h3 class="fw-bold mb-4">Final Course Quiz <i class="fas fa-trophy tooltip-icon" title="The grand finale quiz!"></i></h3>
+                    <div class="quiz-form card shadow-sm rounded-3 animate__animated animate__fadeInUp" id="quiz-form-final">
                         <div class="quiz-toggle mb-3">
                             {{ form_row(form.quizMode, {
                                 'attr': {
@@ -265,7 +280,7 @@
                                 {{ form_widget(form.finalQuiz.title, {
                                     'attr': {
                                         'class': 'form-control',
-                                        'placeholder': 'Enter final quiz title',
+                                        'placeholder': 'Enter final quiz title 🏅',
                                         'id': 'course_finalQuiz_title'
                                     }
                                 }) }}
@@ -280,7 +295,7 @@
                                             {{ form_label(questionForm.text, 'Question Text') }}
                                             {{ form_widget(questionForm.text, {
                                                 'id': 'course_finalQuiz_questions_' ~ loop.index0 ~ '_text',
-                                                'attr': {'class': 'form-control rich-text-editor', 'placeholder': 'Enter question with LaTeX (e.g., \\(x^2\\))'}
+                                                'attr': {'class': 'form-control rich-text-editor', 'placeholder': 'Enter question with LaTeX (e.g., \\(x^2\\)) ❓'}
                                             }) }}
                                             {{ form_errors(questionForm.text) }}
                                         </div>
@@ -297,12 +312,12 @@
                                         </div>
                                         <div class="options-container" id="options-final-{{ loop.index0 }}" data-dependent="mcq" style="display: none;">
                                             {% for option in questionForm.options %}
-                                                <div class="option-container row mb-2">
+                                                <div class="option-container row mb-2 animate__animated animate__fadeIn">
                                                     <div class="col-md-10">
                                                         {{ form_widget(option, {
                                                             'attr': {
                                                                 'class': 'form-control',
-                                                                'placeholder': 'Enter option'
+                                                                'placeholder': 'Enter option ✅'
                                                             }
                                                         }) }}
                                                         {{ form_errors(option) }}
@@ -319,7 +334,7 @@
                                             {{ form_widget(questionForm.correctAnswer, {
                                                 'attr': {
                                                     'class': 'form-control',
-                                                    'placeholder': 'e.g., A or 42',
+                                                    'placeholder': 'e.g., A or 42 🏆',
                                                     'id': 'course_finalQuiz_questions_' ~ loop.index0 ~ '_correctAnswer'
                                                 }
                                             }) }}
@@ -331,12 +346,12 @@
                                 {% endfor %}
                                 <button type="button" class="btn add-question-btn mt-2" data-part-index="final">Add Question</button>
                             </div>
-                            <div class="help-text">Add exactly 10 questions for the final quiz.</div>
+                            <div class="help-text">Add exactly 10 questions for the ultimate test! 🚀</div>
                         </div>
                     </div>
 
-                    <div class="mt-4">
-                        <button type="submit" class="btn btn-primary btn-lg">Create Course</button>
+                    <div class="mt-4 text-center">
+                        <button type="submit" class="btn btn-primary btn-lg">Create Course 🎊</button>
                     </div>
                 {{ form_end(form) }}
             </div>
@@ -378,7 +393,7 @@
                 }
             }
 
-            // Initialize TinyMCE
+            // Initialize TinyMCE with enhanced placeholder
             function initializeTinyMCE(element, id) {
                 if (!element || element.hasAttribute('data-tinymce-initialized')) {
                     console.debug(`TinyMCE already initialized or element missing for ID: ${id}`);
@@ -420,7 +435,7 @@
                             editor.save();
                         });
                     },
-                    placeholder: 'Enter content with LaTeX support (e.g., \\(x^2 + y^2 = z^2\\))'
+                    placeholder: 'Type here with LaTeX support (e.g., \\(x^2 + y^2 = z^2\\)) ✨'
                 }).then(function () {
                     element.setAttribute('data-tinymce-initialized', 'true');
                     console.debug(`TinyMCE initialized for ID: ${id}`);
@@ -429,7 +444,7 @@
                 });
             }
 
-            // Initialize quiz section
+            // Initialize quiz section with animations
             function initializeQuiz(quizForm, partIndex, isFinal = false) {
                 const prefix = isFinal ? 'course_finalQuiz' : `course_parts_${partIndex}_quiz`;
                 const quizModeId = isFinal ? 'course_quizMode' : `course_parts_${partIndex}_quizMode`;
@@ -449,6 +464,7 @@
 
                 function toggleManualQuizSection() {
                     manualQuizSection.style.display = quizModeSelect.value === 'manual' ? 'block' : 'none';
+                    manualQuizSection.classList.toggle('animate__fadeIn', quizModeSelect.value === 'manual');
                     if (quizModeSelect.value === 'manual') {
                         questionsContainer.querySelectorAll('.question-form').forEach((questionDiv, qIndex) => {
                             const textInput = questionDiv.querySelector(`#${prefix}_questions_${qIndex}_text`);
@@ -469,12 +485,12 @@
                     return;
                 }
 
-                // Event delegation for add/remove question buttons
+                // Event delegation for add/remove question buttons with animations
                 questionsContainer.addEventListener('click', function (e) {
                     if (e.target.classList.contains('add-question-btn')) {
                         console.log(`Adding question for part ${partIndex}, question ${questionIndex}`);
                         const newQuestionDiv = document.createElement('div');
-                        newQuestionDiv.classList.add('question-form', 'card', 'shadow-sm', 'rounded-3', 'mb-2', 'animate__animated', 'animate__fadeIn');
+                        newQuestionDiv.classList.add('question-form', 'card', 'shadow-sm', 'rounded-3', 'mb-2', 'animate__animated', 'animate__fadeInUp');
                         newQuestionDiv.setAttribute('data-question-index', questionIndex);
                         const optionsContainerId = isFinal ? `options-final-${questionIndex}` : `options-part-${partIndex}-${questionIndex}`;
                         newQuestionDiv.innerHTML = prototype
@@ -499,7 +515,8 @@
                         if (textInput && tinymce.get(textInput.id)) {
                             tinymce.get(textInput.id).remove();
                         }
-                        questionDiv.remove();
+                        questionDiv.classList.add('animate__fadeOut');
+                        setTimeout(() => questionDiv.remove(), 500);
                     }
                 });
 
@@ -513,7 +530,7 @@
                 });
             }
 
-            // Initialize question
+            // Initialize question with enhanced toggles
             function initializeQuestion(questionDiv, partIndex, questionIndex, isFinal = false) {
                 const prefix = isFinal ? 'course_finalQuiz' : `course_parts_${partIndex}_quiz`;
                 const optionsContainerId = isFinal ? `options-final-${questionIndex}` : `options-part-${partIndex}-${questionIndex}`;
@@ -546,7 +563,7 @@
 
                 function createOptionElement() {
                     const optionContainer = document.createElement('div');
-                    optionContainer.classList.add('option-container', 'row', 'mb-2');
+                    optionContainer.classList.add('option-container', 'row', 'mb-2', 'animate__animated', 'animate__fadeIn');
 
                     const col10 = document.createElement('div');
                     col10.classList.add('col-md-10');
@@ -555,7 +572,7 @@
                     input.type = 'text';
                     input.name = `${prefix}[questions][${questionIndex}][options][]`;
                     input.classList.add('form-control');
-                    input.placeholder = 'Enter option';
+                    input.placeholder = 'Enter option ✅';
 
                     col10.appendChild(input);
 
@@ -579,6 +596,9 @@
                     const currentType = typeSelect.value;
                     console.log(`Toggling options for part ${partIndex}, question ${questionIndex}, type: ${currentType}`);
                     optionsContainer.style.display = currentType === 'mcq' ? 'block' : 'none';
+                    if (currentType === 'mcq') {
+                        optionsContainer.classList.add('animate__fadeIn');
+                    }
                     const addOptionButton = optionsContainer.querySelector('.add-option-btn');
                     if (!addOptionButton) {
                         console.error(`Add Option button missing for part ${partIndex}, question ${questionIndex}`);
@@ -596,7 +616,10 @@
                         addOptionButton.disabled = existingOptions >= 4;
                         console.log(`Options container visible with ${existingOptions} options for part ${partIndex}, question ${questionIndex}`);
                     } else {
-                        optionsContainer.querySelectorAll('.option-container').forEach(container => container.remove());
+                        optionsContainer.querySelectorAll('.option-container').forEach(container => {
+                            container.classList.add('animate__fadeOut');
+                            setTimeout(() => container.remove(), 500);
+                        });
                         addOptionButton.disabled = false;
                         console.log(`Options container hidden for part ${partIndex}, question ${questionIndex}`);
                     }
@@ -610,7 +633,7 @@
 
                 toggleOptions();
 
-                // Event delegation for add/remove option buttons
+                // Event delegation for add/remove option buttons with animations
                 optionsContainer.addEventListener('click', function (e) {
                     if (e.target.classList.contains('add-option-btn')) {
                         console.log(`Add Option button clicked for part ${partIndex}, question ${questionIndex}`);
@@ -627,22 +650,23 @@
                         console.log(`Remove Option button clicked for part ${partIndex}, question ${questionIndex}`);
                         const optionContainer = e.target.closest('.option-container');
                         if (optionContainer) {
-                            optionContainer.remove();
+                            optionContainer.classList.add('animate__fadeOut');
+                            setTimeout(() => optionContainer.remove(), 500);
                             toggleOptions();
                         }
                     }
                 });
             }
 
-            // Initialize media URLs
+            // Initialize media URLs with animations
             function initializeMediaUrls(partDiv, index) {
                 const mediaUrlsContainer = partDiv.querySelector(`.media-urls-container[data-part-index="${index}"]`);
                 if (!mediaUrlsContainer) return;
                 const addMediaButton = mediaUrlsContainer.querySelector('.add-media-btn');
                 const prototype = `
-                    <div class="media-url-container row mb-2">
+                    <div class="media-url-container row mb-2 animate__animated animate__fadeIn">
                         <div class="col-md-10">
-                            <input type="url" name="course[parts][${index}][writtenSection][mediaUrls][]" class="form-control media-url" placeholder="e.g., https://example.com/image.jpg">
+                            <input type="url" name="course[parts][${index}][writtenSection][mediaUrls][]" class="form-control media-url" placeholder="e.g., https://example.com/image.jpg 🔗">
                         </div>
                         <div class="col-md-2">
                             <button type="button" class="btn remove-media-btn mt-1">Remove</button>
@@ -656,18 +680,20 @@
                 });
                 mediaUrlsContainer.addEventListener('click', function (e) {
                     if (e.target.classList.contains('remove-media-btn')) {
-                        e.target.closest('.media-url-container').remove();
+                        const container = e.target.closest('.media-url-container');
+                        container.classList.add('animate__fadeOut');
+                        setTimeout(() => container.remove(), 500);
                     }
                 });
             }
 
-            // Initialize media uploads
+            // Initialize media uploads with animations
             function initializeMediaUploads(partDiv, index) {
                 const mediaUploadsContainer = partDiv.querySelector(`[id^="course_parts_${index}_writtenSection_mediaUploads"]`)?.parentNode;
                 if (!mediaUploadsContainer) return;
                 const addMediaUploadButton = partDiv.querySelector(`.add-media-upload-btn[data-part-index="${index}"]`);
                 const prototype = `
-                    <div class="media-upload-container row mb-2">
+                    <div class="media-upload-container row mb-2 animate__animated animate__fadeIn">
                         <div class="col-md-10">
                             <input type="file" name="course[parts][${index}][writtenSection][mediaUploads][]" class="form-control" accept="image/*,video/*">
                         </div>
@@ -683,12 +709,14 @@
                 });
                 mediaUploadsContainer.addEventListener('click', function (e) {
                     if (e.target.classList.contains('remove-media-upload-btn')) {
-                        e.target.closest('.media-upload-container').remove();
+                        const container = e.target.closest('.media-upload-container');
+                        container.classList.add('animate__fadeOut');
+                        setTimeout(() => container.remove(), 500);
                     }
                 });
             }
 
-            // Initialize GeoGebra
+            // Initialize GeoGebra with improved loading
             function initializeGeoGebra(partDiv, index) {
                 const ggbContainer = partDiv.querySelector(`#geogebra-element-${index}`);
                 const ggbSpinner = partDiv.querySelector(`#ggb-spinner-${index}`);
@@ -709,7 +737,7 @@
                 const ggbApp = new GGBApplet({
                     appName: 'graphing',
                     width: ggbContainer.offsetWidth,
-                    height: 400,
+                    height: 450,
                     showToolBar: true,
                     showAlgebraInput: true,
                     showMenuBar: true,
@@ -729,7 +757,7 @@
                 });
             }
 
-            // Initialize parts
+            // Initialize parts with animations
             function initializePart(partDiv, index) {
                 const textInput = partDiv.querySelector(`#written_section_${index}_content`);
                 if (textInput && !textInput.hasAttribute('data-tinymce-initialized')) {
@@ -766,7 +794,7 @@
             addPartButton.addEventListener('click', function () {
                 const prototype = partsContainer.dataset.prototype.replace(/__name__/g, partIndex);
                 const newPartDiv = document.createElement('div');
-                newPartDiv.classList.add('part-form', 'card', 'shadow-sm', 'rounded-3', 'animate__animated', 'animate__fadeIn');
+                newPartDiv.classList.add('part-form', 'card', 'shadow-sm', 'rounded-3', 'animate__animated', 'animate__fadeInUp');
                 newPartDiv.setAttribute('data-part-index', partIndex);
 
                 const parser = new DOMParser();
@@ -792,33 +820,33 @@
                 }
 
                 newPartDiv.innerHTML = `
-                    <h4 class="fw-bold">Part ${partIndex + 1}</h4>
+                    <h4 class="fw-bold">Part ${partIndex + 1} <i class="fas fa-edit tooltip-icon" title="Customize this part with videos, GeoGebra, and more!"></i></h4>
                     <div class="row mb-3">
                         <div class="col-md-6">${titleDiv}</div>
                         <div class="col-md-3">${orderDiv}</div>
                         <div class="col-md-3">${durationDiv}</div>
                     </div>
                     <div class="mb-3">${descriptionDiv}</div>
-                    <h5 class="fw-bold">Video Content</h5>
+                    <h5 class="fw-bold">Video Content <i class="fas fa-video tooltip-icon" title="Upload an engaging video for this part."></i></h5>
                     <div class="row mb-3">
                         <div class="col-md-12">${videoFilenameDiv}</div>
                     </div>
                     <div class="mb-3">${videoDescDiv}</div>
                     <div class="mb-3">${videoDurationDiv}</div>
-                    <h5 class="fw-bold">GeoGebra Content</h5>
+                    <h5 class="fw-bold">GeoGebra Content <i class="fas fa-draw-polygon tooltip-icon" title="Add interactive math visualizations!"></i></h5>
                     <div class="mb-3">${geoDiv}</div>
                     <div class="geogebra-container">
                         <div class="loading-spinner" id="ggb-spinner-${partIndex}"></div>
-                        <div id="geogebra-element-${partIndex}" style="width: 100%; height: 400px;"></div>
+                        <div id="geogebra-element-${partIndex}" style="width: 100%; height: 450px;"></div>
                         <div class="geogebra-error text-danger" id="geogebra-error-${partIndex}" style="display: none;">
-                            Failed to load GeoGebra applet. Please check the material ID or try again later.
+                            Failed to load GeoGebra applet. Please check the material ID or try again later. 😕
                         </div>
                     </div>
                     <div class="mb-3">${tutorialDiv}</div>
-                    <h5 class="fw-bold">Written Content</h5>
+                    <h5 class="fw-bold">Written Content <i class="fas fa-pencil-alt tooltip-icon" title="Use LaTeX for math expressions!"></i></h5>
                     <div class="mb-3">${writtenDiv}</div>
                     <div class="mb-3">
-                        <label class="fw-bold">Media URLs</label>
+                        <label class="fw-bold">Media URLs <i class="fas fa-link tooltip-icon" title="Add external media links."></i></label>
                         <div class="media-urls-container" data-part-index="${partIndex}">
                             ${mediaUrlsDiv}
                             <button type="button" class="btn add-media-btn mt-2" data-part-index="${partIndex}">Add Media URL</button>
@@ -828,7 +856,7 @@
                         ${mediaUploadsDiv}
                         <button type="button" class="btn add-media-upload-btn mt-2" data-part-index="${partIndex}">Add Media Upload</button>
                     </div>
-                    <h5 class="fw-bold">Part Quiz</h5>
+                    <h5 class="fw-bold">Part Quiz <i class="fas fa-question-circle tooltip-icon" title="Test knowledge with fun quizzes!"></i></h5>
                     <div class="quiz-form" id="quiz-form-part-${partIndex}">
                         <div class="quiz-toggle mb-3">${quizModeDiv}</div>
                         <div class="manual-quiz-section" id="manual-quiz-part-${partIndex}" style="display: none;">
@@ -836,7 +864,7 @@
                             <div class="questions-container" id="questions-part-${partIndex}" data-part-index="${partIndex}" data-prototype='${questionsPrototype.replace(/__name__/g, '0')}'>
                                 <button type="button" class="btn add-question-btn mt-2" data-part-index="${partIndex}">Add Question</button>
                             </div>
-                            <div class="help-text">Add exactly 10 questions for this quiz.</div>
+                            <div class="help-text">Aim for exactly 10 questions to make it challenging yet fun! 🧩</div>
                         </div>
                     </div>
                     <button type="button" class="btn remove-part-btn mt-3">Remove Part</button>
@@ -848,7 +876,7 @@
                 partIndex++;
             });
 
-            // Remove part
+            // Remove part with animation
             partsContainer.addEventListener('click', function (e) {
                 if (e.target.classList.contains('remove-part-btn')) {
                     const partDiv = e.target.closest('.part-form');
@@ -864,19 +892,20 @@
                             tinymce.get(textInput.id).remove();
                         }
                     });
-                    partDiv.remove();
+                    partDiv.classList.add('animate__fadeOut');
+                    setTimeout(() => partDiv.remove(), 500);
                     debugVideoUploads();
                 }
             });
 
-            // Form submission validation
+            // Form submission validation with user-friendly alerts
             document.getElementById('course-create-form').addEventListener('submit', function (e) {
                 let isValid = true;
                 const finalQuizMode = document.querySelector('#course_quizMode');
                 const finalQuizQuestions = document.querySelectorAll('#questions-final .question-form').length;
 
                 if (finalQuizMode && finalQuizMode.value === 'manual' && finalQuizQuestions !== 10) {
-                    alert('Final quiz must have exactly 10 questions.');
+                    alert('The final quiz needs exactly 10 questions to be complete! 📝');
                     isValid = false;
                 }
 
@@ -884,7 +913,7 @@
                     const quizMode = partDiv.querySelector(`#course_parts_${index}_quizMode`);
                     const questions = partDiv.querySelectorAll(`#questions-part-${index} .question-form`).length;
                     if (quizMode && quizMode.value === 'manual' && questions !== 10) {
-                        alert(`Part ${index + 1} quiz must have exactly 10 questions.`);
+                        alert(`Part ${index + 1}'s quiz needs exactly 10 questions. Let's add some more! 🧐`);
                         isValid = false;
                     }
                 });

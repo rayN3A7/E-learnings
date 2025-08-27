@@ -520,4 +520,18 @@ class QuizService
         }
         return trim($content);
     }
+
+    public function invalidatePartQuizCache(Part $part, string $quizMode = 'ai'): void
+    {
+        $cacheKey = 'part_' . $part->getId() . '_' . $quizMode;
+        $this->cache->delete($cacheKey);
+        $this->logger->info('Invalidated cache for part quiz: ' . $cacheKey);
+    }
+
+    public function invalidateFinalQuizCache(Course $course, string $quizMode = 'ai'): void
+    {
+        $cacheKey = 'final_' . $course->getId() . '_' . $quizMode;
+        $this->cache->delete($cacheKey);
+        $this->logger->info('Invalidated cache for final quiz: ' . $cacheKey);
+    }
 }

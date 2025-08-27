@@ -3,16 +3,16 @@
 namespace App\Form;
 
 use App\Entity\Part;
+use App\Entity\Quiz;
 use App\Entity\Video;
 use App\Entity\WrittenSection;
-use App\Form\ManualQuizType;
-use App\Form\VideoType;
-use App\Form\WrittenSectionType;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
+use Symfony\Component\Form\Extension\Core\Type\CollectionType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
-use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
+use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Form\FormEvent;
@@ -28,6 +28,11 @@ class PartType extends AbstractType
                 'attr' => ['class' => 'form-control', 'placeholder' => 'Enter part title'],
                 'required' => true,
             ])
+            ->add('description', TextareaType::class, [
+                'label' => 'Part Description',
+                'attr' => ['class' => 'form-control', 'placeholder' => 'Describe this part'],
+                'required' => false,
+            ])
             ->add('partOrder', IntegerType::class, [
                 'label' => 'Part Order',
                 'attr' => ['class' => 'form-control'],
@@ -38,27 +43,22 @@ class PartType extends AbstractType
                 'attr' => ['class' => 'form-control'],
                 'required' => false,
             ])
-            ->add('description', TextareaType::class, [
-                'label' => 'Part Description',
-                'attr' => ['class' => 'form-control', 'placeholder' => 'Describe this part'],
-                'required' => false,
-            ])
             ->add('video', VideoType::class, [
-                'label' => 'Video Content',
+                'label' => 'Video',
                 'required' => false,
             ])
             ->add('geogebraMaterialId', TextType::class, [
                 'label' => 'GeoGebra Material ID',
-                'attr' => ['class' => 'form-control', 'placeholder' => 'Enter GeoGebra material ID'],
+                'attr' => ['class' => 'form-control'],
                 'required' => false,
             ])
             ->add('tutorialContent', TextareaType::class, [
                 'label' => 'Tutorial Content',
-                'attr' => ['class' => 'form-control rich-text-editor', 'placeholder' => 'Enter tutorial content'],
+                'attr' => ['class' => 'form-control'],
                 'required' => false,
             ])
             ->add('writtenSection', WrittenSectionType::class, [
-                'label' => 'Written Content',
+                'label' => 'Written Section',
                 'required' => false,
             ])
             ->add('quizMode', ChoiceType::class, [
@@ -67,16 +67,23 @@ class PartType extends AbstractType
                     'Manual' => 'manual',
                     'AI-Generated' => 'ai',
                 ],
+                'mapped' => false,
                 'attr' => ['class' => 'form-control quiz-mode'],
                 'required' => true,
-                'mapped' => false, // Added to prevent mapping to entity property
+            ])
+            ->add('regenerateQuiz', CheckboxType::class, [
+                'label' => 'Regenerate AI-Generated Quiz (if unsatisfied with current one)',
+                'mapped' => false,
+                'required' => false,
+                'attr' => ['class' => 'form-check-input'],
             ])
             ->add('quiz', ManualQuizType::class, [
                 'label' => 'Quiz',
                 'required' => false,
+                'data_class' => Quiz::class,
             ]);
 
-        // Set initial quizMode and ensure quiz data is properly loaded
+        // Similar event listeners as in CourseType for quiz handling
         $builder->addEventListener(FormEvents::PRE_SET_DATA, function (FormEvent $event) {
             $form = $event->getForm();
             $part = $event->getData();
@@ -85,11 +92,18 @@ class PartType extends AbstractType
                 $form->get('quizMode')->setData($quiz->isGeneratedByAI() ? 'ai' : 'manual');
                 $form->get('quiz')->setData($quiz);
             } else {
-                $form->get('quizMode')->setData('ai'); // Default to AI-generated
+                $form->get('quizMode')->setData('ai');
             }
         });
 
-        // Preserve AI-generated quiz data on submission or set generatedByAI to false for manual
+        $builder->addEventListener(FormEvents::PRE_SUBMIT, function (FormEvent $event) {
+            $data = $event->getData();
+            if (is_array($data) && isset($data['quizMode']) && $data['quizMode'] === 'ai') {
+                unset($data['quiz']);
+                $event->setData($data);
+            }
+        });
+
         $builder->addEventListener(FormEvents::PRE_SUBMIT, function (FormEvent $event) {
             $data = $event->getData();
             $form = $event->getForm();
