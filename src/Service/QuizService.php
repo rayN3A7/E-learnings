@@ -44,17 +44,24 @@ class QuizService
             $userAnswer = $answers[$question->getId()] ?? null;
             if ($userAnswer === null) {
                 $feedback[$question->getId()] = [
-                    'isCorrect' => false, 
-                    'correctAnswer' => $question->getCorrectAnswer(), 
-                    'userAnswer' => null, 
+                    'isCorrect' => false,
+                    'correctAnswer' => $question->getCorrectAnswer(),
+                    'userAnswer' => null,
                     'explanation' => $question->getExplanation(),
                     'hint' => $question->getHint()
                 ];
                 continue;
             }
-            $isCorrect = $question->getType() === QuestionType::MCQ->value
-                ? $userAnswer === $question->getCorrectAnswer()
-                : abs((float) $userAnswer - (float) $question->getCorrectAnswer()) <= 0.01;
+            $type = $question->getType();
+            if ($type === QuestionType::MCQ->value) {
+                $isCorrect = $userAnswer === $question->getCorrectAnswer();
+            } elseif ($type === QuestionType::Numeric->value) {
+                $isCorrect = abs((float) $userAnswer - (float) $question->getCorrectAnswer()) <= 0.01;
+            } elseif ($type === QuestionType::Text->value) {
+                $isCorrect = strcasecmp(trim((string) $userAnswer), trim((string) $question->getCorrectAnswer())) === 0;
+            } else {
+                $isCorrect = false; // Unknown type
+            }
             if ($isCorrect) $correctAnswers++;
             $explanation = $question->getExplanation();
             if (!$explanation) {
@@ -80,7 +87,6 @@ class QuizService
     private function generateExplanation(Question $question): ?string
     {
         $prompt = "Provide a short, concise explanation for the following quiz question. Question: " . $question->getText() . " Correct Answer: " . $question->getCorrectAnswer() . ". Explanation should be 1-2 sentences. Use LaTeX for math enclosed in \\( \\). No HTML tags.";
-
         $client = HttpClient::create();
         try {
             $response = $client->request('POST', $this->geminiApiUrl, [
@@ -89,7 +95,6 @@ class QuizService
                     'contents' => [['parts' => [['text' => $prompt]]]],
                 ],
             ]);
-
             $data = $response->toArray();
             $explanation = $data['candidates'][0]['content']['parts'][0]['text'] ?? null;
             return trim($explanation);
@@ -108,13 +113,13 @@ class QuizService
     {
         return $this->getAttemptCount($user, $quiz) < 3;
     }
+
     public function getOrGeneratePartQuiz(?User $user, ?Part $part, string $quizMode = 'ai'): ?Quiz
     {
         if (!$part || !$part->getCourse() || $part->getTitle() === null) {
             $this->logger->warning('Invalid part, course, or missing part title for quiz generation: Part ID ' . ($part ? $part->getId() : 'NULL'));
             return null;
         }
-
         $cacheKey = 'part_' . $part->getId() . '_' . $quizMode;
         return $this->cache->get($cacheKey, function (ItemInterface $item) use ($part, $quizMode) {
             $item->expiresAfter(3600); // Cache for 1 hour
@@ -123,12 +128,10 @@ class QuizService
                 $this->logger->info('Reusing existing quiz for part ID ' . $part->getId() . ', Quiz ID: ' . $quiz->getId());
                 return $quiz;
             }
-
             if ($quizMode === 'manual') {
                 $this->logger->info('Manual quiz mode selected for part ID ' . $part->getId() . ', no generation needed');
                 return null;
             }
-
             $this->logger->debug('Generating AI quiz for part ID ' . $part->getId());
             $content = $this->extractRelevantContent($part->getCourse()->getTitle(), $part->getTitle(), $part);
             $quizData = $this->generateQuizFromGemini([
@@ -137,9 +140,12 @@ class QuizService
                 'content' => $content,
                 'context' => 'part'
             ]);
-
-            return $quizData ? $this->buildQuiz($part, $quizData['questions'], 'Quiz for Part: ' . $part->getTitle() . ' (Course: ' . $part->getCourse()->getTitle() . ')')
-                : $this->createFallbackQuiz($part);
+            if ($quizData) {
+                $quiz = $this->buildQuiz($part, $quizData['questions'], 'Quiz for Part: ' . $part->getTitle() . ' (Course: ' . $part->getCourse()->getTitle() . ')');
+                return $quiz;
+            } else {
+                return $this->createFallbackQuiz($part);
+            }
         });
     }
 
@@ -149,8 +155,7 @@ class QuizService
         $this->logger->warning('Invalid course for final quiz generation');
         return null;
     }
-
-    $cacheKey = 'final_' . $course->getId() . '_' . $quizMode;
+    $cacheKey = 'final_' . $course->getId() . '_' . $quizMode . '_' . ($user ? $user->getId() : 'anon');
     return $this->cache->get($cacheKey, function (ItemInterface $item) use ($user, $course, $quizMode) {
         $item->expiresAfter(3600);
         $quiz = $this->entityManager->getRepository(Quiz::class)->findOneBy(['course' => $course, 'title' => 'Final Quiz for Course: ' . $course->getTitle()]);
@@ -158,18 +163,15 @@ class QuizService
             $this->logger->info('Reusing existing final quiz for course ID ' . $course->getId() . ', Quiz ID: ' . $quiz->getId());
             return $quiz;
         }
-
         if ($quizMode === 'manual') {
             $this->logger->info('Manual final quiz mode selected for course ID ' . $course->getId() . ', no generation needed');
             return null;
         }
-
         $studentPerformance = 'medium';
         if ($user) {
             $parts = $course->getParts();
             $allQuizzesPassed = true;
             $totalScore = $quizCount = 0;
-
             foreach ($parts as $part) {
                 $quiz = $this->entityManager->getRepository(Quiz::class)->findOneBy(['part' => $part]);
                 if ($quiz) {
@@ -188,16 +190,13 @@ class QuizService
                     break;
                 }
             }
-
             if (!$allQuizzesPassed) {
                 $this->logger->info('Not all part quizzes passed for user ID ' . ($user ? $user->getId() : 'null') . ' in course ID ' . $course->getId());
                 return null;
             }
-
             $averageScore = $quizCount > 0 ? $totalScore / $quizCount : 0;
             $studentPerformance = $averageScore >= 85 ? 'high' : ($averageScore >= 70 ? 'medium' : 'low');
         }
-
         $this->logger->debug('Generating AI final quiz for course ID ' . $course->getId());
         $content = $this->extractRelevantContent($course->getTitle(), '', $course);
         $quizData = $this->generateQuizFromGemini([
@@ -206,13 +205,11 @@ class QuizService
             'student_performance' => $studentPerformance,
             'context' => 'final'
         ]);
-
         if ($quizData) {
             $quiz = $this->buildQuiz(null, $quizData['questions'], 'Final Quiz for Course: ' . $course->getTitle(), $course);
             $quiz->setCourse($course); // Ensure the existing course is used
             return $quiz;
         }
-
         return $this->createFallbackFinalQuiz($course, $studentPerformance);
     });
 }
@@ -222,12 +219,10 @@ class QuizService
         $client = HttpClient::create(['timeout' => 10]);
         $isPartQuiz = $inputData['context'] === 'part';
         $promptFile = $isPartQuiz ? __DIR__ . '/prompts/part_quiz_prompt.txt' : __DIR__ . '/prompts/final_quiz_prompt.txt';
-
         if (!file_exists($promptFile)) {
             $this->logger->error('Prompt file not found: ' . $promptFile);
             return null;
         }
-
         $promptTemplate = file_get_contents($promptFile);
         $content = $inputData['content'];
         if ($isPartQuiz && isset($inputData['part'])) {
@@ -247,7 +242,6 @@ class QuizService
                 }
             }
         }
-
         $prompt = str_replace(
             ['{{course_title}}', '{{part_title}}', '{{content}}', '{{student_performance}}'],
             [$inputData['course_title'], $inputData['part_title'] ?? '', $content, $inputData['student_performance'] ?? 'medium'],
@@ -255,9 +249,7 @@ class QuizService
         );
         // Append instructions to avoid HTML and use LaTeX
         $prompt .= "\nImportant: Do not use any HTML tags in the question text, options, explanations, or hints. For mathematical formulas, use LaTeX formatting enclosed in \\( \\) for inline math or \\[ \\] for display math. For example, use \\( x^2 \\) for x squared.";
-
             $this->logger->debug('Gemini API prompt: ' . substr($prompt, 0, 200) . '...');
-
             try {
                 $response = $client->request('POST', $this->geminiApiUrl, [
                     'headers' => ['Content-Type' => 'application/json'],
@@ -271,21 +263,17 @@ class QuizService
                         ]
                     ],
                 ]);
-
                 if ($response->getStatusCode() !== 200) {
                     $this->logger->error('Gemini API returned non-200 status: ' . $response->getStatusCode());
                     return null;
                 }
-
                 $quizText = $response->toArray(false)['candidates'][0]['content']['parts'][0]['text'] ?? '';
                 $quizText = trim(preg_replace('/^```(?:json)?\n|\n```$/', '', $quizText));
                 $quizData = json_decode($quizText, true);
-
                 if (json_last_error() !== JSON_ERROR_NONE || !isset($quizData['questions']) || !is_array($quizData['questions'])) {
                     $this->logger->error('Invalid JSON or quiz data format: ' . json_last_error_msg());
                     return null;
                 }
-
                 $validQuestions = array_filter($quizData['questions'], fn($q) => isset($q['type'], $q['text'], $q['correctAnswer'], $q['explanation'], $q['hint']) && in_array(strtolower($q['type']), ['mcq', 'numeric']));
                 if (count($validQuestions) >= 5) {
                     $this->logger->info('Successfully generated quiz with ' . count($validQuestions) . ' valid questions');
@@ -294,10 +282,8 @@ class QuizService
             } catch (TransportExceptionInterface | \Exception $e) {
                 $this->logger->error('Error during Gemini API call: ' . $e->getMessage());
             }
-
             return null;
         }
-
     private function buildQuiz(?Part $part, array $questions, string $title, ?Course $course = null): Quiz
     {
         $quiz = new Quiz();
@@ -307,12 +293,12 @@ class QuizService
         $quiz->setGeneratedByAI(true);
         $quiz->setCreatedAt(new \DateTime());
         $quiz->setScoreWeight(1.0);
-
         $mcqQuestions = array_filter($questions, fn($q) => strtolower($q['type']) === 'mcq');
         $numericQuestions = array_filter($questions, fn($q) => strtolower($q['type']) === 'numeric');
+        $textQuestions = array_filter($questions, fn($q) => strtolower($q['type']) === 'text');
         $mcqCount = min(5, count($mcqQuestions));
         $numericCount = min(5, count($numericQuestions));
-
+        $textCount = min(5, count($textQuestions));
         for ($i = 0; $i < $mcqCount; $i++) {
             $qData = array_values($mcqQuestions)[$i];
             $text = strip_tags($qData['text']);
@@ -326,10 +312,10 @@ class QuizService
                 ->setOptions($options)
                 ->setCorrectAnswer($qData['correctAnswer'])
                 ->setExplanation($explanation)
-                ->setHint($hint)  // Added hint
+                ->setHint($hint) // Added hint
                 ->setGeneratedByAI(true);
             $quiz->addQuestion($question);
-            $this->entityManager->persist($question);
+            // Removed persist here
         }
         for ($i = 0; $i < $numericCount; $i++) {
             $qData = array_values($numericQuestions)[$i];
@@ -342,42 +328,29 @@ class QuizService
                 ->setText($text)
                 ->setCorrectAnswer((string) $qData['correctAnswer'])
                 ->setExplanation($explanation)
-                ->setHint($hint)  // Added hint
+                ->setHint($hint) // Added hint
                 ->setGeneratedByAI(true);
             $quiz->addQuestion($question);
-            $this->entityManager->persist($question);
+            // Removed persist here
         }
-
-        while ($mcqCount < 5) {
+        for ($i = 0; $i < $textCount; $i++) {
+            $qData = array_values($textQuestions)[$i];
+            $text = strip_tags($qData['text']);
+            $explanation = strip_tags($qData['explanation'] ?? '');
+            $hint = strip_tags($qData['hint'] ?? '');
             $question = (new Question())
                 ->setQuiz($quiz)
-                ->setType(QuestionType::MCQ->value)
-                ->setText('Default MCQ question')
-                ->setOptions(['Option A', 'Option B', 'Option C', 'Option D'])
-                ->setCorrectAnswer('Option A')
-                ->setExplanation('This is a default explanation for the MCQ question.')
-                ->setHint('This is a default hint for the MCQ question.')
+                ->setType(QuestionType::Text->value)
+                ->setText($text)
+                ->setCorrectAnswer((string) $qData['correctAnswer'])
+                ->setExplanation($explanation)
+                ->setHint($hint) // Added hint
                 ->setGeneratedByAI(true);
             $quiz->addQuestion($question);
-            $this->entityManager->persist($question);
-            $mcqCount++;
+            // Removed persist here
         }
-        while ($numericCount < 5) {
-            $question = (new Question())
-                ->setQuiz($quiz)
-                ->setType(QuestionType::Numeric->value)
-                ->setText('Default numeric question')
-                ->setCorrectAnswer('0')
-                ->setExplanation('This is a default explanation for the numeric question.')
-                ->setHint('This is a default hint for the numeric question.')
-                ->setGeneratedByAI(true);
-            $quiz->addQuestion($question);
-            $this->entityManager->persist($question);
-            $numericCount++;
-        }
-
-        $this->entityManager->persist($quiz);
-        return $quiz; // Let the controller handle flush
+        // Removed persist($quiz)
+        return $quiz;
     }
 
     private function createFallbackQuiz(Part $part): Quiz
@@ -390,13 +363,12 @@ class QuizService
             ->setScoreWeight(1.0);
         $content = $this->extractRelevantContent($part->getCourse()->getTitle(), $part->getTitle(), $part);
         $baseTopic = strpos(strtolower($content), 'lagrange') !== false ? 'Lagrange Interpolation' : 'Polynomial Interpolation';
-
         $questions = [
             'mcq' => [
                 ['text' => "What is the main purpose of $baseTopic?", 'options' => ['Construct polynomials', 'Solve equations', 'Optimize', 'Classify'], 'correctAnswer' => 'Construct polynomials', 'explanation' => 'Interpolation constructs polynomials that pass through given data points exactly. Common mistake: confusing with approximation methods.', 'hint' => 'Think about fitting data exactly.' ],
                 ['text' => "What does $baseTopic use?", 'options' => ['Data points', 'Random samples', 'Derivatives', 'Integrals'], 'correctAnswer' => 'Data points', 'explanation' => 'It uses known data points (x,y pairs). Step: Build basis polynomials for each point.', 'hint' => 'Focus on given (x,y) pairs.' ],
                 ['text' => "Key feature of $baseTopic?", 'options' => ['Exact fit', 'Linear only', 'Optimization', 'Reduction'], 'correctAnswer' => 'Exact fit', 'explanation' => 'The polynomial fits all points exactly. Mistake: Thinking it minimizes error like regression.', 'hint' => 'It matches points precisely.' ],
-                ['text' => "Polynomials in $baseTopic?", 'options' => ['Basis', 'Orthogonal', 'Chebyshev', 'Fourier'], 'correctAnswer' => 'Basis', 'explanation' => '\\( l_i(x) = \\prod_{j \\neq i} \\frac{x - x_j}{x_i - x_j} \\).', 'hint' => 'Involves basis functions.' ],
+                ['text' => "Based on?", 'options' => ['Basis', 'Orthogonal', 'Chebyshev', 'Fourier'], 'correctAnswer' => 'Basis', 'explanation' => '\\\\( l_i(x) = \\\\prod_{j \\\\neq i} ((x - x_j)/(x_i - x_j)) \\\\).', 'hint' => 'Involves basis functions.' ],
                 ['text' => "Result at interpolation point?", 'options' => ['Matches data', 'Approximates derivative', 'Zero', 'Minimizes'], 'correctAnswer' => 'Matches data', 'explanation' => 'P(x_i) = y_i exactly. Common mistake: Expecting smooth curves beyond points (Runge phenomenon).', 'hint' => 'Exact at given points.' ],
             ],
             'numeric' => [
@@ -406,8 +378,14 @@ class QuizService
                 ['text' => "Sum of basis at point?", 'correctAnswer' => '1', 'explanation' => 'By construction, sum l_i(x) = 1 for Lagrange.', 'hint' => 'They sum to unity.' ],
                 ['text' => "Terms for 5 points?", 'correctAnswer' => '5', 'explanation' => 'Degree 4 polynomial has 5 terms (a0 + a1x + ... + a4x^4).', 'hint' => 'Degree +1 terms.' ],
             ],
+            'text' => [
+                ['text' => "Define $baseTopic", 'correctAnswer' => 'Polynomial fitting through points', 'explanation' => 'A method to construct a polynomial that passes exactly through a set of data points.', 'hint' => 'Describe the concept.' ],
+                ['text' => "Advantage of $baseTopic?", 'correctAnswer' => 'Exact fit at points', 'explanation' => 'Ensures the polynomial matches the data exactly at given points.', 'hint' => 'Key benefit.' ],
+                ['text' => "Disadvantage?", 'correctAnswer' => 'Oscillation', 'explanation' => 'High-degree polynomials can oscillate wildly between points (Runge phenomenon).', 'hint' => 'Common issue.' ],
+                ['text' => "Alternative method?", 'correctAnswer' => 'Spline interpolation', 'explanation' => 'Uses piecewise polynomials to avoid oscillation.', 'hint' => 'Another interpolation technique.' ],
+                ['text' => "Application?", 'correctAnswer' => 'Data fitting', 'explanation' => 'Used in graphics, engineering for curve fitting.', 'hint' => 'Real-world use.' ],
+            ],
         ];
-
         foreach ($questions['numeric'] as $qData) {
             $question = (new Question())
                 ->setQuiz($quiz)
@@ -418,7 +396,7 @@ class QuizService
                 ->setHint($qData['hint'])
                 ->setGeneratedByAI(false);
             $quiz->addQuestion($question);
-            $this->entityManager->persist($question);
+            // Removed persist here
         }
         foreach ($questions['mcq'] as $qData) {
             $question = (new Question())
@@ -431,12 +409,23 @@ class QuizService
                 ->setHint($qData['hint'])
                 ->setGeneratedByAI(false);
             $quiz->addQuestion($question);
-            $this->entityManager->persist($question);
+            // Removed persist here
         }
-
-        $this->entityManager->persist($quiz);
+        foreach ($questions['text'] as $qData) {
+            $question = (new Question())
+                ->setQuiz($quiz)
+                ->setType(QuestionType::Text->value)
+                ->setText($qData['text'])
+                ->setCorrectAnswer($qData['correctAnswer'])
+                ->setExplanation($qData['explanation'])
+                ->setHint($qData['hint'])
+                ->setGeneratedByAI(false);
+            $quiz->addQuestion($question);
+            // Removed persist here
+        }
+        // Removed persist($quiz)
         $this->logger->info('Generated fallback quiz for part ID ' . $part->getId());
-        return $quiz; // Let the controller handle flush
+        return $quiz; // Let the controller handle persist and flush
     }
 
     private function createFallbackFinalQuiz(Course $course, string $studentPerformance): Quiz
@@ -449,7 +438,6 @@ class QuizService
             ->setScoreWeight(1.0);
         $content = $this->extractRelevantContent($course->getTitle(), '', $course);
         $baseTopic = strpos(strtolower($content), 'lagrange') !== false ? 'Lagrange Interpolation' : 'Polynomial Interpolation';
-
         $mcqQuestions = [
             ['text' => "Primary goal of $baseTopic?", 'options' => ['Fit polynomials', 'Solve equations', 'Approximate', 'Optimize'], 'correctAnswer' => 'Fit polynomials', 'explanation' => 'Aims to fit a polynomial exactly through points. Step: Use basis to weight y-values.', 'hint' => 'Focus on exact fitting.' ],
             ['text' => "Method for $baseTopic?", 'options' => ['Lagrange', 'Gaussian', 'Fourier', 'Least squares'], 'correctAnswer' => 'Lagrange', 'explanation' => 'Lagrange method is direct. Mistake: Confusing with Newton (divided differences).', 'hint' => 'Named after a mathematician.' ],
@@ -457,7 +445,6 @@ class QuizService
             ['text' => "Based on?", 'options' => ['Data points', 'Random', 'Derivatives', 'Integrals'], 'correctAnswer' => 'Data points', 'explanation' => 'Only needs (x,y) pairs, no derivatives.', 'hint' => 'Uses given values.' ],
             ['text' => "Challenge in $baseTopic?", 'options' => ['Runge’s phenomenon', 'Overfitting', 'Underfitting', 'Variance'], 'correctAnswer' => 'Runge’s phenomenon', 'explanation' => 'High-degree polynomials oscillate. Solution: Use splines or Chebyshev points.', 'hint' => 'Oscillation issue.' ],
         ];
-
         $numericQuestions = $studentPerformance === 'high' ? [
             ['text' => "Degree for 4 points?", 'correctAnswer' => '3', 'explanation' => 'n points need degree at most n-1.', 'hint' => 'One less than points.' ],
             ['text' => "Points for cubic?", 'correctAnswer' => '4', 'explanation' => 'Cubic is degree 3, needs 4 points.', 'hint' => 'Degree +1.' ],
@@ -471,7 +458,13 @@ class QuizService
             ['text' => "Basis sum at point?", 'correctAnswer' => '1', 'explanation' => 'Ensures interpolation property.', 'hint' => 'Total is one.' ],
             ['text' => "Points for quadratic?", 'correctAnswer' => '3', 'explanation' => 'Degree 2 needs 3 points.', 'hint' => 'Three for quadratic.' ],
         ];
-
+        $textQuestions = [
+            ['text' => "Explain $baseTopic briefly", 'correctAnswer' => 'Fitting polynomial through points', 'explanation' => 'Method to find polynomial passing exactly through data points.', 'hint' => 'Short definition.' ],
+            ['text' => "Key advantage?", 'correctAnswer' => 'Exact interpolation', 'explanation' => 'Matches data precisely at given points.', 'hint' => 'Main benefit.' ],
+            ['text' => "Potential drawback?", 'correctAnswer' => 'High oscillation', 'explanation' => 'Runge phenomenon in high degrees.', 'hint' => 'Common problem.' ],
+            ['text' => "Alternative to high-degree?", 'correctAnswer' => 'Piecewise interpolation', 'explanation' => 'Like splines, avoids oscillation.', 'hint' => 'Better method.' ],
+            ['text' => "Real-world use?", 'correctAnswer' => 'Curve fitting', 'explanation' => 'In engineering, graphics for smooth curves.', 'hint' => 'Practical application.' ],
+        ];
         foreach ($numericQuestions as $qData) {
             $question = (new Question())
                 ->setQuiz($quiz)
@@ -482,7 +475,7 @@ class QuizService
                 ->setHint($qData['hint'])
                 ->setGeneratedByAI(false);
             $quiz->addQuestion($question);
-            $this->entityManager->persist($question);
+            // Removed persist here
         }
         foreach ($mcqQuestions as $qData) {
             $question = (new Question())
@@ -495,12 +488,23 @@ class QuizService
                 ->setHint($qData['hint'])
                 ->setGeneratedByAI(false);
             $quiz->addQuestion($question);
-            $this->entityManager->persist($question);
+            // Removed persist here
         }
-
-        $this->entityManager->persist($quiz);
+        foreach ($textQuestions as $qData) {
+            $question = (new Question())
+                ->setQuiz($quiz)
+                ->setType(QuestionType::Text->value)
+                ->setText($qData['text'])
+                ->setCorrectAnswer($qData['correctAnswer'])
+                ->setExplanation($qData['explanation'])
+                ->setHint($qData['hint'])
+                ->setGeneratedByAI(false);
+            $quiz->addQuestion($question);
+            // Removed persist here
+        }
+        // Removed persist($quiz)
         $this->logger->info('Generated fallback final quiz for course ID ' . $course->getId());
-        return $quiz; // Let the controller handle flush
+        return $quiz; // Let the controller handle persist and flush
     }
 
     private function extractRelevantContent(string $courseTitle, ?string $partTitle, $entity): string
@@ -533,5 +537,37 @@ class QuizService
         $cacheKey = 'final_' . $course->getId() . '_' . $quizMode;
         $this->cache->delete($cacheKey);
         $this->logger->info('Invalidated cache for final quiz: ' . $cacheKey);
+    }
+
+    public function removeQuizAndAttempts(Quiz $quiz): void
+    {
+        $part = $quiz->getPart();
+        $course = $quiz->getCourse();
+        $this->logger->info('Removing quiz ID ' . $quiz->getId());
+        $attempts = $this->entityManager->getRepository(QuizAttempt::class)->findBy(['quiz' => $quiz]);
+        foreach ($attempts as $attempt) {
+            $this->entityManager->remove($attempt);
+        }
+        foreach ($quiz->getQuestions() as $question) {
+            $this->entityManager->remove($question);
+        }
+        if ($part) {
+            $part->setQuiz(null);
+            $this->entityManager->persist($part);
+        }
+        if ($course) {
+            $course->setFinalQuiz(null);
+            $this->entityManager->persist($course);
+        }
+        $quiz->setPart(null);
+        $quiz->setCourse(null);
+        $this->entityManager->remove($quiz);
+        // Removed flush and clear here to avoid detaching entities
+        if ($part) {
+            $this->invalidatePartQuizCache($part);
+        }
+        if ($course) {
+            $this->invalidateFinalQuizCache($course);
+        }
     }
 }

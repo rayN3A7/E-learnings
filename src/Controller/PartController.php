@@ -74,13 +74,8 @@ class PartController extends AbstractController
         $course = $part->getCourse();
         $partQuiz = $part->getQuiz();
         if (!$partQuiz) {
-            // Generate quiz if not exists (default to 'ai')
-            $quizMode = 'ai'; // Default to AI
-            $partQuiz = $this->quizService->getOrGeneratePartQuiz($user, $part, $quizMode);
-            if ($partQuiz) {
-                $part->setQuiz($partQuiz);
-                $this->entityManager->flush();
-            }
+            // Do not auto-generate in show to avoid overriding teacher intent
+            $this->addFlash('info', 'No quiz available for this part yet.');
         }
         $latestAttempt = null;
         $attemptCount = 0;

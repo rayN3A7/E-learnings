@@ -21,11 +21,11 @@ class VideoType extends AbstractType
                 'mapped' => false, // We'll handle file processing in the controller
                 'required' => false,
                 'constraints' => [
-                    new File([
-                        'maxSize' => '100M',
-                        'mimeTypes' => ['video/mp4'],
-                        'mimeTypesMessage' => 'Please upload a valid MP4 video',
-                    ]),
+                    new File(
+                        maxSize: '100M',
+                        mimeTypes: ['video/mp4'],
+                        mimeTypesMessage: 'Please upload a valid MP4 video'
+                    ),
                 ],
                 'attr' => ['class' => 'form-control'],
             ])

@@ -548,10 +548,10 @@
                             <p class="text-muted">Enroll or complete previous parts to access content.</p>
                         {% endif %}
                         {% if is_course_completed %}
-                            <div class="final-quiz-section {% if final_quiz.generatedByAI %}ai-quiz{% else %}manual-quiz{% endif %}">
-                                <h3 class="fw-bold">Final Course Quiz</h3>
-                                <p class="text-muted">Test your understanding of the entire course.</p>
-                                {% if final_quiz %}
+                            {% if final_quiz %}
+                                <div class="final-quiz-section {% if final_quiz.generatedByAI %}ai-quiz{% else %}manual-quiz{% endif %}">
+                                    <h3 class="fw-bold">Final Course Quiz</h3>
+                                    <p class="text-muted">Test your understanding of the entire course.</p>
                                     <form action="{{ path('app_quiz_submit', {'id': final_quiz.id}) }}" method="post" id="final-quiz-form" aria-label="Final course quiz">
                                         <input type="hidden" name="_token" value="{{ csrf_token('quiz_submit' ~ final_quiz.id) }}">
                                         {% for question in final_quiz.questions %}
@@ -577,10 +577,13 @@
                                         {% endfor %}
                                         <button type="submit" class="btn btn-primary" aria-label="Submit final quiz answers">Submit Final Quiz</button>
                                     </form>
-                                {% else %}
+                                </div>
+                            {% else %}
+                                <div class="final-quiz-section">
+                                    <h3 class="fw-bold">Final Course Quiz</h3>
                                     <p class="text-muted">Generating final quiz... Please check back soon.</p>
-                                {% endif %}
-                            </div>
+                                </div>
+                            {% endif %}
                         {% endif %}
                     </div>
                 </div>

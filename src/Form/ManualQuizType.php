@@ -24,7 +24,7 @@ class ManualQuizType extends AbstractType
                     'class' => 'form-control',
                     'placeholder' => 'Enter quiz title'
                 ],
-                'required' => true,
+                'required' => false,
             ])
             ->add('generatedByAI', HiddenType::class, [
                 'mapped' => true,
@@ -48,7 +48,6 @@ class ManualQuizType extends AbstractType
             $quiz = $event->getData();
             if ($quiz instanceof Quiz) {
                 $form->get('generatedByAI')->setData($quiz->isGeneratedByAI() ? '1' : '0');
-                // Ensure questions are initialized
                 $form->get('questions')->setData($quiz->getQuestions());
             }
         });
@@ -63,12 +62,14 @@ class ManualQuizType extends AbstractType
             }
         });
 
-        // Validate quiz has exactly 10 questions only if questions are provided (skip for AI/empty)
+        // Validate quiz only if parent form's quizMode is 'manual'
         $builder->addEventListener(FormEvents::POST_SUBMIT, function (FormEvent $event) {
             $form = $event->getForm();
+            $parentForm = $form->getParent();
+            $quizMode = $parentForm->has('quizMode') ? $parentForm->get('quizMode')->getData() : 'ai';
             $quiz = $form->getData();
-            if ($quiz instanceof Quiz && count($quiz->getQuestions()) > 0 && count($quiz->getQuestions()) !== 10) {
-                $form->addError(new FormError('Quiz must have exactly 10 questions.'));
+            if ($quizMode === 'manual' && $quiz instanceof Quiz && count($quiz->getQuestions()) > 0 && count($quiz->getQuestions()) !== 10) {
+                $form->addError(new FormError('Quiz must have exactly 10 questions when in manual mode.'));
             }
         });
     }

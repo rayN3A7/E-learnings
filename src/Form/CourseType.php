@@ -14,9 +14,11 @@ use Symfony\Component\Form\Extension\Core\Type\FileType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\Form\FormInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Form\FormEvent;
 use Symfony\Component\Form\FormEvents;
+use Symfony\Component\Validator\Constraints\File;
 
 class CourseType extends AbstractType
 {
@@ -38,6 +40,13 @@ class CourseType extends AbstractType
                 'mapped' => false,
                 'required' => false,
                 'attr' => ['class' => 'form-control'],
+                'constraints' => [
+                    new File(
+                        maxSize: '1024k',
+                        mimeTypes: ['image/*'],
+                        mimeTypesMessage: 'Please upload a valid image'
+                    ),
+                ],
             ])
             ->add('parts', CollectionType::class, [
                 'entry_type' => PartType::class,
@@ -69,6 +78,10 @@ class CourseType extends AbstractType
             ->add('finalQuiz', ManualQuizType::class, [
                 'label' => 'Final Quiz',
                 'required' => false,
+                'validation_groups' => function (FormInterface $form) {
+                    $mode = $form->getParent()->get('quizMode')->getData();
+                    return $mode === 'manual' ? ['Default'] : [];
+                },
                 'data_class' => Quiz::class,
             ]);
 
@@ -79,38 +92,37 @@ class CourseType extends AbstractType
             if ($course instanceof Course && $course->getFinalQuiz()) {
                 $quiz = $course->getFinalQuiz();
                 $form->get('quizMode')->setData($quiz->isGeneratedByAI() ? 'ai' : 'manual');
-                // Ensure questions are initialized
                 $form->get('finalQuiz')->setData($quiz);
             } else {
                 $form->get('quizMode')->setData('ai'); // Default to AI-generated
             }
         });
 
-        // Unset quiz data if mode is 'ai'
+        // Clear quiz data if mode is 'ai' and reset manual quiz fields
         $builder->addEventListener(FormEvents::PRE_SUBMIT, function (FormEvent $event) {
             $data = $event->getData();
             if (is_array($data)) {
                 if (isset($data['parts'])) {
                     foreach ($data['parts'] as &$partData) {
                         if (isset($partData['quizMode']) && $partData['quizMode'] === 'ai') {
-                            unset($partData['quiz']);
+                            $partData['quiz'] = null; // Clear manual quiz data
                         }
                     }
                 }
                 if (isset($data['quizMode']) && $data['quizMode'] === 'ai') {
-                    unset($data['finalQuiz']);
+                    $data['finalQuiz'] = null; // Clear final quiz data
                 }
                 $event->setData($data);
             }
         });
 
-        // Preserve AI-generated quiz data on submission or set generatedByAI to false for manual
+        // Preserve AI-generated quiz data or set generatedByAI for manual
         $builder->addEventListener(FormEvents::PRE_SUBMIT, function (FormEvent $event) {
             $data = $event->getData();
             $form = $event->getForm();
             $course = $form->getData();
             if (is_array($data) && isset($data['quizMode'])) {
-                if ($data['quizMode'] === 'ai' && $course instanceof Course && $course->getFinalQuiz()) {
+                if ($data['quizMode'] === 'ai' && !($data['regenerateFinalQuiz'] ?? false) && $course instanceof Course && $course->getFinalQuiz()) {
                     $existingQuiz = $course->getFinalQuiz();
                     $data['finalQuiz'] = [
                         'title' => $existingQuiz->getTitle(),
@@ -122,6 +134,8 @@ class CourseType extends AbstractType
                                 'options' => strtolower($question->getType()) === 'mcq' ? ($question->getOptions() ?? []) : [],
                                 'correctAnswer' => $question->getCorrectAnswer(),
                                 'generatedByAI' => $question->isGeneratedByAI() ? '1' : '0',
+                                'explanation' => $question->getExplanation(),
+                                'hint' => $question->getHint(),
                             ];
                         }, $existingQuiz->getQuestions()->toArray()),
                     ];
