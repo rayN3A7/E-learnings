@@ -1,7 +1,5 @@
-{% extends 'layout.html.twig' %}
-
+{% extends 'base.html.twig' %}
 {% block title %}{{ part.title }} - {{ course.title }} - eLEARNING{% endblock %}
-
 {% block css %}
     <link rel="stylesheet" href="{{ asset('css/custom.css') }}">
     <style>
@@ -16,6 +14,7 @@
             --shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
             --transition: all 0.4s ease;
             --gradient-bg: linear-gradient(135deg, #f0f4f8, #ffffff);
+            --highlight-bg: #fff3cd;
         }
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -247,6 +246,17 @@
         .manual-quiz .quiz-question {
             margin-bottom: 1.5rem;
         }
+        .recommended-videos .card {
+            transition: transform 0.3s ease;
+        }
+        .recommended-videos .card:hover {
+            transform: translateY(-5px);
+        }
+        .embed-container iframe {
+            width: 100%;
+            height: 200px;
+            border-radius: var(--border-radius);
+        }
         @media (max-width: 768px) {
             .course-header { padding: 3rem 0; }
             .course-header h1 { font-size: 2.25rem; }
@@ -255,9 +265,84 @@
             .btn-primary, .btn-retry, .btn-next { padding: 0.75rem 1.5rem; }
             .connector-arrow img { width: 30px; }
         }
+        .quiz-feedback {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: var(--secondary-color);
+            border-radius: var(--border-radius);
+        }
+        .question-feedback {
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            border-radius: 8px;
+        }
+        .question-feedback.correct {
+            background-color: rgba(46, 204, 113, 0.1);
+            border: 1px solid var(--success-color);
+        }
+        .question-feedback.incorrect {
+            background-color: rgba(231, 76, 60, 0.1);
+            border: 1px solid var(--error-color);
+        }
+        .explanation {
+            background: #f0f8ff;
+            padding: 10px;
+            border-radius: 8px;
+            font-style: italic;
+            margin-top: 1rem;
+        }
+        .quiz-section {
+            border: 1px solid #e2e8f0;
+            box-shadow: var(--shadow);
+        }
+        .retry-message {
+            background: var(--warning-color);
+            color: white;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            animation: fadeIn 0.5s ease;
+        }
+        .corrected-quiz {
+            background: var(--secondary-color);
+            padding: 1.5rem;
+            border-radius: var(--border-radius);
+        }
+        .congratulations-modal {
+            background: linear-gradient(135deg, #ffffff, #f8fafc);
+            border: 2px solid var(--success-color);
+            animation: popUp 0.6s ease, glow 2s infinite alternate;
+        }
+        @keyframes glow {
+            from { box-shadow: 0 0 10px rgba(46, 204, 113, 0.3); }
+            to { box-shadow: 0 0 20px rgba(46, 204, 113, 0.6); }
+        }
+        .quiz-question.incorrect-highlight {
+            background: var(--highlight-bg);
+            border-left: 4px solid var(--warning-color);
+        }
+        .correct-highlight {
+            border-left: 4px solid var(--success-color);
+            background: rgba(46, 204, 113, 0.1);
+        }
+        .explanation-text {
+            font-style: italic;
+            color: #718096;
+            margin-top: 0.5rem;
+        }
+        .next-part-btn {
+            margin-top: 1.5rem;
+        }
+        /* New styles for hints */
+        .hint-icon {
+            cursor: help;
+            font-size: 0.8rem;
+            background: #e2e8f0;
+            border-radius: 50%;
+            padding: 0.2rem 0.5rem;
+        }
     </style>
 {% endblock %}
-
 {% block body %}
     <section class="course-header">
         <div class="container">
@@ -265,7 +350,6 @@
             <p><a href="{{ path('app_course_details', {'id': course.id}) }}">{{ course.title }}</a></p>
         </div>
     </section>
-
     <section class="course-content py-5">
         <div class="container">
             <div class="content-section">
@@ -281,7 +365,6 @@
                         {% endif %}
                     </div>
                 {% endif %}
-
                 {% if part.writtenSection %}
                     <div class="written-section">
                         <h4 class="fw-bold mb-3">Written Content</h4>
@@ -305,7 +388,6 @@
                 {% else %}
                     <p class="text-muted">No written content available for this part.</p>
                 {% endif %}
-
                 {% if part.geogebraMaterialId %}
                     <div class="geogebra-container">
                         <h4 class="fw-bold mb-3">Interactive Graphing</h4>
@@ -313,20 +395,17 @@
                         <div id="ggb-element-{{ part.id }}" style="width: 100%; height: 400px;"></div>
                     </div>
                 {% endif %}
-
                 {% if part.geogebraMaterialId and part.tutorialContent %}
                     <div class="connector-arrow">
                         <img src="{{ asset('uploads/images/arrow.png') }}" alt="Down Arrow">
                     </div>
                 {% endif %}
-
                 {% if part.tutorialContent %}
                     <div class="tutorial">
                         <h4 class="fw-bold mb-3">Tutorial</h4>
                         {{ part.tutorialContent|raw }}
                     </div>
                 {% endif %}
-
                 {% if quiz %}
                     <div class="quiz-section {% if quiz.generatedByAI %}ai-quiz{% else %}manual-quiz{% endif %}">
                         <h4 class="fw-bold mb-3">Quiz: Test Your Knowledge</h4>
@@ -336,7 +415,6 @@
                                 <div class="progress-bar" role="progressbar" style="width: {{ (quiz.questions|length > 0 ? (1 / quiz.questions|length * 100) : 0) }}%" aria-valuenow="{{ quiz.questions|length > 0 ? (1 / quiz.questions|length * 100) : 0 }}" aria-valuemin="0" aria-valuemax="100"></div>
                             </div>
                         </div>
-
                         {% if latest_attempt %}
                             <p class="mt-3">Your last score: <strong>{{ latest_attempt.score }}%</strong></p>
                             {% if latest_attempt.score >= 70 %}
@@ -347,64 +425,130 @@
                                 <p class="text-danger">Score of 70% or higher needed to unlock the next part.</p>
                             {% endif %}
                         {% endif %}
-
                         {% if can_attempt %}
+                            {% if attempt_count > 0 and latest_attempt.score < 70 %}
+                                <div class="retry-message">
+                                    {% if attempt_count == 1 %}
+                                        Oops! Let's try again. Retry the quiz below.
+                                    {% elseif attempt_count == 2 %}
+                                        Close, but not quite. We've highlighted your previous wrong answers. Give it another shot!
+                                    {% endif %}
+                                </div>
+                            {% endif %}
                             <form action="{{ path('app_quiz_submit', {'id': quiz.id}) }}" method="post" id="quiz-form" enctype="application/x-www-form-urlencoded">
                                 <input type="hidden" name="_token" value="{{ csrf_token('quiz_submit' ~ quiz.id) }}">
                                 {% for question in quiz.questions %}
-                                    <div class="quiz-question" {% if quiz.generatedByAI %}style="--question-index: {{ loop.index }}"{% endif %}>
-                                        <h5 class="fw-bold">{{ loop.index }}. {{ question.text }}</h5>
-                                        {% if latest_attempt and feedback[question.id] is defined %}
-                                            <p class="correct-answer-text text-success">Correct Answer: {{ feedback[question.id].correctAnswer }}</p>
-                                        {% endif %}
+                                    <div class="quiz-question {% if attempt_count == 2 and question.id in incorrect_question_ids %}incorrect-highlight{% endif %}" {% if quiz.generatedByAI %}style="--question-index: {{ loop.index }}"{% endif %}>
+                                        <h5 class="fw-bold">{{ loop.index }}. {{ question.text | raw }}
+                                            {% if question.hint %}
+                                                <span class="ms-2 text-primary hint-icon" data-bs-toggle="popover" data-bs-placement="top" data-bs-content="{{ question.hint }}" data-bs-trigger="hover focus">ℹ️</span>
+                                            {% endif %}
+                                        </h5>
                                         {% if question.type|lower == 'mcq' %}
                                             {% for option in question.options %}
-                                                <div class="form-check {% if latest_attempt and feedback[question.id] is defined and feedback[question.id].userAnswer == option %} {% if feedback[question.id].isCorrect %}correct-answer{% else %}incorrect-answer{% endif %} {% endif %}">
-                                                    <input class="form-check-input" type="radio" name="answers[{{ question.id }}]" value="{{ option }}" id="option-{{ question.id }}-{{ loop.index }}" {% if latest_attempt and (latest_attempt.score < 70 or attempt_count >= 3) %}disabled{% endif %} required>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="radio" name="answers[{{ question.id }}]" value="{{ option }}" id="option-{{ question.id }}-{{ loop.index }}" required>
                                                     <label class="form-check-label" for="option-{{ question.id }}-{{ loop.index }}">{{ option }}</label>
                                                 </div>
                                             {% endfor %}
                                         {% elseif question.type|lower == 'numeric' %}
-                                            <input type="number" name="answers[{{ question.id }}]" class="form-control {% if latest_attempt and feedback[question.id] is defined %} {% if feedback[question.id].isCorrect %}correct-answer{% else %}incorrect-answer{% endif %} {% endif %}" step="0.01" placeholder="Enter your answer" {% if latest_attempt and (latest_attempt.score < 70 or attempt_count >= 3) %}disabled value="{{ feedback[question.id].correctAnswer|default('') }}"{% endif %} required>
+                                            <input type="number" name="answers[{{ question.id }}]" class="form-control" step="0.01" placeholder="Enter your answer" required>
                                         {% else %}
                                             <p class="text-danger">Unsupported question type: {{ question.type }}</p>
                                         {% endif %}
                                     </div>
                                 {% endfor %}
                                 <div class="mt-4">
-                                    {% if latest_attempt and latest_attempt.score < 70 and attempt_count < 3 %}
+                                    {% if attempt_count > 0 and latest_attempt.score < 70 %}
                                         <button type="submit" class="btn btn-retry btn-primary">Retry Quiz</button>
-                                    {% elseif latest_attempt and attempt_count >= 3 %}
-                                        <a href="{{ path('app_course_details', {'id': course.id}) }}" class="btn btn-next btn-primary">Next</a>
                                     {% else %}
                                         <button type="submit" class="btn btn-primary">Submit Quiz</button>
                                     {% endif %}
                                 </div>
                             </form>
                         {% else %}
-                            <p class="text-muted mt-3">All attempts for this quiz have been completed.</p>
-                            <a href="{{ path('app_course_details', {'id': course.id}) }}" class="btn btn-next btn-primary">Next</a>
+                            {% if not can_attempt and latest_attempt.score < 70 %}
+                                <div class="corrected-quiz">
+                                    <h5 class="fw-bold mb-3">Corrected Quiz</h5>
+                                    {% for question in quiz.questions %}
+                                        {% set qFeedback = feedback[question.id] ?? null %}
+                                        <div class="quiz-question {% if qFeedback and qFeedback.isCorrect %}correct-highlight{% endif %}">
+                                            <h5 class="fw-bold">{{ loop.index }}. {{ question.text | raw }}</h5>
+                                            <p class="text-success">Correct Answer: {{ question.correctAnswer }}</p>
+                                            {% if qFeedback and not qFeedback.isCorrect and question.explanation %}
+                                                <p class="explanation-text">Explanation: {{ question.explanation | raw }}</p>
+                                            {% endif %}
+                                        </div>
+                                    {% endfor %}
+                                    <a href="{{ path('app_course_details', {'id': course.id}) }}" class="btn btn-primary next-part-btn">Proceed to Next Part</a>
+                                </div>
+                            {% endif %}
                         {% endif %}
-
-                        <div class="congratulations-modal hidden" id="congratulations-modal">
+                        {% if latest_attempt and (latest_attempt.attemptNumber == 3 or (latest_attempt.score >= 70 and latest_attempt.attemptNumber == 1)) %}
+                            <div class="quiz-feedback">
+                                <h5>Quiz Results (Score: {{ latest_attempt.score }}%)</h5>
+                                {% for question in quiz.questions %}
+                                    {% set qFeedback = feedback[question.id] ?? null %}
+                                    {% if qFeedback %}
+                                        <div class="question-feedback {% if qFeedback.isCorrect %}correct{% else %}incorrect{% endif %}">
+                                            <p><strong>Question:</strong> {{ question.text | raw }}</p>
+                                            <p><strong>Your Answer:</strong> {{ qFeedback.userAnswer ?? 'No answer' }}</p>
+                                            {% if qFeedback.explanation is defined and qFeedback.explanation %}
+                                                <p class="explanation text-info"><strong>Explanation:</strong> {{ qFeedback.explanation | raw }}</p>
+                                            {% endif %}
+                                        </div>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <div id="congratulations-modal" class="congratulations-modal hidden">
                             <h3>Congratulations!</h3>
-                            <p>You aced the quiz with a perfect score!</p>
-                            <button class="btn btn-primary" onclick="closeModal()">Close</button>
+                            <p>You passed the quiz on your first try!</p>
+                            <button class="btn btn-primary" onclick="closeModal()">Continue</button>
                         </div>
                     </div>
                 {% else %}
                     <p class="text-muted">No quiz available for this part.</p>
                 {% endif %}
+               {% if recommendedVideos|length > 0 %}
+    <div class="recommended-videos mt-4">
+        <h4 class="fw-bold mb-3">Recommended Videos</h4>
+        <div class="row">
+            {% for video in recommendedVideos %}
+                <div class="col-md-4 mb-3">
+                    <div class="card shadow-sm rounded-3">
+                        <img src="{{ video.thumbnail }}" alt="{{ video.title }}" class="card-img-top" loading="lazy">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ video.title|u.truncate(50, '...') }}</h5>
+                            <p class="card-text text-muted">{{ video.description|u.truncate(100, '...') }}</p>
+                            <button class="btn btn-primary" onclick="playVideo('{{ video.videoId }}', this)">Play Video</button>
+                            <div class="embed-container mt-3" style="display: none;">
+                                <iframe width="100%" height="200" src="https://www.youtube-nocookie.com/embed/{{ video.videoId }}" frameborder="0" allowfullscreen loading="lazy"></iframe>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+{% else %}
+    <p class="text-muted">No recommended videos found.</p>
+{% endif %}
             </div>
         </div>
     </section>
 {% endblock %}
-
 {% block js %}
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <script>
+        function playVideo(videoId, button) {
+            const container = button.nextElementSibling;
+            container.style.display = 'block';
+            button.style.display = 'none';
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             try {
                 renderMathInElement(document.body, {
@@ -417,7 +561,6 @@
             } catch (e) {
                 console.error('KaTeX rendering failed:', e);
             }
-
             {% if part.geogebraMaterialId %}
                 const materialId = '{{ part.geogebraMaterialId|e('js') }}';
                 const partId = {{ part.id|e('js') }};
@@ -431,7 +574,7 @@
                         const ggbContainer = document.getElementById(`ggb-element-${partId}`);
                         if (ggbContainer) {
                             const ggbApp = new GGBApplet({
-                                appName: 'graphing',
+                                appName: '3d',  // Changed to '3d' to support potential 3D materials
                                 width: ggbContainer.offsetWidth,
                                 height: 400,
                                 showToolBar: true,
@@ -439,6 +582,7 @@
                                 showMenuBar: true,
                                 material_id: materialId
                             }, true);
+                            ggbApp.setHTML5Codebase('https://www.geogebra.org/apps/latest/web3d');  // Explicitly set latest codebase to avoid version/CORS issues
                             ggbApp.inject(`ggb-element-${partId}`, function() {
                                 if (ggbSpinner) ggbSpinner.style.display = 'none';
                             }, function(error) {
@@ -451,16 +595,13 @@
                     document.head.appendChild(ggbScript);
                 }
             {% endif %}
-
             const quizForm = document.getElementById('quiz-form');
             const modal = document.getElementById('congratulations-modal');
             const progressBar = document.querySelector('.progress-bar');
-
             function updateProgressBar(currentQuestion, totalQuestions) {
                 const progress = (currentQuestion / totalQuestions) * 100;
                 progressBar.style.width = `${progress}%`;
             }
-
             function showConfetti() {
                 confetti({
                     particleCount: 150,
@@ -469,28 +610,23 @@
                     colors: ['#4a90e2', '#2ecc71', '#f39c12']
                 });
             }
-
             function showModal() {
                 modal.classList.remove('hidden');
                 showConfetti();
             }
-
             window.closeModal = function() {
                 modal.classList.add('hidden');
+                window.location.href = '{{ path('app_course_details', {'id': course.id}) }}';
             };
-
-            {% if latest_attempt and latest_attempt.score == 100 and latest_attempt.attemptNumber == 1 %}
+            {% if latest_attempt and latest_attempt.score >= 70 and latest_attempt.attemptNumber == 1 %}
                 showModal();
             {% endif %}
-
             if (quizForm) {
                 const questions = document.querySelectorAll('.quiz-question');
                 updateProgressBar(1, questions.length);
-
                 questions.forEach((question, index) => {
                     question.style.setProperty('--question-index', index + 1);
                 });
-
                 quizForm.addEventListener('submit', function(e) {
                     const submitButton = quizForm.querySelector('button[type="submit"]');
                     submitButton.disabled = true;
@@ -503,6 +639,14 @@
                     }, 1000);
                 });
             }
+
+            // Initialize Bootstrap popovers for hints and explanations
+            const popoverTriggerList = document.querySelectorAll('[data-bs-toggle="popover"]');
+            const popoverList = [...popoverTriggerList].map(popoverTriggerEl => new bootstrap.Popover(popoverTriggerEl, {
+                html: true, // Allow HTML in content if needed
+                trigger: 'hover focus', // Allow hover works
+            }));
+            console.log('Popovers initialized:', popoverList.length); // Debug to check if init worked
         });
     </script>
 {% endblock %}

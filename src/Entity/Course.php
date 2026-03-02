@@ -25,7 +25,7 @@ class Course
     #[ORM\Column(type: 'datetime', name: 'createdAt')]
     private ?\DateTimeInterface $createdAt = null;
 
-    #[ORM\ManyToOne(targetEntity: User::class)]
+    #[ORM\ManyToOne(targetEntity: User::class, cascade: ['persist'])]
     #[ORM\JoinColumn(name: 'createdBy', referencedColumnName: 'id')]
     private ?User $createdBy = null;
 

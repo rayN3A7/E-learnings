@@ -3,11 +3,108 @@
 {% block title %}Courses - eGENIUS{% endblock %}
 
 {% block css %}
-    <link rel="stylesheet" href="{{ asset('css/bootstrap.min.css') }}" onerror="this.remove()">
-    <link rel="stylesheet" href="{{ asset('css/fontawesome.min.css') }}" onerror="this.remove()">
-    <link rel="stylesheet" href="{{ asset('css/animate.min.css') }}" onerror="this.remove()">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" onerror="this.remove()">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" onerror="this.remove()">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" onerror="this.remove()">
     <link rel="stylesheet" href="{{ asset('css/custom.css') }}">
     <style>
+        :root {
+            --primary: #4a90e2;
+            --secondary: #f1f5f9;
+            --success: #2ecc71;
+            --danger: #e74c3c;
+            --warning: #f39c12;
+            --info: #3498db;
+            --light: #f8f9fa;
+            --dark: #343a40;
+            --text: #2d3748;
+            --border-radius: 20px;
+            --shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            --transition: all 0.3s ease;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--secondary), #ffffff);
+            color: var(--text);
+        }
+        .courses-header {
+            background: linear-gradient(135deg, var(--primary), var(--info));
+            color: white;
+            padding: 100px 0 80px;
+            border-radius: 0 0 var(--border-radius) var(--border-radius);
+            box-shadow: var(--shadow);
+            position: relative;
+            overflow: hidden;
+            text-align: center;
+        }
+        .courses-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 70%);
+            animation: rotate 20s linear infinite;
+        }
+        @keyframes rotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .courses-header h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 1rem;
+        }
+        .courses-header .lead {
+            font-size: 1.25rem;
+            max-width: 600px;
+            margin: 0 auto;
+            opacity: 0.9;
+        }
+        .course-card {
+            background: white;
+            border: none;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+            overflow: hidden;
+            position: relative;
+        }
+        .course-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 32px rgba(0,0,0,0.1);
+        }
+        .course-img {
+            height: 180px;
+            object-fit: cover;
+            filter: brightness(0.9);
+            transition: var(--transition);
+        }
+        .course-card:hover .course-img {
+            filter: brightness(1);
+            transform: scale(1.05);
+        }
+        .course-info {
+            padding: 1.5rem;
+        }
+        .course-title {
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+        .course-desc {
+            font-size: 0.9rem;
+            color: var(--text);
+            opacity: 0.8;
+            margin-bottom: 1rem;
+        }
+        .icon-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
         .btn-icon {
             width: 40px;
             height: 40px;
@@ -17,55 +114,109 @@
             justify-content: center;
             background: none;
             border: none;
+            transition: var(--transition);
         }
-        .btn-icon img {
-            width: 24px;
-            height: 24px;
-            object-fit: contain;
+        .btn-icon:hover {
+            transform: scale(1.1);
         }
-        .btn-icon + .btn-icon {
-            margin-left: 5px;
+        .btn-icon i {
+            font-size: 1.2rem;
         }
-        .btn-primary.btn-icon img { }
-        .btn-success.btn-icon img { filter: brightness(0.3) sepia(1) hue-rotate(80deg) saturate(5); }
-        .btn-danger.btn-icon img { filter: brightness(0.4) sepia(1) hue-rotate(340deg) saturate(6); }
+        .btn-view {
+            color: var(--info);
+        }
+        .btn-edit {
+            color: var(--warning);
+        }
+        .btn-delete {
+            color: var(--danger);
+        }
         .btn-like {
             background: none;
             border: none;
             position: relative;
+            transition: var(--transition);
+            color: var(--dark);
         }
-        .btn-like img {
-            width: 24px;
-            height: 24px;
+        .btn-like:hover {
+            color: var(--danger);
         }
-        .btn-like.liked img { filter: brightness(0) saturate(100%) invert(17%) sepia(98%) saturate(7459%) hue-rotate(358deg) brightness(92%) contrast(114%); }
-        .icon-actions {
-            display: flex;
-            align-items: center;
-            gap: 10px;
+        .btn-like.liked {
+            color: var(--danger);
         }
-        .fade {
-            animation: fadeIn 0.3s ease-in-out;
+        .btn-like.liked:hover {
+            color: var(--dark);
         }
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
+        .btn-like i {
+            font-size: 1.2rem;
+        }
+        .like-count {
+            font-size: 0.85rem;
+            margin-left: 5px;
         }
         .error-message {
             display: none;
-            color: #dc3545;
+            color: var(--danger);
             font-size: 0.8em;
             position: absolute;
             bottom: -20px;
             left: 0;
+            white-space: nowrap;
+            background: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            box-shadow: var(--shadow);
         }
         .btn-like.error .error-message {
             display: block;
+            animation: fadeIn 0.3s ease-in-out;
         }
-        .btn-like.loading img {
+        .btn-like.loading i {
             opacity: 0.5;
+            animation: spin 1s linear infinite;
         }
-        /* Custom alert styles */
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .no-courses {
+            text-align: center;
+            padding: 80px 0;
+            color: var(--text);
+        }
+        .no-courses i {
+            font-size: 4rem;
+            color: var(--primary);
+            margin-bottom: 1rem;
+            animation: bounce 2s infinite;
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        .browse-btn {
+            border-radius: 50px;
+            padding: 0.75rem 2.5rem;
+            font-weight: 600;
+            background: var(--primary);
+            border: none;
+            transition: var(--transition);
+        }
+        .browse-btn:hover {
+            background: var(--info);
+            transform: scale(1.05);
+        }
+        .search-bar {
+            max-width: 600px;
+            margin: 0 auto 2rem;
+        }
+        .search-bar input {
+            border-radius: 50px 0 0 50px;
+        }
+        .search-bar button {
+            border-radius: 0 50px 50px 0;
+            background: var(--primary);
+        }
         .custom-alert {
             padding: 15px;
             margin-bottom: 15px;
@@ -100,50 +251,65 @@
             75% { transform: translateX(-1px) rotate(-1deg); }
             100% { transform: translateX(0); }
         }
+        @media (max-width: 768px) {
+            .courses-header { padding: 60px 0 40px; }
+            .courses-header h1 { font-size: 2.5rem; }
+            .course-card { margin-bottom: 1.5rem; }
+            .icon-actions { justify-content: space-between; }
+            .recommended-videos { margin-top: 2rem; }
+        }
     </style>
 {% endblock %}
 
 {% block body %}
-    <section class="courses-header animate__animated animate__fadeIn">
-        <div class="container text-center">
-            <h1 class="display-4 fw-bold">Explore Our Courses</h1>
+    <section class="courses-header animate__animated animate__fadeInDown">
+        <div class="container">
+            <h1>Explore Our Courses</h1>
             <p class="lead">Discover a wide range of numerical analysis courses to enhance your skills.</p>
         </div>
     </section>
 
-    <section class="courses-content py-5">
+    <section class="py-5">
         <div class="container">
-        {% for message in app.flashes('success') %}
-    <div class="custom-flash success-flash animate__animated animate__fadeIn" role="alert">
-        <span class="flash-icon">🎉</span> Woo-hoo, you nailed it! {{ message }}
-    </div>
-{% endfor %}
-{% for message in app.flashes('error') %}
-    <div class="custom-flash error-flash animate__animated animate__fadeIn" role="alert">
-        <span class="flash-icon">😱</span> Oops, we tripped over a brain cell! {{ message }}
-    </div>
-{% endfor %}
-            <div class="row g-4">
+            <div class="search-bar animate__animated animate__fadeIn">
+                <div class="input-group">
+                    <input type="text" class="form-control" placeholder="Search courses..." id="course-search">
+                    <button class="btn" type="button"><i class="fas fa-search"></i></button>
+                </div>
+            </div>
+
+            {% for message in app.flashes('success') %}
+                <div class="custom-alert success-alert animate__animated animate__fadeIn" role="alert">
+                    <span class="flash-icon">🎉</span> Woo-hoo, you nailed it! {{ message }}
+                </div>
+            {% endfor %}
+            {% for message in app.flashes('error') %}
+                <div class="custom-alert error-alert animate__animated animate__fadeIn" role="alert">
+                    <span class="flash-icon">😱</span> Oops, we tripped over a brain cell! {{ message }}
+                </div>
+            {% endfor %}
+
+            <div class="row g-4" id="course-list">
                 {% for course in courses %}
-                    <div class="col-lg-4 col-md-6">
-                        <div class="course-card card shadow-sm rounded-3 overflow-hidden">
-                            <img src="{{ course.image ? asset('Uploads/images/' ~ course.image) : 'https://via.placeholder.com/400x200?text=' ~ course.title }}" alt="{{ course.title }}" class="card-img-top">
-                            <div class="card-body p-4">
-                                <h5 class="card-title fw-bold">{{ course.title }}</h5>
-                                <p class="card-text">Parts: {{ course.parts|length }}</p>
+                    <div class="col-lg-4 col-md-6 animate__animated animate__fadeInUp" style="animation-delay: {{ loop.index * 0.1 }}s;">
+                        <div class="course-card">
+                            <img src="{{ course.image ? asset('uploads/images/' ~ course.image) : 'https://via.placeholder.com/400x180?text=' ~ course.title }}" alt="{{ course.title }}" class="course-img w-100">
+                            <div class="course-info">
+                                <h5 class="course-title">{{ course.title }}</h5>
+                                <p class="course-desc">{{ course.description|slice(0, 100) ~ '...' }}</p>
                                 <div class="d-flex justify-content-between align-items-center">
-                                    <a href="{{ path('app_course_details', {'id': course.id}) }}" class="btn btn-primary btn-icon cta-button" title="View Course">
-                                        <img src="{{ asset('Uploads/images/icons/view-icon.png') }}" alt="View">
+                                    <a href="{{ path('app_course_details', {'id': course.id}) }}" class="btn btn-icon btn-view cta-button" title="View Course">
+                                        <i class="fas fa-eye"></i>
                                     </a>
                                     <div class="icon-actions">
                                         {% if is_granted('ROLE_ADMIN') or (is_granted('ROLE_TEACHER') and course.createdBy == app.user) %}
-                                            <a href="{{ path('app_course_update', {'id': course.id}) }}" class="btn btn-icon cta-button" title="Update">
-                                                <img src="{{ asset('Uploads/images/icons/edit-icon.png') }}" alt="Edit">
+                                            <a href="{{ path('app_course_update', {'id': course.id}) }}" class="btn btn-icon btn-edit cta-button" title="Update">
+                                                <i class="fas fa-edit"></i>
                                             </a>
                                             <form action="{{ path('app_course_delete', {'id': course.id}) }}" method="post" onsubmit="return confirm('Are you sure you want to delete this course? This action cannot be undone.');" class="mb-0">
                                                 <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ course.id) }}">
-                                                <button type="submit" class="btn btn-danger btn-icon cta-button" title="Delete">
-                                                    <img src="{{ asset('Uploads/images/icons/trash-icon.png') }}" alt="Delete">
+                                                <button type="submit" class="btn btn-icon btn-delete cta-button" title="Delete">
+                                                    <i class="fas fa-trash"></i>
                                                 </button>
                                             </form>
                                         {% endif %}
@@ -151,7 +317,7 @@
                                                 data-course-id="{{ course.id }}"
                                                 data-user-id="1"
                                                 title="{{ course.isLikedByUser(app.user) ? 'Unlike' : 'Like' }}">
-                                            <img src="{{ asset('Uploads/images/icons/heart-icon.png') }}" alt="Like">
+                                            <i class="fas fa-heart"></i>
                                             <span class="like-count">{{ course.getLikeCount }}</span>
                                             <span class="error-message">Error liking course</span>
                                         </button>
@@ -161,19 +327,20 @@
                         </div>
                     </div>
                 {% else %}
-                    <div class="col-12 text-center">
-                        <p class="text-muted">No courses available.</p>
+                    <div class="col-12 no-courses animate__animated animate__zoomIn">
+                        <i class="fas fa-book-open"></i>
+                        <h4 class="fw-bold mb-3">No Courses Available Yet</h4>
+                        <p>Browse and enroll in exciting courses to start your learning journey!</p>
+                        <a href="{{ path('app_courses') }}" class="btn browse-btn">Explore More</a>
                     </div>
                 {% endfor %}
             </div>
         </div>
     </section>
-
-  
 {% endblock %}
 
 {% block js %}
-    <script src="{{ asset('js/bootstrap.bundle.min.js') }}" onerror="this.remove()"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" onerror="this.remove()"></script>
     <script src="{{ asset('js/main.js') }}" onerror="this.remove()"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -268,6 +435,27 @@
                         this.classList.remove('loading');
                         this.disabled = false;
                     });
+                });
+            });
+
+            // Course search functionality
+            const searchInput = document.getElementById('course-search');
+            const courseList = document.getElementById('course-list');
+            if (searchInput && courseList) {
+                searchInput.addEventListener('input', function() {
+                    const filter = this.value.toLowerCase();
+                    courseList.querySelectorAll('.col-lg-4').forEach(card => {
+                        const title = card.querySelector('.course-title').textContent.toLowerCase();
+                        card.style.display = title.includes(filter) ? '' : 'none';
+                    });
+                });
+            }
+
+            // Smooth scroll if needed
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    document.querySelector(this.getAttribute('href')).scrollIntoView({ behavior: 'smooth' });
                 });
             });
         });

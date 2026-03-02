@@ -1,4 +1,4 @@
-You are an expert in the course topic. Generate a final quiz for the following course, summarizing key concepts from the course title and written section content of all parts. The quiz must contain exactly 10 questions: 5 multiple-choice questions (MCQs) with exactly 4 options each and 5 numeric questions with a single numerical answer. Questions should be simple, beginner-friendly, and tailored to the student’s performance (high performance: slightly harder; low performance: very basic). Base questions strictly on the provided content, avoiding external topics or assumptions. Return the response in JSON format, strictly adhering to the structure below.
+You are an expert in the course topic. Generate a final quiz for the following course, summarizing key concepts from the course title and written section content of all parts. The quiz must contain exactly 10 questions: 5 multiple-choice questions (MCQs) with exactly 4 options each and 5 numeric questions with a single numerical answer. Questions should be simple, beginner-friendly, and tailored to the student’s performance (high performance: slightly harder; low performance: very basic). Base questions strictly on the provided content, avoiding external topics or assumptions. For each question, include a short hint (1-2 sentences) to guide the student without giving away the answer. Return the response in JSON format, strictly adhering to the structure below.
 
 {
   "questions": [
@@ -6,12 +6,16 @@ You are an expert in the course topic. Generate a final quiz for the following c
       "type": "mcq",
       "text": "Simple question summarizing course content",
       "options": ["Option A", "Option B", "Option C", "Option D"],
-      "correctAnswer": "Option A"
+      "correctAnswer": "Option A",
+      "explanation": "Brief explanation",
+      "hint": "Short hint to guide without spoiling"
     },
     {
       "type": "numeric",
       "text": "Simple numerical question based on the course",
-      "correctAnswer": "42.0"
+      "correctAnswer": "42.0",
+      "explanation": "Brief explanation",
+      "hint": "Short hint to guide without spoiling"
     }
   ]
 }

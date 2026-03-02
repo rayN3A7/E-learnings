@@ -8,11 +8,12 @@ use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\CollectionType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\Extension\Core\Type\HiddenType;
+use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Form\FormEvent;
 use Symfony\Component\Form\FormEvents;
 use Symfony\Component\Form\FormError;
-use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Form\CallbackTransformer;
 
 class QuestionType extends AbstractType
@@ -33,6 +34,7 @@ class QuestionType extends AbstractType
                 'choices' => [
                     'Multiple Choice' => 'mcq',
                     'Numeric' => 'numeric',
+                    'Text' => 'text',
                 ],
                 'choice_value' => function ($value) {
                     return $value;
@@ -44,7 +46,7 @@ class QuestionType extends AbstractType
                 'label' => 'Correct Answer',
                 'attr' => [
                     'class' => 'form-control',
-                    'placeholder' => 'e.g., A or 42'
+                    'placeholder' => 'e.g., A or 42 or exact text'
                 ],
                 'required' => true,
             ])
@@ -68,6 +70,24 @@ class QuestionType extends AbstractType
                 'by_reference' => false,
                 'attr' => ['class' => 'options-collection'],
                 'label' => 'Options (for MCQ)',
+            ])
+            ->add('explanation', TextareaType::class, [
+                'label' => 'Explanation (optional)',
+                'attr' => [
+                    'class' => 'form-control',
+                    'placeholder' => 'Provide a step-by-step explanation for the correct answer and common mistakes',
+                    'rows' => 4,
+                ],
+                'required' => false,
+            ])
+            ->add('hint', TextareaType::class, [
+                'label' => 'Hint (optional)',
+                'attr' => [
+                    'class' => 'form-control',
+                    'placeholder' => 'Provide a helpful hint for the question (shown on hover)',
+                    'rows' => 3,
+                ],
+                'required' => false,
             ]);
 
         // Transform generatedByAI to ensure boolean values
@@ -120,25 +140,29 @@ class QuestionType extends AbstractType
             if ($question instanceof Question) {
                 $form->get('type')->setData($type);
                 $form->get('generatedByAI')->setData($question->isGeneratedByAI() ? '1' : '0');
+                $form->get('explanation')->setData($question->getExplanation());
+                $form->get('hint')->setData($question->getHint());
             }
         });
 
-        // Normalize type to lowercase on submission
+        // Normalize type to lowercase on submission and handle null options
         $builder->addEventListener(FormEvents::PRE_SUBMIT, function (FormEvent $event) {
             $data = $event->getData();
             if (is_array($data) && isset($data['type'])) {
                 $data['type'] = strtolower($data['type']);
+                if (!isset($data['options'])) {
+                    $data['options'] = [];
+                }
                 if ($data['type'] !== 'mcq') {
                     $data['options'] = []; // Clear options for non-MCQ
                 } else {
-                    if (isset($data['options'])) {
-                        $data['options'] = array_slice($data['options'], 0, 4);
-                        while (count($data['options']) < 4) {
-                            $data['options'][] = '';
-                        }
-                    } else {
-                        $data['options'] = ['', '', '', ''];
+                    // Trim and filter empty options, then pad with defaults if less than 4
+                    $data['options'] = array_values(array_filter(array_map('trim', $data['options']), fn($o) => $o !== ''));
+                    $defaultOptions = ['Option A', 'Option B', 'Option C', 'Option D'];
+                    while (count($data['options']) < 4) {
+                        $data['options'][] = $defaultOptions[count($data['options'])];
                     }
+                    $data['options'] = array_slice($data['options'], 0, 4);
                 }
                 $event->setData($data);
             }
@@ -156,7 +180,7 @@ class QuestionType extends AbstractType
                         $form->get('options')->addError(new FormError('MCQ questions must have exactly 4 options.'));
                     } else {
                         foreach ($options as $option) {
-                            if (empty(trim($option))) {
+                            if (trim($option) === '') {
                                 $form->get('options')->addError(new FormError('All options must be filled for MCQ questions.'));
                                 break;
                             }
@@ -166,6 +190,8 @@ class QuestionType extends AbstractType
                     if (!is_numeric($question->getCorrectAnswer())) {
                         $form->get('correctAnswer')->addError(new FormError('Correct answer must be numeric for numeric questions.'));
                     }
+                } elseif ($type === 'text') {
+                    // No specific validation for text questions
                 }
             }
         });

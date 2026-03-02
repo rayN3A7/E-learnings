@@ -56,3 +56,8 @@ services:
             $entityManager: '@doctrine.orm.entity_manager'
             $slugger: '@slugger'
             $logger: '@logger'
+
+    App\Service\YouTubeService:
+        arguments:
+            $httpClient: '@http_client'
+            $apiKey: '%env(YOUTUBE_API_KEY)%'

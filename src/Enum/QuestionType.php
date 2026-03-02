@@ -4,6 +4,7 @@ namespace App\Enum;
 
 enum QuestionType: string
 {
-    case MCQ = 'MCQ';
+    case MCQ = 'mcq';
     case Numeric = 'numeric';
+    case Text = 'text';
 }

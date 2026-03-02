@@ -73,22 +73,22 @@ class QuizController extends AbstractController
             return $this->redirectToRoute('app_part_details', ['id' => $quiz->getPart()->getId()]);
         }
 
-      $answers = $request->request->all()['answers'] ?? [];
-if (!is_array($answers)) {
-    $this->logger->error('Invalid answers format', ['quiz_id' => $id, 'user_id' => $user->getId(), 'answers' => $answers]);
-    $this->addFlash('error', 'Invalid answers format.');
-    return $this->redirectToRoute('app_part_details', ['id' => $quiz->getPart()->getId()]);
-}
+        $answers = $request->request->all()['answers'] ?? [];
+        if (!is_array($answers)) {
+            $this->logger->error('Invalid answers format', ['quiz_id' => $id, 'user_id' => $user->getId(), 'answers' => $answers]);
+            $this->addFlash('error', 'Invalid answers format.');
+            return $this->redirectToRoute('app_part_details', ['id' => $quiz->getPart()->getId()]);
+        }
 
-$result = $this->quizService->evaluateQuiz($quiz, $answers, $user);
+        $result = $this->quizService->evaluateQuiz($quiz, $answers, $user);
 
-$attempt = new QuizAttempt();
-$attempt->setUser($user);
-$attempt->setQuiz($quiz);
-$attempt->setAnswers($result['feedback'] ?? []); // Ensure feedback is an array
-$attempt->setScore($result['score']);
-$attempt->setTakenAt(new \DateTime());
-$attempt->setAttemptNumber($result['attemptNumber']);
+        $attempt = new QuizAttempt();
+        $attempt->setUser($user);
+        $attempt->setQuiz($quiz);
+        $attempt->setAnswers($result['feedback'] ?? []); // Ensure feedback is an array
+        $attempt->setScore($result['score']);
+        $attempt->setTakenAt(new \DateTime());
+        $attempt->setAttemptNumber($result['attemptNumber']);
 
         $this->entityManager->persist($attempt);
         if ($result['score'] >= 70 || $result['attemptNumber'] >= 3) {

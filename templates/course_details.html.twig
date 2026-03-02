@@ -514,7 +514,11 @@
                                         <input type="hidden" name="_token" value="{{ csrf_token('quiz_submit' ~ current_part.quiz.id) }}">
                                         {% for question in current_part.quiz.questions %}
                                             <div class="quiz-question" {% if current_part.quiz.generatedByAI %}style="--question-index: {{ loop.index }}"{% endif %}>
-                                                <h5 class="fw-bold">{{ loop.index }}. {{ question.text }}</h5>
+                                                <h5 class="fw-bold">{{ loop.index }}. {{ question.text }}
+                                                    {% if question.hint %}
+                                                        <span class="ms-2 text-primary hint-icon" data-bs-toggle="popover" data-bs-placement="top" data-bs-content="{{ question.hint }}" data-bs-trigger="hover focus">ℹ️</span>
+                                                    {% endif %}
+                                                </h5>
                                                 {% if current_quiz_attempt and feedback[question.id] is defined %}
                                                     <p class="correct-answer-text text-success">Correct Answer: {{ feedback[question.id].correctAnswer }}</p>
                                                 {% endif %}
@@ -544,15 +548,19 @@
                             <p class="text-muted">Enroll or complete previous parts to access content.</p>
                         {% endif %}
                         {% if is_course_completed %}
-                            <div class="final-quiz-section {% if final_quiz.generatedByAI %}ai-quiz{% else %}manual-quiz{% endif %}">
-                                <h3 class="fw-bold">Final Course Quiz</h3>
-                                <p class="text-muted">Test your understanding of the entire course.</p>
-                                {% if final_quiz %}
+                            {% if final_quiz %}
+                                <div class="final-quiz-section {% if final_quiz.generatedByAI %}ai-quiz{% else %}manual-quiz{% endif %}">
+                                    <h3 class="fw-bold">Final Course Quiz</h3>
+                                    <p class="text-muted">Test your understanding of the entire course.</p>
                                     <form action="{{ path('app_quiz_submit', {'id': final_quiz.id}) }}" method="post" id="final-quiz-form" aria-label="Final course quiz">
                                         <input type="hidden" name="_token" value="{{ csrf_token('quiz_submit' ~ final_quiz.id) }}">
                                         {% for question in final_quiz.questions %}
                                             <div class="quiz-question" {% if final_quiz.generatedByAI %}style="--question-index: {{ loop.index }}"{% endif %}>
-                                                <h5 class="fw-bold">{{ loop.index }}. {{ question.text }}</h5>
+                                                <h5 class="fw-bold">{{ loop.index }}. {{ question.text }}
+                                                    {% if question.hint %}
+                                                        <span class="ms-2 text-primary hint-icon" data-bs-toggle="popover" data-bs-placement="top" data-bs-content="{{ question.hint }}" data-bs-trigger="hover focus">ℹ️</span>
+                                                    {% endif %}
+                                                </h5>
                                                 {% if question.type|lower == 'mcq' %}
                                                     {% for option in question.options %}
                                                         <div class="form-check">
@@ -569,10 +577,13 @@
                                         {% endfor %}
                                         <button type="submit" class="btn btn-primary" aria-label="Submit final quiz answers">Submit Final Quiz</button>
                                     </form>
-                                {% else %}
+                                </div>
+                            {% else %}
+                                <div class="final-quiz-section">
+                                    <h3 class="fw-bold">Final Course Quiz</h3>
                                     <p class="text-muted">Generating final quiz... Please check back soon.</p>
-                                {% endif %}
-                            </div>
+                                </div>
+                            {% endif %}
                         {% endif %}
                     </div>
                 </div>
@@ -583,6 +594,7 @@
 {% block js %}
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             try {
@@ -596,33 +608,6 @@
             } catch (e) {
                 console.error('KaTeX rendering failed:', e);
             }
-            const enrollButton = document.getElementById('enroll-button');
-            if (enrollButton) {
-                enrollButton.addEventListener('click', function() {
-                    enrollButton.disabled = true;
-                    enrollButton.textContent = 'Enrolling...';
-                    enrollButton.classList.add('animate__animated', 'animate__pulse');
-                    setTimeout(() => {
-                        enrollButton.classList.remove('animate__animated', 'animate__pulse');
-                        enrollButton.disabled = false;
-                        enrollButton.textContent = 'Enroll Now';
-                    }, 1000);
-                });
-            }
-            const quizForms = document.querySelectorAll('#quiz-form-{{ current_part.id }}, #final-quiz-form');
-            quizForms.forEach(form => {
-                form.addEventListener('submit', function(e) {
-                    const submitButton = form.querySelector('button[type="submit"]');
-                    submitButton.disabled = true;
-                    submitButton.textContent = 'Submitting...';
-                    submitButton.classList.add('animate__animated', 'animate__pulse');
-                    setTimeout(() => {
-                        submitButton.classList.remove('animate__animated', 'animate__pulse');
-                        submitButton.disabled = false;
-                        submitButton.textContent = submitButton.getAttribute('aria-label').includes('final') ? 'Submit Final Quiz' : 'Submit Quiz';
-                    }, 1000);
-                });
-            });
             {% if current_part and current_part.geogebraMaterialId %}
                 const materialId = '{{ current_part.geogebraMaterialId|e('js') }}';
                 const partId = {{ current_part.id|e('js') }};
@@ -636,7 +621,7 @@
                         const ggbContainer = document.getElementById(`ggb-element-${partId}`);
                         if (ggbContainer) {
                             const ggbApp = new GGBApplet({
-                                appName: 'graphing',
+                                appName: '3d',  // Use '3d' to support potential 3D materials and avoid CORS issues
                                 width: ggbContainer.offsetWidth,
                                 height: 400,
                                 showToolBar: true,
@@ -644,26 +629,71 @@
                                 showMenuBar: true,
                                 material_id: materialId
                             }, true);
+                            ggbApp.setHTML5Codebase('https://www.geogebra.org/apps/latest/web3d');  // Explicit latest codebase to prevent version/CORS problems
                             ggbApp.inject(`ggb-element-${partId}`, function() {
                                 if (ggbSpinner) ggbSpinner.style.display = 'none';
                             }, function(error) {
                                 if (ggbSpinner) ggbSpinner.style.display = 'none';
                                 ggbContainer.innerHTML = '<p class="text-danger">Failed to load GeoGebra applet. Please try again later.</p>';
+                                console.error('GeoGebra initialization failed:', error);
                             });
                         }
                     };
                     document.head.appendChild(ggbScript);
                 }
             {% endif %}
-            // Show floating labels briefly on every page load
-            document.querySelectorAll('.forum-icon-btn').forEach(btn => {
-                btn.classList.add('show-label');
-            });
-            setTimeout(() => {
-                document.querySelectorAll('.forum-icon-btn').forEach(btn => {
-                    btn.classList.remove('show-label');
+            const quizForm = document.getElementById('quiz-form');
+            const modal = document.getElementById('congratulations-modal');
+            const progressBar = document.querySelector('.progress-bar');
+            function updateProgressBar(currentQuestion, totalQuestions) {
+                const progress = (currentQuestion / totalQuestions) * 100;
+                progressBar.style.width = `${progress}%`;
+            }
+            function showConfetti() {
+                confetti({
+                    particleCount: 150,
+                    spread: 80,
+                    origin: { y: 0.6 },
+                    colors: ['#4a90e2', '#2ecc71', '#f39c12']
                 });
-            }, 3000); // Hide after 3 seconds
+            }
+            function showModal() {
+                modal.classList.remove('hidden');
+                showConfetti();
+            }
+            window.closeModal = function() {
+                modal.classList.add('hidden');
+                window.location.href = '{{ path('app_course_details', {'id': course.id}) }}';
+            };
+            {% if current_quiz_attempt and current_quiz_attempt.score >= 70 and current_quiz_attempt.attemptNumber == 1 %}
+                showModal();
+            {% endif %}
+            if (quizForm) {
+                const questions = document.querySelectorAll('.quiz-question');
+                updateProgressBar(1, questions.length);
+                questions.forEach((question, index) => {
+                    question.style.setProperty('--question-index', index + 1);
+                });
+                quizForm.addEventListener('submit', function(e) {
+                    const submitButton = quizForm.querySelector('button[type="submit"]');
+                    submitButton.disabled = true;
+                    submitButton.textContent = 'Submitting...';
+                    submitButton.classList.add('animate__animated', 'animate__pulse');
+                    setTimeout(() => {
+                        submitButton.classList.remove('animate__animated', 'animate__pulse');
+                        submitButton.disabled = false;
+                        submitButton.textContent = submitButton.classList.contains('btn-retry') ? 'Retry Quiz' : 'Submit Quiz';
+                    }, 1000);
+                });
+            }
+
+            // Initialize Bootstrap popovers for hints and explanations
+            const popoverTriggerList = document.querySelectorAll('[data-bs-toggle="popover"]');
+            const popoverList = [...popoverTriggerList].map(popoverTriggerEl => new bootstrap.Popover(popoverTriggerEl, {
+                html: true, // Allow HTML in content if needed
+                trigger: 'hover focus', // Ensure hover works
+            }));
+            console.log('Popovers initialized:', popoverList.length); // Debug to check if init worked
         });
     </script>
 {% endblock %}
